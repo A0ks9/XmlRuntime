@@ -279,8 +279,7 @@ object DynamicLayoutInflation {
                     if (view is Button || attrs.containsKey("pressedColor")) {
                         val pressedColor =
                             attrs["pressedColor"]?.let { parseColor(view, it) } ?: adjustBrightness(
-                                backgroundColor,
-                                0.9f
+                                backgroundColor, 0.9f
                             )
                         view.background = createBackgroundDrawable(
                             view,
@@ -305,10 +304,7 @@ object DynamicLayoutInflation {
         }
 
         if (viewParams is ViewGroup.MarginLayoutParams) viewParams.setMargins(
-            marginLeft,
-            marginTop,
-            marginRight,
-            marginBottom
+            marginLeft, marginTop, marginRight, marginBottom
         )
         view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom)
         view.layoutParams = viewParams
@@ -333,8 +329,7 @@ object DynamicLayoutInflation {
                 val corner = CORNERS[i]
                 if (attrs.containsKey("cornerRadius$corner")) {
                     val radius = stringToDimension(
-                        attrs["cornerRadius$corner"].toString(),
-                        view.resources.displayMetrics
+                        attrs["cornerRadius$corner"].toString(), view.resources.displayMetrics
                     )
                     radii[i * 2] = radius
                     radii[i * 2 + 1] = radius
@@ -358,8 +353,12 @@ object DynamicLayoutInflation {
             gradientDrawable.setStroke(borderWidthPixel, borderColor)
             pressedGradientDrawable.setStroke(borderWidthPixel, borderColor)
         }
+        view.getGeneratedViewInfo().bgDrawable = gradientDrawable
         return StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_pressed), pressedGradientDrawable)
+            if (view is Button || attrs.containsKey("pressedColor")) addState(
+                intArrayOf(android.R.attr.state_pressed),
+                pressedGradientDrawable
+            )
             addState(intArrayOf(), gradientDrawable)
         }
     }
