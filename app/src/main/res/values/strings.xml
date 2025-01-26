@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">XmlRuntime</string>
+    <string name="choose_file">Choose File</string>
+</resources>
