@@ -10,7 +10,17 @@ import androidx.lifecycle.ViewModel;
 public class MainViewModel extends ViewModel {
 
     public static MutableLiveData<String> buttonText = new MutableLiveData<>("Choose File");
+    public static MutableLiveData<String> showXmlText = new MutableLiveData<>("Show Xml");
+    public static MutableLiveData<Boolean> enableShowing = new MutableLiveData<>(false);
     public static MutableLiveData<Uri> selectedFile = new MutableLiveData<>();
+
+    public void setShowXmlText(String text) {
+        showXmlText.setValue(text);
+    }
+
+    public void EnableShowingButton(boolean enable) {
+        enableShowing.setValue(enable);
+    }
 
     public MutableLiveData<String> getButtonText() {
         return buttonText;

@@ -3,22 +3,31 @@ package com.runtimexml.utils
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
 import android.net.Uri
+import android.text.InputType
+import android.text.TextUtils
 import android.util.Log
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
 import com.runtimexml.utils.DimensionConvertor.stringToDimension
 import com.runtimexml.utils.DimensionConvertor.stringToDimensionPixelSize
 import com.runtimexml.utils.UtilsKt.convertXml
+import com.runtimexml.utils.UtilsKt.getFileExtension
+import com.runtimexml.utils.interfaces.ViewParamRunnable
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -26,11 +35,28 @@ import java.lang.reflect.InvocationTargetException
 
 object DynamicLayoutInflation {
 
+    private const val NO_LAYOUT_RULE = -999
     private val CORNERS = listOf("TopLeft", "TopRight", "BottomLeft", "BottomRight")
+    private var ViewProperties = mutableMapOf<String, ViewParamRunnable>()
 
     @JvmStatic
     fun inflateJson(context: Context, uri: Uri, parent: ViewGroup?): View? = try {
-        convertXml(context.contentResolver, uri)?.let { createViews(context, it, parent) }
+        val fileExtension = getFileExtension(context, uri)
+        if (fileExtension != null && fileExtension.equals("json", ignoreCase = true)) {
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                createViews(context, JSONObject(inputStream.bufferedReader().readText()), parent)
+            }
+        } else if (fileExtension != null && fileExtension.equals("xml", ignoreCase = true)) {
+            convertXml(context.contentResolver, uri)?.let { createViews(context, it, parent) }
+        } else null
+    } catch (e: Exception) {
+        Log.e("DynamicLayoutInflation", "Error inflating JSON", e)
+        null
+    }
+
+    @JvmStatic
+    fun inflateJson(context: Context, json: JSONObject, parent: ViewGroup?): View? = try {
+        createViews(context, json, parent)
     } catch (e: Exception) {
         Log.e("DynamicLayoutInflation", "Error inflating JSON", e)
         null
@@ -39,6 +65,7 @@ object DynamicLayoutInflation {
     private fun createViews(context: Context, json: JSONObject, parent: ViewGroup?): View? {
         val view = getViewForName(context, json.getString("type")) ?: return null
         val children = json.optJSONArray("children")
+        parent?.addView(view)
         applyAttributes(view, getAttrsMap(json.getJSONObject("attributes")), parent)
         if ((children?.length() ?: 0) > 0 && view is ViewGroup) {
             parseChildren(context, children, view)
@@ -80,8 +107,10 @@ object DynamicLayoutInflation {
 
     private fun applyAttributes(view: View?, attrs: HashMap<String, String>, parent: ViewGroup?) {
         if (view == null) return
+        if (ViewProperties.isEmpty()) createViewProperties()
+
         val viewParams = view.layoutParams
-        var layoutRule = 0
+        var layoutRule = NO_LAYOUT_RULE
         var marginLeft = 0
         var marginRight = 0
         var marginTop = 0
@@ -94,8 +123,10 @@ object DynamicLayoutInflation {
         var hasCornerRadii = false
 
         for ((key, value) in attrs) {
-            ViewProperties.applyProperty(view, key, value, parent, attrs)
-            if (ViewProperties.viewRunnables.containsKey(key)) continue
+            if (ViewProperties.containsKey(key)) {
+                ViewProperties[key]?.apply(view, value, parent, attrs)
+                continue
+            }
 
             when {
                 key.startsWith("cornerRadius") -> {
@@ -248,7 +279,7 @@ object DynamicLayoutInflation {
                     stringToDimensionPixelSize(value, view.resources.displayMetrics)
             }
 
-            if (layoutRule != -999 && parent is RelativeLayout) {
+            if (layoutRule != NO_LAYOUT_RULE && parent is RelativeLayout) {
                 val anchor = if (listOf(
                         "layout_below",
                         "layout_above",
@@ -310,6 +341,218 @@ object DynamicLayoutInflation {
         view.layoutParams = viewParams
     }
 
+    private fun createViewProperties() {
+        ViewProperties = HashMap<String, ViewParamRunnable>(30)
+        ViewProperties["scaleType"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is ImageView) {
+                    val scaleType = when (value.lowercase()) {
+                        "center" -> ImageView.ScaleType.CENTER
+                        "center_crop" -> ImageView.ScaleType.CENTER_CROP
+                        "center_inside" -> ImageView.ScaleType.CENTER_INSIDE
+                        "fit_center" -> ImageView.ScaleType.FIT_CENTER
+                        "fit_end" -> ImageView.ScaleType.FIT_END
+                        "fit_start" -> ImageView.ScaleType.FIT_START
+                        "fit_xy" -> ImageView.ScaleType.FIT_XY
+                        "matrix" -> ImageView.ScaleType.MATRIX
+                        else -> view.scaleType // Default value
+                    }
+                    view.scaleType = scaleType
+                }
+            }
+        }
+
+        ViewProperties["orientation"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is LinearLayout) view.orientation = if (value.equals(
+                        "vertical", ignoreCase = true
+                    )
+                ) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
+            }
+        }
+
+        ViewProperties["text"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is TextView) view.text = value
+            }
+        }
+
+        ViewProperties["textSize"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is TextView) view.setTextSize(
+                    TypedValue.COMPLEX_UNIT_PX,
+                    stringToDimension(value, view.resources.displayMetrics)
+                )
+            }
+        }
+
+        ViewProperties["textColor"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is TextView) view.setTextColor(parseColor(view, value))
+            }
+        }
+
+        ViewProperties["textStyle"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is TextView) view.setTypeface(
+                    null, if (value.contains("bold")) Typeface.BOLD
+                    else if (value.contains("italic")) Typeface.ITALIC else Typeface.NORMAL
+                )
+            }
+        }
+
+        ViewProperties["textAlignment"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                val alignment = when (value) {
+                    "center" -> View.TEXT_ALIGNMENT_CENTER
+                    "right", "end" -> View.TEXT_ALIGNMENT_TEXT_END
+                    else -> View.TEXT_ALIGNMENT_TEXT_START
+                }
+                view?.textAlignment = alignment
+            }
+        }
+
+        ViewProperties["ellipsize"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is TextView) {
+                    val where = when (value) {
+                        "start" -> TextUtils.TruncateAt.START
+                        "middle" -> TextUtils.TruncateAt.MIDDLE
+                        "marquee" -> TextUtils.TruncateAt.MARQUEE
+                        else -> TextUtils.TruncateAt.END
+                    }
+                    view.ellipsize = where
+                }
+            }
+        }
+
+        ViewProperties["singleLine"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is TextView) {
+                    (view).setSingleLine()
+                }
+            }
+        }
+
+        ViewProperties["hint"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is EditText) {
+                    (view).hint = value
+                }
+            }
+        }
+
+        ViewProperties["inputType"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is TextView) {
+                    var inputType = when (value.lowercase()) {
+                        "textemailaddress" -> 0 or InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+                        "number" -> 0 or InputType.TYPE_CLASS_NUMBER
+                        "phone" -> 0 or InputType.TYPE_CLASS_PHONE
+                        else -> 0
+                    }
+                    if (inputType > 0) (view).inputType = inputType
+                }
+            }
+        }
+
+        ViewProperties["gravity"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                val gravity = parseGravity(value)
+                when (view) {
+                    is TextView -> (view).gravity = gravity
+                    is LinearLayout -> (view).gravity = gravity
+                    is RelativeLayout -> (view).gravity = gravity
+                }
+            }
+        }
+
+        ViewProperties["src"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view is ImageView) {
+                    var imageName = value
+                    if (imageName.startsWith("//")) imageName = "http:$imageName"
+
+                    if (imageName.startsWith("http")) {
+                        //if (imageLoader != null) {
+                        attrs["cornerRadius"]?.let {
+                            stringToDimensionPixelSize(it, view.resources.displayMetrics)
+                        } ?: 0
+                        //   if(radius > 0) imageLoader.loadRoundedImage(view, imageName, radius)
+                        //    else imageLoader.loadImage(view, imageName)
+                        //}
+                    } else if (imageName.startsWith("@drawable/")) {
+                        val drawableName = imageName.substring("@drawable/".length)
+                        view.setImageDrawable(getDrawable(view, drawableName))
+                    }
+                }
+            }
+        }
+
+        ViewProperties["visibility"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                val visibility = when (value.lowercase()) {
+                    "gone" -> View.GONE
+                    "invisible" -> View.INVISIBLE
+                    else -> View.VISIBLE
+                }
+                view?.visibility = visibility
+            }
+        }
+
+        ViewProperties["clickable"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                view?.isClickable = value.equals("true", ignoreCase = true)
+            }
+        }
+
+        ViewProperties["tag"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                if (view?.tag == null) view?.tag = value
+            }
+        }
+
+        ViewProperties["onClick"] = object : ViewParamRunnable {
+            override fun apply(
+                view: View?, value: String, parent: ViewGroup?, attrs: Map<String, String>
+            ) {
+                view?.setOnClickListener(getClickListener(parent, value))
+            }
+        }
+    }
+
     private fun createBackgroundDrawable(
         view: View,
         backgroundColor: Int,
@@ -356,8 +599,7 @@ object DynamicLayoutInflation {
         view.getGeneratedViewInfo().bgDrawable = gradientDrawable
         return StateListDrawable().apply {
             if (view is Button || attrs.containsKey("pressedColor")) addState(
-                intArrayOf(android.R.attr.state_pressed),
-                pressedGradientDrawable
+                intArrayOf(android.R.attr.state_pressed), pressedGradientDrawable
             )
             addState(intArrayOf(), gradientDrawable)
         }
@@ -384,10 +626,8 @@ object DynamicLayoutInflation {
         value.lowercase().split("[|]".toRegex()).forEach { part ->
             gravity = gravity or when (part) {
                 "center" -> Gravity.CENTER
-                "left" -> Gravity.LEFT
-                "start" -> Gravity.START
-                "right" -> Gravity.RIGHT
-                "end" -> Gravity.END
+                "left", "start" -> Gravity.START
+                "right", "end" -> Gravity.END
                 "top" -> Gravity.TOP
                 "bottom" -> Gravity.BOTTOM
                 "center_horizontal" -> Gravity.CENTER_HORIZONTAL
@@ -462,9 +702,10 @@ object DynamicLayoutInflation {
         }
     }
 
-    private fun setDelegate(root: View, delegate: Any) {
-        val generatedView = root.getGeneratedViewInfo()
-        generatedView.delegate = delegate
+    @JvmStatic
+    fun setDelegate(root: View?, delegate: Any) {
+        val generatedView = root?.getGeneratedViewInfo()
+        generatedView?.delegate = delegate
     }
 
     private fun View.getGeneratedViewInfo(): GeneratedView =
@@ -474,7 +715,6 @@ object DynamicLayoutInflation {
         if (root !is ViewGroup) return -1
         return (root.tag as? GeneratedView)?.viewID?.get(id) ?: root.childrenSequence()
             .mapNotNull { getViewID(it, id).takeIf { it > -1 } }.firstOrNull() ?: -1
-
     }
 
     private fun ViewGroup.childrenSequence(): Sequence<View> = object : Sequence<View> {

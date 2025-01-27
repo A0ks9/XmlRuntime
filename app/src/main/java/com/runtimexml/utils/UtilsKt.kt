@@ -1,9 +1,11 @@
 package com.runtimexml.utils
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
+import android.webkit.MimeTypeMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -155,4 +157,21 @@ object UtilsKt {
         Log.e("UtilsKt", "Error getting file name", e)
         null // Return null if an exception occurred getting file name
     }
+
+    @JvmStatic
+    fun getFileExtension(context: Context, uri: Uri): String? {
+        return when (uri.scheme) {
+            ContentResolver.SCHEME_CONTENT -> {
+                val mimeType = context.contentResolver.getType(uri)
+                MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
+            }
+
+            ContentResolver.SCHEME_FILE -> {
+                MimeTypeMap.getFileExtensionFromUrl(uri.toString())
+            }
+
+            else -> null
+        }
+    }
+
 }
