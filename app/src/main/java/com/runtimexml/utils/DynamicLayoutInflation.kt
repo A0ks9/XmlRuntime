@@ -105,10 +105,11 @@ object DynamicLayoutInflation {
      */
     private fun createViews(context: Context, json: JSONObject, parent: ViewGroup?): View? =
         getViewForName(context, json.getString("type"))?.apply {
-            //Add view to the parent
-            parent?.addView(this)
             //Apply attributes from JSON to the newly created view
             applyAttributes(this, getAttrsMap(json.getJSONObject("attributes")), parent)
+            //add View to parent
+            parent?.addView(this)
+
             if (this is ViewGroup && (json.optJSONArray("children")?.length() ?: 0) > 0) {
                 //If the view has children then parse these children.
                 parseChildren(context, json.optJSONArray("children"), this)
@@ -168,7 +169,15 @@ object DynamicLayoutInflation {
      * @param parent The parent ViewGroup of the view.
      */
     private fun applyAttributes(view: View, attrs: HashMap<String, String>, parent: ViewGroup?) {
-        val viewParams = view.layoutParams ?: return // If there are no layoutParams then return.
+        //Inside applyAttributes Function
+        val viewParams = view.layoutParams ?: if (parent is LinearLayout) LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        else RelativeLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+
         var layoutRule = NO_LAYOUT_RULE
         var marginLeft = 0
         var marginRight = 0
@@ -180,8 +189,15 @@ object DynamicLayoutInflation {
         var paddingBottom = 0
         var hasCornerRadius = false
         var hasCornerRadii = false
+
+        Log.d(
+            "DynamicLayoutInflation",
+            "Before apply attributes, View: ${view.javaClass.simpleName},  width: ${viewParams.width}, height: ${viewParams.height}, parent: ${parent?.javaClass?.simpleName}"
+        )
+
         //Iterate through each attributes
         for ((key, value) in attrs) {
+
             //First try to find the ViewParamAction in ViewProperties map.
             ViewProperties[key]?.apply(view, value, parent, attrs)
             //If a viewAction exists in the viewProperties map then skip the rest of the checks.
@@ -210,6 +226,10 @@ object DynamicLayoutInflation {
                             value, view.resources.displayMetrics, parent, true
                         )
                     }
+                    Log.d(
+                        "DynamicLayoutInflation",
+                        "width set : ${view.javaClass.simpleName}, value: $value,width: ${viewParams.width}"
+                    )
                 }
 
                 key in listOf("height", "layout_height") -> {
@@ -221,6 +241,11 @@ object DynamicLayoutInflation {
                             value, view.resources.displayMetrics, parent, false
                         )
                     }
+                    Log.d(
+                        "DynamicLayoutInflation",
+                        "height set: ${view.javaClass.simpleName}, value: $value, height: ${viewParams.height}"
+                    )
+
                 }
 
                 key == "layout_gravity" -> when (parent) {
@@ -298,48 +323,16 @@ object DynamicLayoutInflation {
                 key == "paddingBottom" -> paddingBottom =
                     stringToDimensionPixelSize(value, view.resources.displayMetrics)
             }
-
-            if (layoutRule != NO_LAYOUT_RULE && parent is RelativeLayout) {
-                val anchor = if (listOf(
-                        "layout_below",
-                        "layout_above",
-                        "layout_toLeftOf",
-                        "layout_toRightOf",
-                        "layout_alignBottom",
-                        "layout_alignTop",
-                        "layout_alignLeft",
-                        "layout_alignStart",
-                        "layout_alignRight",
-                        "layout_alignEnd"
-                    ).contains(key)
-                ) getViewID(parent, parseID(value)) else -1
-
-                (viewParams as RelativeLayout.LayoutParams).apply {
-                    if (anchor > -1) addRule(layoutRule, anchor)
-                    else if (value.equals("true", ignoreCase = true)) addRule(layoutRule)
-                }
-            }
-            if (attrs.containsKey("background") || attrs.containsKey("borderColor")) {
-                val bgValue = attrs["background"]
-                if (bgValue?.startsWith("@drawable/") == true) {
-                    view.background = getDrawable(view, bgValue.removePrefix("@drawable/"))
-                } else if (bgValue?.startsWith("#") == true || bgValue?.startsWith("@color/") == true) {
-                    val backgroundColor = parseColor(view, bgValue)
-                    val pressedColor =
-                        attrs["pressedColor"]?.let { parseColor(view, it) } ?: adjustBrightness(
-                            backgroundColor, 0.9f
-                        )
-                    view.background = createBackgroundDrawable(
-                        view, backgroundColor, pressedColor, attrs, hasCornerRadii, hasCornerRadius
-                    )
-                }
-            }
         }
+        Log.d(
+            "DynamicLayoutInflation",
+            "After applying attributes, View: ${view.javaClass.simpleName}, width: ${viewParams.width}, height: ${viewParams.height}"
+        )
         (viewParams as? ViewGroup.MarginLayoutParams)?.setMargins(
             marginLeft, marginTop, marginRight, marginBottom
         )
         view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom)
-        view.layoutParams = viewParams
+        view.layoutParams = viewParams // Set the layout params
     }
 
     /**
