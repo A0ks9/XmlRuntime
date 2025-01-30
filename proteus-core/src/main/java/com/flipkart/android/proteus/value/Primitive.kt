@@ -1,5 +1,6 @@
 package com.flipkart.android.proteus.value
 
+import com.flipkart.android.proteus.toolbox.LazilyParsedNumber
 import java.math.BigInteger
 
 class Primitive(value: Any?) : Value() {

@@ -1,6 +1,6 @@
 package com.flipkart.android.proteus.value
 
-import java.util.*
+import com.flipkart.android.proteus.toolbox.Utils
 
 class Layout(
     val type: String,
@@ -20,8 +20,8 @@ class Layout(
 
         val mergedData = (data.orEmpty() + include.data.orEmpty()).ifEmpty { null }
         val mergedExtras = ObjectValue().apply {
-            Utils.addAllEntries(this, this@Layout.extras)
-            Utils.addAllEntries(this, include.extras)
+            Utils.addAllEntries(this, this@Layout.extras!!)
+            Utils.addAllEntries(this, include.extras!!)
         }.takeIf { !it.isEmpty }
         return Layout(type, mergedAttributes, mergedData, mergedExtras)
     }
@@ -32,5 +32,4 @@ class Layout(
     data class Attribute(val id: Int, val value: Value) {
         fun copy(): Attribute = Attribute(id, value.copy())
     }
-
 }

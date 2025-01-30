@@ -1,5 +1,7 @@
 package com.flipkart.android.proteus
 
+import com.flipkart.android.proteus.value.Primitive
+
 object ProteusConstants {
 
     const val TYPE = "type"

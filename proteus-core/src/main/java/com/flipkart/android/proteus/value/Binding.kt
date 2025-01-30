@@ -3,6 +3,11 @@ package com.flipkart.android.proteus.value
 import android.content.Context
 import android.util.Log
 import androidx.collection.LruCache
+import com.flipkart.android.proteus.Function
+import com.flipkart.android.proteus.ProteusConstants
+import com.flipkart.android.proteus.processor.AttributeProcessor
+import com.flipkart.android.proteus.toolbox.Result
+import com.flipkart.android.proteus.toolbox.Utils
 import java.util.StringTokenizer
 import java.util.regex.Pattern
 import kotlin.Array as array
@@ -98,11 +103,11 @@ abstract class Binding : Value() {
                     getArrayItem(
                         current.asArray(), arrayIndex, false
                     ).run {
-                        current.asArray().remove(arrayIndex) // Use the captured index
+                        current.asArray().removeAt(arrayIndex) // Use the captured index
                         current.asArray().add(arrayIndex, value) // Use the captured index
                     }
                 } else {
-                    current.asObject()[token.value] =  value
+                    current.asObject()[token.value] = value
                 }
             }
 
@@ -110,13 +115,13 @@ abstract class Binding : Value() {
                 return when (parent) {
                     is Array -> {
                         parent.getOrNull(index)?.asObject() ?: ObjectValue().apply {
-                            parent.asArray().remove(index)
+                            parent.asArray().removeAt(index)
                             parent.asArray().add(index, this)
                         }
                     }
 
                     is ObjectValue -> {
-                        parent.get(token.value)?.asObject() ?: ObjectValue().apply {
+                        parent[token.value]?.asObject() ?: ObjectValue().apply {
                             parent.asObject()[token.value] = this
                         }
                     }
@@ -130,11 +135,11 @@ abstract class Binding : Value() {
             private fun getArray(parent: Value, token: String, index: Int): Array {
                 return when (parent) {
                     is Array -> parent.getOrNull(index)?.asArray() ?: Array().apply {
-                        parent.asArray().remove(index)
+                        parent.asArray().removeAt(index)
                         parent.asArray().add(index, this)
                     }
 
-                    else -> parent.asObject().get(token)?.asArray() ?: Array().apply {
+                    else -> parent.asObject()[token]?.asArray() ?: Array().apply {
                         parent.asObject()[token] = this
                     }
                 }
@@ -215,18 +220,18 @@ abstract class Binding : Value() {
                     }
                 }
                 return if (elementToReturn?.isNull == true) Result.NULL_EXCEPTION else Result.success(
-                    elementToReturn
+                    elementToReturn!!
                 )
             }
         }
 
         override fun evaluate(context: Context, data: Value, index: Int): Value =
-            resolve(tokens, data, index).let { if (it.isSuccess()) it.value else Null.INSTANCE }
+            resolve(tokens, data, index).let { if (it.isSuccess()) it.value else Null }
 
         override fun toString(): String = buildString {
             append(BINDING_PREFIX_0)
             append(BINDING_PREFIX_1)
-            append(Utils.join(tokens.map { it.value }, DELIMITER_OBJECT.toString()))
+            append(Utils.join(tokens.map { it.value }.toTypedArray(), DELIMITER_OBJECT.toString()))
             append(BINDING_SUFFIX)
         }
 
@@ -258,7 +263,7 @@ abstract class Binding : Value() {
             private fun resolve(
                 context: Context, inArgs: array<Value>?, data: Value, index: Int
             ): array<Value> {
-                return inArgs?.map { AttributeProcessor.evaluate(context, it, data, index) }
+                return inArgs?.map { AttributeProcessor.evaluate(context, it, data, index)!! }
                     ?.toTypedArray() ?: emptyArray()
             }
         }
@@ -276,7 +281,7 @@ abstract class Binding : Value() {
             }
 
         override fun toString(): String = String.format("@{fn:%s(%s)}",
-            function.name,
+            function.getName(),
             arguments?.let { Utils.join(it, ",", Utils.STYLE_SINGLE) })
     }
 

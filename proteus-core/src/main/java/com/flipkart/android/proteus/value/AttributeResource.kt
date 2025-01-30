@@ -3,6 +3,7 @@ package com.flipkart.android.proteus.value
 import android.content.Context
 import android.content.res.TypedArray
 import android.util.LruCache
+import com.flipkart.android.proteus.ProteusConstants
 import java.util.regex.Pattern
 
 class AttributeResource private constructor(val attributeId: Int) : Value() {

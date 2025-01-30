@@ -9,7 +9,6 @@ class NestedBinding private constructor(val value: Value) : Binding() {
 
         @JvmStatic
         fun valueOf(value: Value): NestedBinding = NestedBinding(value)
-
     }
 
     fun getValue(): Value = value

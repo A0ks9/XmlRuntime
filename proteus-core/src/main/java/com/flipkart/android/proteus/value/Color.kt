@@ -45,7 +45,7 @@ abstract class Color : Value() {
             value.isPrimitive("type") && TextUtils.equals(
                 value.getAsString("type"), "selector"
             ) -> if (value.isArray("children")) createSelectorColor(
-                value.get("children")?.asArray()
+                value["children"]?.asArray()
             ) else Int.BLACK
 
             else -> Int.BLACK

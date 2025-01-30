@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.drawable.*
 import android.view.View
+import com.flipkart.android.proteus.processor.ColorResourceProcessor
 import kotlin.Array as array
 
 abstract class DrawableValue : Value() {
@@ -48,8 +49,10 @@ abstract class DrawableValue : Value() {
         @JvmStatic
         fun convertBitmapToDrawable(original: Bitmap, context: Context): Drawable {
             val displayMetrics = context.resources.displayMetrics
+            val density = displayMetrics.density // Use displayMetrics.density for density-based scaling
+
             val (width, height) = original.width to original.height
-            val (scaleWidth, scaleHeight) = displayMetrics.scaledDensity to displayMetrics.scaledDensity
+            val (scaleWidth, scaleHeight) = density to density // Use density for scaling
             val matrix = Matrix().apply { postScale(scaleWidth, scaleHeight) }
 
             val resizedBitmap = Bitmap.createBitmap(original, 0, 0, width, height, matrix, true)
@@ -184,7 +187,7 @@ abstract class DrawableValue : Value() {
             if (shape != -1) {
                 drawable.shape = shape
             }
-            elements?.forEach { it?.apply(view, drawable) }
+            elements?.forEach { it.apply(view, drawable) }
 
             callback.apply(drawable)
         }
@@ -227,7 +230,7 @@ abstract class DrawableValue : Value() {
             private fun parseLayer(layer: ObjectValue, context: Context): Pair<Int, Value> {
                 val id = layer.getAsString(ID_STR)
                 val resId = id?.let { ParseHelper.getAndroidXmlResId(it) } ?: View.NO_ID
-                val drawable = layer.get(DRAWABLE_STR)
+                val drawable = layer[DRAWABLE_STR]
                 val out = DrawableResourceProcessor.staticCompile(drawable, context)
                 return Pair(resId, out)
             }
@@ -384,9 +387,9 @@ abstract class DrawableValue : Value() {
         }
 
         constructor(value: ObjectValue, context: Context) : this(
-            value.getAsInteger(MIN_LEVEL),
-            value.getAsInteger(MAX_LEVEL),
-            DrawableResourceProcessor.staticCompile(value.get(DRAWABLE), context)
+            value.getAsInteger(MIN_LEVEL)!!,
+            value.getAsInteger(MAX_LEVEL)!!,
+            DrawableResourceProcessor.staticCompile(value[DRAWABLE], context)
         )
 
         fun apply(view: ProteusView, levelListDrawable: LevelListDrawable) {
@@ -449,9 +452,9 @@ abstract class DrawableValue : Value() {
             callback: Callback
         ) {
             val colorStateList: ColorStateList =
-                ColorResourceProcessor.evaluate(color, view).colors ?: ColorStateList(
+                ColorResourceProcessor.evaluate(color, view)?.colors ?: ColorStateList(
                     arrayOf(intArrayOf()),
-                    intArrayOf(ColorResourceProcessor.evaluate(color, view).color)
+                    intArrayOf(ColorResourceProcessor.evaluate(color, view)?.color!!)
                 )
 
             val contentDrawable = content?.let { DrawableResourceProcessor.evaluate(it, view) }
@@ -530,7 +533,7 @@ abstract class DrawableValue : Value() {
                 )
             }
             gradientType = getGradientType(gradient.getAsString(GRADIENT_TYPE))
-            useLevel = gradient.getAsBoolean(this@Companion.USE_LEVEL)
+            useLevel = gradient.getAsBoolean(USE_LEVEL)
         }
 
         companion object {
@@ -583,14 +586,14 @@ abstract class DrawableValue : Value() {
 
             val colors = if (centerColor != null) {
                 intArrayOf(
-                    ColorResourceProcessor.evaluate(startColor, view).color,
-                    ColorResourceProcessor.evaluate(centerColor, view).color,
-                    ColorResourceProcessor.evaluate(endColor, view).color
+                    ColorResourceProcessor.evaluate(startColor, view)?.color!!,
+                    ColorResourceProcessor.evaluate(centerColor, view)?.color!!,
+                    ColorResourceProcessor.evaluate(endColor, view)?.color!!
                 )
             } else {
                 intArrayOf(
-                    ColorResourceProcessor.evaluate(startColor, view).color,
-                    ColorResourceProcessor.evaluate(endColor, view).color
+                    ColorResourceProcessor.evaluate(startColor, view)?.color!!,
+                    ColorResourceProcessor.evaluate(endColor, view)?.color!!
                 )
             }
             return GradientDrawable(getOrientation(angle), colors)
@@ -686,10 +689,10 @@ abstract class DrawableValue : Value() {
 
         override fun apply(view: ProteusView, drawable: GradientDrawable) {
             val result = ColorResourceProcessor.evaluate(color, view)
-            if (result.colors != null) {
+            if (result?.colors != null) {
                 drawable.color = result.colors
             } else {
-                drawable.setColor(result.color)
+                drawable.setColor(result?.color!!)
             }
         }
     }
@@ -724,8 +727,8 @@ abstract class DrawableValue : Value() {
 
         private lateinit var width: Value
         private lateinit var color: Value
-        private lateinit var dashWidth: Value
-        private lateinit var dashGap: Value
+        private var dashWidth: Value? = null
+        private var dashGap: Value? = null
 
         private constructor(value: ObjectValue, context: Context) : this() {
             width = DimensionAttributeProcessor.staticCompile(value[WIDTH], context)

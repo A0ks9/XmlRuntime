@@ -4,8 +4,8 @@ import android.content.Context
 import android.util.LruCache
 import android.util.TypedValue
 import android.view.ViewGroup
-import com.google.common.collect.BiMap
-import com.google.common.collect.HashBiMap
+import com.flipkart.android.proteus.toolbox.BiMap
+import com.flipkart.android.proteus.toolbox.HashBiMap
 import kotlin.math.roundToInt
 
 class Dimension(val value: Double, val unit: Int) : Value() {
@@ -62,13 +62,13 @@ class Dimension(val value: Double, val unit: Int) : Value() {
 
         private fun createDimension(dimension: String): Dimension {
 
-            dimensionsMap[dimension]?.let {
+            dimensionsMap.getValue(dimension)?.let {
                 return Dimension(it.toDouble(), DIMENSION_UNIT_ENUM)
             }
 
             if (dimension.length < 2) return ZERO
 
-            val unit = dimensionsUnitsMap[dimension.takeLast(2)] ?: return ZERO
+            val unit = dimensionsUnitsMap.getValue(dimension.takeLast(2)) ?: return ZERO
 
             val valueString = dimension.dropLast(2)
 
@@ -90,9 +90,7 @@ class Dimension(val value: Double, val unit: Int) : Value() {
     fun apply(context: Context): Float = when (unit) {
         DIMENSION_UNIT_ENUM -> value.toFloat()
         DIMENSION_UNIT_PX, DIMENSION_UNIT_DP, DIMENSION_UNIT_SP, DIMENSION_UNIT_PT, DIMENSION_UNIT_MM, DIMENSION_UNIT_IN -> TypedValue.applyDimension(
-            unit,
-            value.toFloat(),
-            context.resources.displayMetrics
+            unit, value.toFloat(), context.resources.displayMetrics
         )
 
         else -> 0f
@@ -108,6 +106,4 @@ class Dimension(val value: Double, val unit: Int) : Value() {
             else -> valueString + (dimensionsUnitsMap.getKey(unit) ?: "")
         }
     }
-
-
 }
