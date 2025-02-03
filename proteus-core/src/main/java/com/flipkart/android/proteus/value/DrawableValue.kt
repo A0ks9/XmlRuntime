@@ -7,6 +7,9 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.drawable.*
 import android.view.View
+import com.flipkart.android.proteus.ProteusLayoutInflater
+import com.flipkart.android.proteus.ProteusView
+import com.flipkart.android.proteus.parser.ParseHelper
 import com.flipkart.android.proteus.processor.ColorResourceProcessor
 import kotlin.Array as array
 
@@ -37,11 +40,11 @@ abstract class DrawableValue : Value() {
 
         @JvmStatic
         fun valueOf(value: ObjectValue, context: Context): DrawableValue? =
-            when (value.getAsString(TYPE)) {
-                DRAWABLE_SELECTOR -> StateListValue.valueOf(value.getAsArray(CHILDREN), context)
+            when (value.asString(TYPE)) {
+                DRAWABLE_SELECTOR -> StateListValue.valueOf(value.asArray(CHILDREN), context)
                 DRAWABLE_SHAPE -> ShapeValue.valueOf(value, context)
-                DRAWABLE_LAYER_LIST -> LayerListValue.valueOf(value.getAsArray(CHILDREN)!!, context)
-                DRAWABLE_LEVEL_LIST -> LevelListValue.valueOf(value.getAsArray(CHILDREN)!!, context)
+                DRAWABLE_LAYER_LIST -> LayerListValue.valueOf(value.asArray(CHILDREN)!!, context)
+                DRAWABLE_LEVEL_LIST -> LevelListValue.valueOf(value.asArray(CHILDREN)!!, context)
                 DRAWABLE_RIPPLE -> RippleValue.valueOf(value, context)
                 else -> null
             }
@@ -49,7 +52,8 @@ abstract class DrawableValue : Value() {
         @JvmStatic
         fun convertBitmapToDrawable(original: Bitmap, context: Context): Drawable {
             val displayMetrics = context.resources.displayMetrics
-            val density = displayMetrics.density // Use displayMetrics.density for density-based scaling
+            val density =
+                displayMetrics.density // Use displayMetrics.density for density-based scaling
 
             val (width, height) = original.width to original.height
             val (scaleWidth, scaleHeight) = density to density // Use density for scaling
@@ -70,7 +74,7 @@ abstract class DrawableValue : Value() {
 
     override fun copy(): Value = this
 
-    interface Callback {
+    fun interface Callback {
         fun apply(drawable: Drawable)
     }
 
@@ -96,7 +100,7 @@ abstract class DrawableValue : Value() {
             loader: ProteusLayoutInflater.ImageLoader,
             callback: Callback
         ) {
-            val drawable = ColorDrawable(ColorResourceProcessor.evaluate(color, view).color)
+            val drawable = ColorDrawable(ColorResourceProcessor.evaluate(color, view)!!.color)
             callback.apply(drawable)
         }
     }
@@ -108,17 +112,17 @@ abstract class DrawableValue : Value() {
         private var elements: array<DrawableElement>? = null
 
         private constructor(value: ObjectValue, context: Context) : this() {
-            shape = getShape(value.getAsString(SHAPE))
+            shape = getShape(value.asString(SHAPE))
 
             var gradient: Gradient?
             var elements: array<DrawableElement?>?
-            value[CHILDREN]?.asArray()?.let { children ->
+            value[CHILDREN]?.asArray?.let { children ->
 
                 val tempElements = arrayOfNulls<DrawableElement>(children.size())
                 var gradientTemp: Gradient? = null
                 children.forEachIndexed { index, value ->
-                    val child = value.asObject()
-                    when (child.getAsString(TYPE)) {
+                    val child = value.asObject
+                    when (child.asString(TYPE)) {
                         TYPE_CORNERS -> tempElements[index] = Corners.valueOf(child, context)
                         TYPE_SIZE -> tempElements[index] = Size.valueOf(child, context)
                         TYPE_SOLID -> tempElements[index] = Solid.valueOf(child, context)
@@ -205,7 +209,7 @@ abstract class DrawableValue : Value() {
             this.ids = IntArray(size)
             this.layers = array(size) { Primitive(0) }
             layers.forEachIndexed { index, value ->
-                val (resId, drawable) = parseLayer(value.asObject(), context)
+                val (resId, drawable) = parseLayer(value.asObject, context)
                 this.ids[index] = resId
                 this.layers[index] = drawable
             }
@@ -228,7 +232,7 @@ abstract class DrawableValue : Value() {
 
 
             private fun parseLayer(layer: ObjectValue, context: Context): Pair<Int, Value> {
-                val id = layer.getAsString(ID_STR)
+                val id = layer.asString(ID_STR)
                 val resId = id?.let { ParseHelper.getAndroidXmlResId(it) } ?: View.NO_ID
                 val drawable = layer[DRAWABLE_STR]
                 val out = DrawableResourceProcessor.staticCompile(drawable, context)
@@ -268,7 +272,7 @@ abstract class DrawableValue : Value() {
         private constructor(states: Array, context: Context) : this() {
             val stateValues = array(states.size()) {
                 parseState(
-                    states[it].asObject(), context
+                    states[it].asObject, context
                 )
             }
             this.states = stateValues.map { it.first }.toTypedArray()
@@ -335,7 +339,7 @@ abstract class DrawableValue : Value() {
         constructor(levels: Array, context: Context) : this() {
             this.levels = array(levels.size()) { Level.ZERO_LEVEL }
             levels.forEachIndexed { index, value ->
-                this.levels[index] = Level(value.asObject(), context)
+                this.levels[index] = Level(value.asObject, context)
             }
         }
 
@@ -387,8 +391,8 @@ abstract class DrawableValue : Value() {
         }
 
         constructor(value: ObjectValue, context: Context) : this(
-            value.getAsInteger(MIN_LEVEL)!!,
-            value.getAsInteger(MAX_LEVEL)!!,
+            value.asInteger(MIN_LEVEL)!!,
+            value.asInteger(MAX_LEVEL)!!,
             DrawableResourceProcessor.staticCompile(value[DRAWABLE], context)
         )
 
@@ -492,7 +496,7 @@ abstract class DrawableValue : Value() {
                 }
 
                 override fun apply(bitmap: Bitmap) {
-                    callback.apply(convertBitmapToDrawable(bitmap, view.asView().context))
+                    callback.apply(convertBitmapToDrawable(bitmap, view.asView.context))
                 }
             })
         }
@@ -517,9 +521,9 @@ abstract class DrawableValue : Value() {
         private var useLevel: Boolean? = null
 
         private constructor(gradient: ObjectValue, context: Context) : this() {
-            angle = gradient.getAsInteger(ANGLE)
-            centerX = gradient.getAsFloat(CENTER_X)
-            centerY = gradient.getAsFloat(CENTER_Y)
+            angle = gradient.asInteger(ANGLE)
+            centerX = gradient.asFloat(CENTER_X)
+            centerY = gradient.asFloat(CENTER_Y)
 
             startColor =
                 gradient[START_COLOR]?.let { ColorResourceProcessor.staticCompile(it, context) }
@@ -532,8 +536,8 @@ abstract class DrawableValue : Value() {
                     it, context
                 )
             }
-            gradientType = getGradientType(gradient.getAsString(GRADIENT_TYPE))
-            useLevel = gradient.getAsBoolean(USE_LEVEL)
+            gradientType = getGradientType(gradient.asString(GRADIENT_TYPE))
+            useLevel = gradient.asBoolean(USE_LEVEL)
         }
 
         companion object {

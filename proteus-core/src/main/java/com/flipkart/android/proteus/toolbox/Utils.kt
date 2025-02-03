@@ -86,10 +86,10 @@ object Utils { // Converted class to object as it contains only static members
             if (value.isPrimitive) {
                 val primitive = value.asPrimitive() // Using 'as' cast, Kotlin style
                 val string = when (style) { // Using when expression for cleaner switch-case
-                    STYLE_NONE -> primitive.getAsString()
+                    STYLE_NONE -> primitive.asString()
                     STYLE_SINGLE -> primitive.getAsSingleQuotedString()
                     STYLE_DOUBLE -> primitive.getAsDoubleQuotedString()
-                    else -> primitive.getAsString() // Default case, same as Java
+                    else -> primitive.asString() // Default case, same as Java
                 }
                 sb.append(string)
             } else {

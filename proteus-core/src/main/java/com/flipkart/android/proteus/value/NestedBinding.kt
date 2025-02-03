@@ -38,8 +38,8 @@ class NestedBinding private constructor(val value: Value) : Binding() {
 
     private fun evaluate(context: Context, value: Value, data: Value, index: Int): Value = when {
         value.isBinding -> evaluate(context, value.asBinding(), data, index)
-        value.isObject -> evaluate(context, value.asObject(), data, index)
-        value.isArray -> evaluate(context, value.asArray(), data, index)
+        value.isObject -> evaluate(context, value.asObject, data, index)
+        value.isArray -> evaluate(context, value.asArray, data, index)
         else -> value
     }
 

@@ -1,6 +1,9 @@
 package com.flipkart.android.proteus.toolbox
 
 import android.view.View
+import com.flipkart.android.proteus.DataContext
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
 
@@ -49,9 +52,7 @@ open class ManagerWrapper(private val base: ProteusView.Manager) :
      *
      * @return The [ProteusContext] of the base manager. Never returns null.
      */
-    override fun getContext(): ProteusContext { // Converted to Kotlin syntax, @NonNull is handled by non-null return type
-        return base.getContext() // Delegate getContext call to the base manager
-    }
+    override val context: ProteusContext = base.context // Delegate context call to the base manager
 
     /**
      * Returns the [Layout] associated with this manager.
@@ -60,9 +61,7 @@ open class ManagerWrapper(private val base: ProteusView.Manager) :
      *
      * @return The [Layout] of the base manager. Never returns null.
      */
-    override fun getLayout(): Layout { // Converted to Kotlin syntax, @NonNull is handled by non-null return type
-        return base.getLayout() // Delegate getLayout call to the base manager
-    }
+    override val layout: Layout = base.layout // Delegate layout call to the base manager
 
     /**
      * Returns the [DataContext] associated with this manager.
@@ -71,9 +70,8 @@ open class ManagerWrapper(private val base: ProteusView.Manager) :
      *
      * @return The [DataContext] of the base manager. Never returns null.
      */
-    override fun getDataContext(): DataContext { // Converted to Kotlin syntax, @NonNull is handled by non-null return type
-        return base.getDataContext() // Delegate getDataContext call to the base manager
-    }
+    override val dataContext: DataContext =
+        base.dataContext // Delegate dataContext call to the base manager
 
     /**
      * Returns any extra data associated with this manager.
@@ -82,9 +80,7 @@ open class ManagerWrapper(private val base: ProteusView.Manager) :
      *
      * @return The extras object, or null if no extras are set.
      */
-    override fun getExtras(): Any? { // Converted to Kotlin syntax, @Nullable is handled by '?'
-        return base.getExtras() // Delegate getExtras call to the base manager
-    }
+    override val extras: Any? = base.extras // Delegate extras call to the base manager
 
     /**
      * Sets extra data to be associated with this manager.

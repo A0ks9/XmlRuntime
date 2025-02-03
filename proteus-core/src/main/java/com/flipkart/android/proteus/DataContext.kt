@@ -18,7 +18,7 @@ class DataContext private constructor( // Made primary constructor private to en
     /**
      * Index for resolving `$index` meta values in arrays and data-bound children.
      */
-    private val index: Int,
+     val index: Int,
 
     /**
      * Indicates if this context has its own properties (scope and data not just cloned).

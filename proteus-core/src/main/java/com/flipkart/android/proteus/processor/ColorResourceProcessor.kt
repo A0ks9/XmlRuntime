@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.TypedArray
 import android.view.View
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.value.AttributeResource
 import com.flipkart.android.proteus.value.Color
 import com.flipkart.android.proteus.value.Resource
@@ -48,7 +50,7 @@ abstract class ColorResourceProcessor<V : View> :
                 }
             }
             processor.process(
-                view.asView(), value!!
+                view.asView, value!!
             ) // Process the value using the anonymous processor
             return result // Return the evaluated result
         }
@@ -68,14 +70,14 @@ abstract class ColorResourceProcessor<V : View> :
                 value == null -> Color.Int.BLACK // Return BLACK if value is null
                 value.isColor -> value // Return value if it's already a Color
                 value.isObject -> Color.valueOf(
-                    value.asObject(), context
+                    value.asObject, context
                 ) // Convert Object to Color
                 value.isPrimitive -> { // Handle Primitive Value
                     val precompiled = staticPreCompile(
-                        value.asPrimitive(), context, null
+                        value.asPrimitive, context, null
                     ) // Static pre-compilation
                     precompiled ?: Color.valueOf(
-                        value.getAsString(), Color.Int.BLACK
+                        value.asString(), Color.Int.BLACK
                     ) // Return precompiled value or create Color from string, default to BLACK
                 }
 
@@ -101,7 +103,7 @@ abstract class ColorResourceProcessor<V : View> :
                 view, precompile(
                     value,
                     view?.context!!,
-                    (view.context as ProteusContext).functionManager // Smart cast to ProteusContext
+                    (view.context as ProteusContext).getFunctionManager() // Smart cast to ProteusContext
                 )!!
             ) // Fallback to default process for other value types after precompilation
         }

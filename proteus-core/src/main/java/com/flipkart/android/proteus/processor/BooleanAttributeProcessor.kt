@@ -3,13 +3,15 @@ package com.flipkart.android.proteus.processor
 import android.content.Context
 import android.view.View
 import com.flipkart.android.proteus.ProteusConstants
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.parser.ParseHelper
 import com.flipkart.android.proteus.value.AttributeResource
 import com.flipkart.android.proteus.value.Resource
 import com.flipkart.android.proteus.value.StyleResource
 import com.flipkart.android.proteus.value.Value
 
 /**
- * Kotlin abstract class for processing boolean attributes for Android Views in Proteus.
+ * Kotlin class for processing boolean attributes for Android Views in Proteus.
  *
  * This class extends [AttributeProcessor] and provides a base for attribute processors
  * that handle boolean values. It defines how to process different types of inputs
@@ -17,7 +19,7 @@ import com.flipkart.android.proteus.value.Value
  *
  * @param V The type of View this attribute processor works with.
  */
-abstract class BooleanAttributeProcessor<V : View> :
+open class BooleanAttributeProcessor<V : View>(private val setBoolean: (V, Boolean) -> Unit) :
     AttributeProcessor<V>() { // Converted to Kotlin abstract class
 
     /**
@@ -30,18 +32,16 @@ abstract class BooleanAttributeProcessor<V : View> :
      * @param value The Value containing the attribute value.
      */
     override fun handleValue(view: V?, value: Value) { // Nullable Value parameter
-        if (value.isPrimitive == true && value.asPrimitive()
-                .isBoolean()
-        ) { // Safe call and elvis operator for null check and primitive/boolean check
+        if (value.isPrimitive == true && value.asPrimitive.isBoolean()) { // Safe call and elvis operator for null check and primitive/boolean check
             setBoolean(
-                view!!, value.asPrimitive().getAsBoolean()
+                view!!, value.asPrimitive.asBoolean()
             ) // Directly set boolean if it's a boolean primitive
         } else {
             process(
                 view, precompile(
                     value,
-                    view?.context!!,
-                    (view.context as ProteusContext).functionManager // Smart cast to ProteusContext for functionManager access
+                    view!!.context,
+                    (view.context as ProteusContext).getFunctionManager() // Smart cast to ProteusContext for functionManager access
                 )!!
             ) // Fallback to default process for other value types after precompilation
         }
@@ -97,18 +97,6 @@ abstract class BooleanAttributeProcessor<V : View> :
         ) // Get boolean from TypedArray, default to false
         typedArray.recycle() // Recycle TypedArray to avoid resource leaks
     }
-
-    /**
-     * Abstract method to set the boolean value on the View.
-     *
-     * Subclasses must implement this method to define how the boolean value is actually applied to the specific View type.
-     *
-     * @param view The View to set the boolean value on.
-     * @param value The boolean value to set.
-     */
-    abstract fun setBoolean(
-        view: V, value: Boolean
-    ) // Abstract method to be implemented by subclasses
 
     /**
      * Compiles a [Value] to a boolean [Value].

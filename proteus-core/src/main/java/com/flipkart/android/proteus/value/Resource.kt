@@ -1,5 +1,6 @@
 package com.flipkart.android.proteus.value
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.Resources
@@ -56,7 +57,9 @@ class Resource(val resId: Int) : Value() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) context.resources.getColor(
                 resId, context.theme
             )
-            else context.resources.getColor(resId)
+            else @Suppress("DEPRECATION") /* Suppress deprecation warning */ context.resources.getColor(
+                resId
+            )
         } catch (e: Resources.NotFoundException) {
             null
         }
@@ -92,6 +95,7 @@ class Resource(val resId: Int) : Value() {
         }
 
 
+        @SuppressLint("DiscouragedApi")
         @JvmStatic
         fun valueOf(value: String?, type: String?, context: Context): Resource? {
             if (value.isNullOrEmpty()) return null

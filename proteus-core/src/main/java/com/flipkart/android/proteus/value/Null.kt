@@ -8,7 +8,7 @@ object Null : Value() {
 
     override fun copy(): Null = this
     override fun toString(): String = NULL_STRING
-    override fun getAsString(): String = ProteusConstants.EMPTY
+    override fun asString(): String = ProteusConstants.EMPTY
     override fun hashCode(): Int = Null::class.hashCode()
     override fun equals(other: Any?): Boolean = this === other || other is Null
 }

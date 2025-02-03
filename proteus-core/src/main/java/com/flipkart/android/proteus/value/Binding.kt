@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.collection.LruCache
 import com.flipkart.android.proteus.Function
+import com.flipkart.android.proteus.FunctionManager
 import com.flipkart.android.proteus.ProteusConstants
 import com.flipkart.android.proteus.processor.AttributeProcessor
 import com.flipkart.android.proteus.toolbox.Result
@@ -87,7 +88,7 @@ abstract class Binding : Value() {
                         } catch (e: NumberFormatException) {
                             return
                         }
-                        current = getArrayItem(current.asArray(), index, token.isArray)
+                        current = getArrayItem(current.asArray, index, token.isArray)
                     } else if (token.isArray) {
                         current = getArray(current, token.value, index)
                     } else {
@@ -101,28 +102,28 @@ abstract class Binding : Value() {
                     val arrayIndex = getArrayIndex(token.value, dataIndex) // Capture the index here
 
                     getArrayItem(
-                        current.asArray(), arrayIndex, false
+                        current.asArray, arrayIndex, false
                     ).run {
-                        current.asArray().removeAt(arrayIndex) // Use the captured index
-                        current.asArray().add(arrayIndex, value) // Use the captured index
+                        current.asArray.removeAt(arrayIndex) // Use the captured index
+                        current.asArray.add(arrayIndex, value) // Use the captured index
                     }
                 } else {
-                    current.asObject()[token.value] = value
+                    current.asObject[token.value] = value
                 }
             }
 
             private fun getObject(parent: Value, token: Token, index: Int): Value {
                 return when (parent) {
                     is Array -> {
-                        parent.getOrNull(index)?.asObject() ?: ObjectValue().apply {
-                            parent.asArray().removeAt(index)
-                            parent.asArray().add(index, this)
+                        parent.getOrNull(index)?.asObject ?: ObjectValue().apply {
+                            parent.asArray.removeAt(index)
+                            parent.asArray.add(index, this)
                         }
                     }
 
                     is ObjectValue -> {
-                        parent[token.value]?.asObject() ?: ObjectValue().apply {
-                            parent.asObject()[token.value] = this
+                        parent[token.value]?.asObject ?: ObjectValue().apply {
+                            parent.asObject[token.value] = this
                         }
                     }
 
@@ -134,13 +135,13 @@ abstract class Binding : Value() {
 
             private fun getArray(parent: Value, token: String, index: Int): Array {
                 return when (parent) {
-                    is Array -> parent.getOrNull(index)?.asArray() ?: Array().apply {
-                        parent.asArray().removeAt(index)
-                        parent.asArray().add(index, this)
+                    is Array -> parent.getOrNull(index)?.asArray ?: Array().apply {
+                        parent.asArray.removeAt(index)
+                        parent.asArray.add(index, this)
                     }
 
-                    else -> parent.asObject()[token]?.asArray() ?: Array().apply {
-                        parent.asObject()[token] = this
+                    else -> parent.asObject[token]?.asArray ?: Array().apply {
+                        parent.asObject[token] = this
                     }
                 }
             }
@@ -186,30 +187,30 @@ abstract class Binding : Value() {
                     elementToReturn = when (segment.value) {
                         "" -> elementToReturn
                         INDEX -> if (elementToReturn.isArray) {
-                            elementToReturn.asArray().getOrNull(index)
+                            elementToReturn.asArray.getOrNull(index)
                                 ?: return Result.NO_SUCH_DATA_PATH_EXCEPTION
                         } else return Result.INVALID_DATA_PATH_EXCEPTION
 
                         ARRAY_DATA_LENGTH_REFERENCE -> if (elementToReturn.isArray) Primitive(
-                            elementToReturn.asArray().size()
+                            elementToReturn.asArray.size()
                         ) else return Result.INVALID_DATA_PATH_EXCEPTION
 
                         ARRAY_DATA_LAST_INDEX_REFERENCE -> if (elementToReturn.isArray) {
-                            elementToReturn.asArray().takeIf { it.size() > 0 }?.lastOrNull()
+                            elementToReturn.asArray.takeIf { it.size() > 0 }?.lastOrNull()
                                 ?: return Result.NO_SUCH_DATA_PATH_EXCEPTION
                         } else return Result.INVALID_DATA_PATH_EXCEPTION
 
                         else -> {
                             if (elementToReturn.isArray) {
                                 try {
-                                    elementToReturn.asArray().getOrNull(segment.value.toInt())
+                                    elementToReturn.asArray.getOrNull(segment.value.toInt())
                                         ?: return Result.NO_SUCH_DATA_PATH_EXCEPTION
 
                                 } catch (e: NumberFormatException) {
                                     return Result.INVALID_DATA_PATH_EXCEPTION
                                 }
                             } else if (elementToReturn.isObject) {
-                                elementToReturn.asObject().getOrNull(segment.value)
+                                elementToReturn.asObject.getOrNull(segment.value)
                                     ?: return Result.NO_SUCH_DATA_PATH_EXCEPTION
                             } else if (elementToReturn.isPrimitive) {
                                 return Result.INVALID_DATA_PATH_EXCEPTION

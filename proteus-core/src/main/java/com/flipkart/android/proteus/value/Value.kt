@@ -82,31 +82,31 @@ abstract class Value {
      * Convenience method to get this value as an ObjectValue.
      * @throws IllegalStateException if the value is not of the correct type.
      */
-    fun asObject(): ObjectValue = castOrThrow(isObject, "ObjectValue")
+    val asObject get(): ObjectValue = castOrThrow(isObject, "ObjectValue")
 
     /**
      * Convenience method to get this value as an Array.
      * @throws IllegalStateException if the value is not of the correct type.
      */
-    fun asArray(): Array = castOrThrow(isArray, "Array")
+    val asArray get(): Array = castOrThrow(isArray, "Array")
 
     /**
      * Convenience method to get this value as a Primitive.
      * @throws IllegalStateException if the value is not of the correct type.
      */
-    fun asPrimitive(): Primitive = castOrThrow(isPrimitive, "Primitive")
+    val asPrimitive get(): Primitive = castOrThrow(isPrimitive, "Primitive")
 
     /**
      * Convenience method to get this value as a Null.
      * @throws IllegalStateException if the value is not of the correct type.
      */
-    fun asNull(): Null = castOrThrow(isNull, "Null")
+    val asNull get(): Null = castOrThrow(isNull, "Null")
 
     /**
      * Convenience method to get this value as a Layout.
      * @throws IllegalStateException if the value is not of the correct type.
      */
-    fun asLayout(): Layout = castOrThrow(isLayout, "Layout")
+    val asLayout get(): Layout = castOrThrow(isLayout, "Layout")
 
     /**
      * Convenience method to get this value as a Dimension.
@@ -166,37 +166,37 @@ abstract class Value {
     /**
      * Returns this value as a Boolean, throws exception if not a Boolean
      */
-    open fun getAsBoolean(): Boolean = throw UnsupportedOperationException(this::class.simpleName)
+    open fun asBoolean(): Boolean = throw UnsupportedOperationException(this::class.simpleName)
 
     /**
      * Returns this value as a String, throws exception if not a String
      */
-    open fun getAsString(): String = throw UnsupportedOperationException(this::class.simpleName)
+    open fun asString(): String = throw UnsupportedOperationException(this::class.simpleName)
 
     /**
      * Returns this value as a Double, throws exception if not a Double
      */
-    open fun getAsDouble(): Double = throw UnsupportedOperationException(this::class.simpleName)
+    open fun asDouble(): Double = throw UnsupportedOperationException(this::class.simpleName)
 
     /**
      * Returns this value as a Float, throws exception if not a Float
      */
-    open fun getAsFloat(): Float = throw UnsupportedOperationException(this::class.simpleName)
+    open fun asFloat(): Float = throw UnsupportedOperationException(this::class.simpleName)
 
     /**
      * Returns this value as a Long, throws exception if not a Long
      */
-    open fun getAsLong(): Long = throw UnsupportedOperationException(this::class.simpleName)
+    open fun asLong(): Long = throw UnsupportedOperationException(this::class.simpleName)
 
     /**
      * Returns this value as a Integer, throws exception if not a Integer
      */
-    open fun getAsInt(): Int = throw UnsupportedOperationException(this::class.simpleName)
+    open fun asInt(): Int = throw UnsupportedOperationException(this::class.simpleName)
 
     /**
      * Returns this value as a Character, throws exception if not a Character
      */
-    open fun getAsCharacter(): Char = throw UnsupportedOperationException(this::class.simpleName)
+    open fun asCharacter(): Char = throw UnsupportedOperationException(this::class.simpleName)
 
     // endregion
 }

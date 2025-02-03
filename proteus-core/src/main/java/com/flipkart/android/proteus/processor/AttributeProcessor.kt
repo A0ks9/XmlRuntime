@@ -2,6 +2,8 @@ package com.flipkart.android.proteus.processor
 
 import android.content.Context
 import android.view.View
+import com.flipkart.android.proteus.FunctionManager
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.value.AttributeResource
 import com.flipkart.android.proteus.value.Binding
 import com.flipkart.android.proteus.value.NestedBinding
@@ -94,13 +96,13 @@ abstract class AttributeProcessor<V : View> {
          */
         @JvmStatic // To keep it callable as static method from Java if needed
         fun staticPreCompile(
-            value: Primitive, context: Context, manager: FunctionManager
+            value: Primitive, context: Context, manager: FunctionManager?
         ): Value? { // Return type is nullable
-            val string = value.getAsString() // Get string value from Primitive
+            val string = value.asString() // Get string value from Primitive
 
             return when { // Using 'when' for cleaner conditional checks
                 Binding.isBindingValue(string) -> Binding.valueOf(
-                    string, context, manager
+                    string, context, manager!!
                 ) // Create Binding if it's a binding value
                 Resource.isResource(string) -> Resource.valueOf(
                     string, null, context
@@ -149,14 +151,14 @@ abstract class AttributeProcessor<V : View> {
          */
         @JvmStatic // To keep it callable as static method from Java if needed
         fun staticPreCompile(
-            value: Value, context: Context, manager: FunctionManager
+            value: Value, context: Context, manager: FunctionManager?
         ): Value? { // Return type is nullable
             return when { // Using 'when' for type checking and branching
                 value.isPrimitive -> staticPreCompile(
-                    value.asPrimitive(), context, manager
+                    value.asPrimitive, context, manager
                 ) // Pre-compile Primitive
                 value.isObject -> staticPreCompile(
-                    value.asObject(), context, manager
+                    value.asObject, context, manager
                 ) // Pre-compile ObjectValue
                 value.isBinding || value.isResource || value.isAttributeResource || value.isStyleResource -> value // Return value as is for already compiled types
                 else -> null // Return null for other Value types
@@ -205,12 +207,12 @@ abstract class AttributeProcessor<V : View> {
             (view as? ProteusView)?.viewManager?.dataContext // Safe cast and null check
         val resolved = dataContext?.let { // Using let for null safety
             evaluate(
-                value, view?.context ?: contextForEvaluate, it.data, it.index
+                value, view.context ?: contextForEvaluate!!, it.data, it.getIndex()
             ) // Evaluate binding if dataContext and context are available
         } ?: Null // If dataContext is null, resolve to Null Value
 
         handleValue(
-            view, resolved ?: Null
+            view, resolved
         ) // Handle the resolved value, defaulting to Null if evaluation failed
     }
 

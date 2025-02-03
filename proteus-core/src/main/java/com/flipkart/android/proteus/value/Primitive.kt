@@ -47,47 +47,47 @@ class Primitive(value: Any?) : Value() {
     override fun copy(): Primitive = this
 
     fun isBoolean(): Boolean = value is Boolean
-    override fun getAsBoolean(): Boolean = when (value) {
+    override fun asBoolean(): Boolean = when (value) {
         is Boolean -> value
         else -> value.toString().toBoolean()
     }
 
     fun isNumber(): Boolean = value is Number
 
-    fun getAsNumber(): Number = if (value is String) LazilyParsedNumber(value) else value as Number
+    fun asNumber(): Number = if (value is String) LazilyParsedNumber(value) else value as Number
 
     fun isString(): Boolean = value is String
-    override fun getAsString(): String = when (value) {
+    override fun asString(): String = when (value) {
         is Number -> value.toString()
         is Boolean -> value.toString()
         else -> value.toString()
     }
 
-    override fun getAsDouble(): Double =
-        if (value is Number) getAsNumber().toDouble() else value.toString().toDouble()
+    override fun asDouble(): Double =
+        if (value is Number) asNumber().toDouble() else value.toString().toDouble()
 
-    override fun getAsFloat(): Float =
-        if (value is Number) getAsNumber().toFloat() else value.toString().toFloat()
+    override fun asFloat(): Float =
+        if (value is Number) asNumber().toFloat() else value.toString().toFloat()
 
-    override fun getAsLong(): Long =
-        if (value is Number) getAsNumber().toLong() else value.toString().toLong()
+    override fun asLong(): Long =
+        if (value is Number) asNumber().toLong() else value.toString().toLong()
 
-    override fun getAsInt(): Int =
-        if (value is Number) getAsNumber().toInt() else value.toString().toInt()
+    override fun asInt(): Int =
+        if (value is Number) asNumber().toInt() else value.toString().toInt()
 
-    override fun getAsCharacter(): Char = getAsString()[0]
+    override fun asCharacter(): Char = asString()[0]
 
     override fun hashCode(): Int {
         return when (value) {
             null -> 31
 
             isIntegral(this) -> {
-                val longValue = getAsNumber().toLong()
+                val longValue = asNumber().toLong()
                 (longValue xor (longValue ushr 32)).toInt()
             }
 
             is Number -> {
-                val doubleValue = java.lang.Double.doubleToLongBits(getAsDouble())
+                val doubleValue = java.lang.Double.doubleToLongBits(asDouble())
                 (doubleValue xor (doubleValue ushr 32)).toInt()
             }
 
@@ -100,12 +100,12 @@ class Primitive(value: Any?) : Value() {
         if (other !is Primitive) return false
         return when {
             value == null && other.value == null -> true
-            isIntegral(this) && isIntegral(other) -> getAsNumber().toLong() == other.getAsNumber()
+            isIntegral(this) && isIntegral(other) -> asNumber().toLong() == other.asNumber()
                 .toLong()
 
             value is Number && other.value is Number -> {
-                val a = getAsNumber().toDouble()
-                val b = other.getAsNumber().toDouble()
+                val a = asNumber().toDouble()
+                val b = other.asNumber().toDouble()
                 a == b || (java.lang.Double.isNaN(a) && java.lang.Double.isNaN(b))
             }
 
@@ -113,7 +113,7 @@ class Primitive(value: Any?) : Value() {
         }
     }
 
-    override fun toString(): String = getAsString()
-    fun getAsSingleQuotedString(): String = "\'${getAsString()}\'"
-    fun getAsDoubleQuotedString(): String = "\"${getAsString()}\""
+    override fun toString(): String = asString()
+    fun getAsSingleQuotedString(): String = "\'${asString()}\'"
+    fun getAsDoubleQuotedString(): String = "\"${asString()}\""
 }

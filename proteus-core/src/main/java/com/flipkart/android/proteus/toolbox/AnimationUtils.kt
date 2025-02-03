@@ -1,9 +1,11 @@
 package com.flipkart.android.proteus.toolbox
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import android.view.animation.*
 import com.flipkart.android.proteus.ProteusConstants
+import com.flipkart.android.proteus.parser.ParseHelper
 import com.flipkart.android.proteus.value.ObjectValue
 import com.flipkart.android.proteus.value.Value
 
@@ -37,8 +39,8 @@ object AnimationUtils {
      */
     @JvmStatic
     fun loadAnimation(context: Context, value: Value): Animation? = when {
-        value.isPrimitive -> handleString(context, value.asPrimitive().getAsString())
-        value.isObject -> handleElement(context, value.asObject())
+        value.isPrimitive -> handleString(context, value.asPrimitive().asString())
+        value.isObject -> handleElement(context, value.asObject)
         else -> {
             if (ProteusConstants.isLoggingEnabled()) {
                 Log.e(TAG, "Could not load animation for : $value")
@@ -48,6 +50,7 @@ object AnimationUtils {
     }
 
 
+    @SuppressLint("DiscouragedApi")
     private fun handleString(c: Context, value: String): Animation? =
         if (ParseHelper.isTweenAnimationResource(value)) {
             try {
@@ -63,7 +66,7 @@ object AnimationUtils {
 
 
     private fun handleElement(context: Context, value: ObjectValue): Animation? {
-        val animationProperties = when (value.getAsString(TYPE)?.lowercase()) {
+        val animationProperties = when (value.asString(TYPE)?.lowercase()) {
             SET -> AnimationSetProperties(value)
             ALPHA -> AlphaAnimProperties(value)
             SCALE -> ScaleAnimProperties(value)
@@ -79,8 +82,8 @@ object AnimationUtils {
      */
     @JvmStatic
     fun loadInterpolator(context: Context, value: Value): Interpolator? = when {
-        value.isPrimitive -> handleStringInterpolator(context, value.getAsString())
-        value.isObject -> handleElementInterpolator(context, value.asObject())
+        value.isPrimitive -> handleStringInterpolator(context, value.asString())
+        value.isObject -> handleElementInterpolator(context, value.asObject)
         else -> {
             if (ProteusConstants.isLoggingEnabled()) {
                 Log.e(TAG, "Could not load interpolator for : $value")
@@ -89,6 +92,7 @@ object AnimationUtils {
         }
     }
 
+    @SuppressLint("DiscouragedApi")
     private fun handleStringInterpolator(c: Context, value: String): Interpolator? =
         if (ParseHelper.isTweenAnimationResource(value)) {
             try {
@@ -103,7 +107,7 @@ object AnimationUtils {
         }
 
     private fun handleElementInterpolator(c: Context, value: ObjectValue): Interpolator? {
-        val interpolatorProperties = when (value.getAsString(TYPE)?.lowercase()) {
+        val interpolatorProperties = when (value.asString(TYPE)?.lowercase()) {
             LINEAR_INTERPOLATOR -> LinearInterpolator()
             ACCELERATE_INTERPOLATOR -> AccelerateInterpolator()
             DECELERATE_INTERPOLATOR -> DecelerateInterpolator()
@@ -116,9 +120,9 @@ object AnimationUtils {
             PATH_INTERPOLATOR -> PathInterpolatorProperties(value)
             else -> {
                 if (ProteusConstants.isLoggingEnabled()) {
-                    Log.e(TAG, "Unknown interpolator name: ${value.getAsString("type")}")
+                    Log.e(TAG, "Unknown interpolator name: ${value.asString("type")}")
                 }
-                throw RuntimeException("Unknown interpolator name: ${value.getAsString("type")}")
+                throw RuntimeException("Unknown interpolator name: ${value.asString("type")}")
             }
 
         }
@@ -143,11 +147,11 @@ object AnimationUtils {
                     when {
                         primitive.isNumber() -> {
                             d.type = Animation.ABSOLUTE
-                            d.value = primitive.getAsFloat()
+                            d.value = primitive.asFloat()
                         }
 
                         else -> {
-                            val stringValue = primitive.getAsString()
+                            val stringValue = primitive.asString()
                             when {
                                 stringValue.endsWith(PERCENT_SELF) -> {
                                     val stringValueWithoutSuffix = stringValue.substring(
@@ -167,7 +171,7 @@ object AnimationUtils {
 
                                 else -> {
                                     d.type = Animation.ABSOLUTE
-                                    d.value = primitive.getAsFloat()
+                                    d.value = primitive.asFloat()
                                 }
                             }
                         }
@@ -195,15 +199,15 @@ object AnimationUtils {
         }
 
 
-        val durationC: Long? = value.getAsLong(DURATION)
-        val fillAfterC: Boolean? = value.getAsBoolean(FILL_AFTER)
-        val fillBeforeC: Boolean? = value.getAsBoolean(FILL_BEFORE)
-        val fillEnabledC: Boolean? = value.getAsBoolean(FILL_ENABLED)
+        val durationC: Long? = value.asLong(DURATION)
+        val fillAfterC: Boolean? = value.asBoolean(FILL_AFTER)
+        val fillBeforeC: Boolean? = value.asBoolean(FILL_BEFORE)
+        val fillEnabledC: Boolean? = value.asBoolean(FILL_ENABLED)
         val interpolatorC: Value? = value[INTERPOLATOR]
-        val repeatCountC: Int? = value.getAsInteger(REPEAT_COUNT)
-        val repeatModeC: Int? = value.getAsInteger(REPEAT_MODE)
-        val startOffsetC: Long? = value.getAsLong(START_OFFSET)
-        val zAdjustmentC: Int? = value.getAsInteger(Z_ADJUSTMENT)
+        val repeatCountC: Int? = value.asInteger(REPEAT_COUNT)
+        val repeatModeC: Int? = value.asInteger(REPEAT_MODE)
+        val startOffsetC: Long? = value.asLong(START_OFFSET)
+        val zAdjustmentC: Int? = value.asInteger(Z_ADJUSTMENT)
 
 
         fun instantiate(c: Context): Animation? {
@@ -233,7 +237,7 @@ object AnimationUtils {
             const val CHILDREN = "children"
         }
 
-        val shareInterpolator: Boolean? = value.getAsBoolean(SHARE_INTERPOLATOR)
+        val shareInterpolator: Boolean? = value.asBoolean(SHARE_INTERPOLATOR)
         val children: Value? = value[CHILDREN]
 
         override fun createAnimation(c: Context): Animation {
@@ -241,7 +245,7 @@ object AnimationUtils {
 
             children?.let {
                 when {
-                    it.isArray -> it.asArray()
+                    it.isArray -> it.asArray
                         .forEach { animationSet.addAnimation(loadAnimation(c, it)) }
 
                     it.isObject || it.isPrimitive -> animationSet.addAnimation(loadAnimation(c, it))
@@ -260,8 +264,8 @@ object AnimationUtils {
             const val TO_ALPHA = "toAlpha"
         }
 
-        val fromAlpha: Float? = value.getAsFloat(FROM_ALPHA)
-        val toAlpha: Float? = value.getAsFloat(TO_ALPHA)
+        val fromAlpha: Float? = value.asFloat(FROM_ALPHA)
+        val toAlpha: Float? = value.asFloat(TO_ALPHA)
 
 
         override fun createAnimation(c: Context): Animation? =
@@ -281,10 +285,10 @@ object AnimationUtils {
         }
 
 
-        val fromXScale: Float? = value.getAsFloat(FROM_X_SCALE)
-        val toXScale: Float? = value.getAsFloat(TO_X_SCALE)
-        val fromYScale: Float? = value.getAsFloat(FROM_Y_SCALE)
-        val toYScale: Float? = value.getAsFloat(TO_Y_SCALE)
+        val fromXScale: Float? = value.asFloat(FROM_X_SCALE)
+        val toXScale: Float? = value.asFloat(TO_X_SCALE)
+        val fromYScale: Float? = value.asFloat(FROM_Y_SCALE)
+        val toYScale: Float? = value.asFloat(TO_Y_SCALE)
         val pivotX: Value? = value[PIVOT_X]
         val pivotY: Value? = value[PIVOT_Y]
 
@@ -354,8 +358,8 @@ object AnimationUtils {
         }
 
 
-        val fromDegrees: Float? = value.getAsFloat(FROM_DEGREES)
-        val toDegrees: Float? = value.getAsFloat(TO_DEGREES)
+        val fromDegrees: Float? = value.asFloat(FROM_DEGREES)
+        val toDegrees: Float? = value.asFloat(TO_DEGREES)
         val pivotX: Value? = value[PIVOT_X]
         val pivotY: Value? = value[PIVOT_Y]
 
@@ -391,10 +395,10 @@ object AnimationUtils {
             const val CONTROL_Y2 = "controlY2"
         }
 
-        val controlX1: Float? = value.getAsFloat(CONTROL_X1)
-        val controlY1: Float? = value.getAsFloat(CONTROL_Y1)
-        val controlX2: Float? = value.getAsFloat(CONTROL_X2)
-        val controlY2: Float? = value.getAsFloat(CONTROL_Y2)
+        val controlX1: Float? = value.asFloat(CONTROL_X1)
+        val controlY1: Float? = value.asFloat(CONTROL_Y1)
+        val controlX2: Float? = value.asFloat(CONTROL_X2)
+        val controlY2: Float? = value.asFloat(CONTROL_Y2)
 
 
         override fun createInterpolator(c: Context): Interpolator =
@@ -412,7 +416,7 @@ object AnimationUtils {
             const val TENSION = "tension"
         }
 
-        val tension: Float? = value.getAsFloat(TENSION)
+        val tension: Float? = value.asFloat(TENSION)
         override fun createInterpolator(c: Context): Interpolator =
             AnticipateInterpolator(tension ?: 2f)
     }
@@ -424,7 +428,7 @@ object AnimationUtils {
             const val TENSION = "tension"
         }
 
-        val tension: Float? = value.getAsFloat(TENSION)
+        val tension: Float? = value.asFloat(TENSION)
 
         override fun createInterpolator(c: Context): Interpolator =
             OvershootInterpolator(tension ?: 2f)
@@ -437,8 +441,8 @@ object AnimationUtils {
             const val EXTRA_TENSION = "extraTension"
         }
 
-        val tension: Float? = value.getAsFloat(TENSION)
-        val extraTension: Float? = value.getAsFloat(EXTRA_TENSION)
+        val tension: Float? = value.asFloat(TENSION)
+        val extraTension: Float? = value.asFloat(EXTRA_TENSION)
 
         override fun createInterpolator(c: Context): Interpolator = if (tension != null) {
             if (extraTension != null) AnticipateOvershootInterpolator(
@@ -455,7 +459,7 @@ object AnimationUtils {
             const val CYCLES = "cycles"
         }
 
-        val cycles: Float? = value.getAsFloat(CYCLES)
+        val cycles: Float? = value.asFloat(CYCLES)
 
         override fun createInterpolator(c: Context): Interpolator = CycleInterpolator(cycles ?: 1f)
     }

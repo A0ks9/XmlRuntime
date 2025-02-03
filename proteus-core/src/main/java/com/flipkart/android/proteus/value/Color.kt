@@ -43,9 +43,9 @@ abstract class Color : Value() {
         @JvmStatic
         fun valueOf(value: ObjectValue, context: Context): Color = when {
             value.isPrimitive("type") && TextUtils.equals(
-                value.getAsString("type"), "selector"
+                value.asString("type"), "selector"
             ) -> if (value.isArray("children")) createSelectorColor(
-                value["children"]?.asArray()
+                value["children"]?.asArray
             ) else Int.BLACK
 
             else -> Int.BLACK
@@ -58,7 +58,7 @@ abstract class Color : Value() {
             val iterator = children?.iterator()
             while (iterator?.hasNext() == true) {
                 val value = iterator.next()
-                val child = value.asObject()
+                val child = value.asObject
                 if (child.size() == 0) continue
 
                 var baseColor: int? = null
@@ -73,17 +73,17 @@ abstract class Color : Value() {
                     val attributeId = attributesMap[key] ?: return@forEach
                     when (attributeId) {
                         android.R.attr.type -> if (!TextUtils.equals(
-                                "item", value.getAsString()
+                                "item", value.asString()
                             )
                         ) ignoreItem = true
 
                         android.R.attr.color -> baseColor =
-                            value.getAsString().takeIf { it.isNotEmpty() }?.let { apply(it) }
+                            value.asString().takeIf { it.isNotEmpty() }?.let { apply(it) }
 
-                        android.R.attr.alpha -> value.getAsString().takeIf { it.isNotEmpty() }
+                        android.R.attr.alpha -> value.asString().takeIf { it.isNotEmpty() }
                             ?.let { alphaMod = it.toFloat() }
 
-                        else -> stateSpec.add(if (value.getAsBoolean()) attributeId else -attributeId)
+                        else -> stateSpec.add(if (value.asBoolean()) attributeId else -attributeId)
                     }
                 }
 

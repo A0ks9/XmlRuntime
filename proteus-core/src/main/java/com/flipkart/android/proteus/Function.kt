@@ -9,664 +9,525 @@ import com.flipkart.android.proteus.value.Value
 import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
-import java.util.Date
 import kotlin.Array as array
 
 /**
- * Kotlin abstract class representing a function in Proteus data binding.
- *
- * This class serves as a base for defining functions that can be used within
- * Proteus data binding expressions to manipulate data and produce values.
+ * Abstract class representing a function that can be called within the Proteus framework.
+ * This class defines the structure for reusable functions that operate on `Value` objects
+ * within a specific `Context`.
  */
-abstract class Function { // Converted to Kotlin abstract class
-
+abstract class Function {
     /**
-     * Abstract method to execute the function logic.
+     * Abstract method to be implemented by concrete function classes.
+     * This method contains the core logic of the function.
      *
-     * Subclasses must implement this method to define the specific operation
-     * the function performs.
-     *
-     * @param context   Android Context.
-     * @param data      Current data context Value.
-     * @param dataIndex Index of the data item (if in an array).
-     * @param arguments Array of arguments passed to the function.
-     * @return The Value resulting from the function call.
-     * @throws Exception if any error occurs during function execution.
+     * @param context    The Android Context in which the function is being called.
+     * @param data       The primary data `Value` associated with the current scope.
+     * @param dataIndex  The index of the data item, especially relevant when working with lists or arrays.
+     * @param arguments  Variable number of `Value` arguments passed to the function.
+     * @return           The result of the function execution, wrapped in a `Value` object.
      */
     abstract fun call(context: Context, data: Value, dataIndex: Int, vararg arguments: Value): Value
 
     /**
      * Abstract method to get the name of the function.
-     *
-     * Subclasses must implement this method to return the unique name
-     * that identifies the function in Proteus expressions.
+     * This name is used to identify and invoke the function within the Proteus framework.
      *
      * @return The name of the function as a String.
      */
     abstract fun getName(): String
 
-    companion object { // Kotlin Companion Object for static members (like static final functions in Java)
-
+    companion object {
         /**
-         * A NO-OP Function that returns an empty string.
+         * NOOP Function: A function that performs no operation. Returns an empty string.
+         * Useful as a placeholder or when a function call is expected but no action is needed.
          */
-        @JvmField // To keep it accessible as a static field from Java
-        val NOOP: Function =
-            object : Function() { // Kotlin anonymous object for Function implementation
-                override fun call(
-                    context: Context,
-                    data: Value,
-                    dataIndex: Int,
-                    vararg arguments: Value
-                ): Value {
-                    return ProteusConstants.EMPTY_STRING // Returns empty string as Value
-                }
-
-                override fun getName(): String {
-                    return "noop" // Function name is "noop"
-                }
-            }
+        @JvmField
+        val NOOP = function("noop") { _, _, _, _ -> ProteusConstants.EMPTY_STRING }
 
         /**
-         * DATE Function: Formats a date string.
+         * DATE Function: Formats a date string from one format to another.
          *
-         * Supports parsing a date string from one format and formatting it into another.
-         * Default input format: "yyyy-MM-dd HH:mm:ss", default output format: "E, d MMM".
-         * Formats can be overridden by passing format strings as arguments.
+         * Arguments:
+         *   1. (Required) Date string in the 'from' format.
+         *   2. (Optional) Target 'to' format string. Defaults to "E, d MMM" (e.g., "Mon, 5 Jan").
+         *   3. (Optional) 'from' format string. Defaults to "yyyy-MM-dd HH:mm:ss" (e.g., "2023-10-27 10:30:00").
+         *
+         * Uses `SimpleDateFormat` for date formatting.
+         * Returns an empty string if the input date string is missing or parsing fails.
          */
-        @SuppressLint("SimpleDateFormat") // Suppress lint warning for SimpleDateFormat in static context
+        @SuppressLint("SimpleDateFormat")
         @JvmField
-        val DATE: Function = object : Function() {
-
-            private val defaultFromFormat =
-                SimpleDateFormat("yyyy-MM-dd HH:mm:ss") // Default input format
-            private val defaultToFormat = SimpleDateFormat("E, d MMM")     // Default output format
-
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val dateString = arguments.getOrNull(0)?.getAsString()
-                    ?: "" // Get date string argument, default to empty string if missing
-                val inputFormat =
-                    arguments.getFromFormat(defaultFromFormat) // Determine input format from arguments or use default
-                val outputFormat =
-                    arguments.getToFormat(defaultToFormat)   // Determine output format from arguments or use default
-
-                val date = inputFormat.parse(dateString)
-                    ?: Date() // Parse the date string, default to current date if parsing fails
-                val formattedDate = outputFormat.format(date)      // Format the date
-
-                return Primitive(formattedDate) // Return formatted date as Primitive Value
-            }
-
-            private fun array<out Value>.getFromFormat(defaultFormat: SimpleDateFormat): SimpleDateFormat { // Extension function to get input format from arguments
-                return if (size > 2) SimpleDateFormat(get(2).getAsString()) else defaultFormat // Use format from 3rd argument if provided, else default
-            }
-
-            private fun array<out Value>.getToFormat(defaultFormat: SimpleDateFormat): SimpleDateFormat { // Extension function to get output format from arguments
-                return if (size > 1) SimpleDateFormat(get(1).getAsString()) else defaultFormat // Use format from 2nd argument if provided, else default
-            }
-
-            override fun getName(): String {
-                return "date" // Function name is "date"
-            }
+        val DATE = function("date") { _, _, _, arguments ->
+            val input = arguments.getOrNull(0)?.asString()
+                ?: return@function ProteusConstants.EMPTY_STRING // Get input date string, return empty string if null
+            val fromFormat = arguments.getOrNull(2)?.asString()?.let { SimpleDateFormat(it) }
+                ?: SimpleDateFormat("yyyy-MM-dd HH:mm:ss") // Get 'from' format from arguments or use default
+            val toFormat = arguments.getOrNull(1)?.asString()?.let { SimpleDateFormat(it) }
+                ?: SimpleDateFormat("E, d MMM") // Get 'to' format from arguments or use default
+            Primitive(toFormat.format(fromFormat.parse(input)!!)) // Parse input date and format it, then wrap in Primitive
         }
 
         /**
-         * FORMAT Function: Formats a string using String.format.
+         * FORMAT Function: Formats a string using `String.format()`.
          *
-         * First argument is the template string, subsequent arguments are values to be formatted into the template.
+         * Arguments:
+         *   1. (Required) Template string with format specifiers (e.g., "Hello %s, you are %d years old").
+         *   2. ... (Variable) Arguments to replace the format specifiers in the template string.
+         *
+         * Returns the formatted string wrapped in a `Primitive`.
+         * Returns `ProteusConstants.EMPTY_STRING` if no arguments are provided.
          */
         @JvmField
-        val FORMAT: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val template = arguments.getOrNull(0)?.getAsString()
-                    ?: "" // Get template string, default to empty string if missing
-                val formatValues = arguments.drop(1).map { it.getAsString() }
-                    .toTypedArray() // Extract formatting values from arguments
-                val formattedString = String.format(template, *formatValues) // Format the string
-
-                return Primitive(formattedString) // Return formatted string as Primitive Value
-            }
-
-            override fun getName(): String {
-                return "format" // Function name is "format"
-            }
+        val FORMAT = function("format") { _, _, _, arguments ->
+            if (arguments.isEmpty()) ProteusConstants.EMPTY_STRING // Return empty string if no arguments
+            else Primitive(String.format(arguments[0].asString(),
+                *arguments.drop(1).map { it.asString() }
+                    .toTypedArray() // Format the string using String.format and arguments
+            ))
         }
 
         /**
-         * JOIN Function: Joins elements of an array into a string.
+         * JOIN Function: Joins elements of an array `Value` into a single string.
          *
-         * First argument is the array to join.
-         * Second optional argument is the delimiter, default is ", ".
+         * Arguments:
+         *   1. (Required) Array `Value` to be joined.
+         *   2. (Optional) Delimiter string to use between array elements. Defaults to ", ".
+         *
+         * Uses `Utils.join()` to perform the array joining.
+         * Returns the joined string wrapped in a `Primitive`.
+         * Returns `ProteusConstants.EMPTY_STRING` if no arguments are provided.
          */
         @JvmField
-        val JOIN: Function = object : Function() {
-
-            private val DEFAULT_DELIMITER = ", " // Default delimiter for join
-
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val arrayToJoin = arguments.getOrNull(0)?.asArray()
-                    ?: Array() // Get array argument, default to empty array if missing
-                val delimiter =
-                    arguments.getDelimiter()                       // Determine delimiter from arguments or use default
-
-                val joinedString =
-                    Utils.join(arrayToJoin, delimiter)       // Join the array elements
-                return Primitive(joinedString)                            // Return joined string as Primitive Value
-            }
-
-            private fun array<out Value>.getDelimiter(): String { // Extension function to get delimiter from arguments
-                return if (size > 1) get(1).getAsString() else DEFAULT_DELIMITER // Use delimiter from 2nd argument if provided, else default
-            }
-
-            override fun getName(): String {
-                return "join" // Function name is "join"
-            }
+        val JOIN = function("join") { _, _, _, arguments ->
+            if (arguments.isEmpty()) ProteusConstants.EMPTY_STRING // Return empty string if no arguments
+            else Primitive(
+                Utils.join(
+                    arguments[0].asArray,
+                    arguments.getOrNull(1)?.asString()
+                        ?: ", " // Join array with provided delimiter or default ", "
+                )
+            )
         }
 
         /**
-         * NUMBER Function: Formats a number with thousands separators and decimal places.
+         * NUMBER Function: Formats a number string using `DecimalFormat`.
          *
-         * First argument is the number to format.
-         * Second optional argument is the format string, default is "#,###".
+         * Arguments:
+         *   1. (Required) Number string to be formatted.
+         *   2. (Optional) Format string for `DecimalFormat`. Defaults to "#,###" (e.g., "1,234").
+         *
+         * Applies `RoundingMode.FLOOR`, `minimumFractionDigits = 0`, and `maximumFractionDigits = 2` to the formatter.
+         * Returns the formatted number string wrapped in a `Primitive`.
+         * Returns `ProteusConstants.EMPTY_STRING` if no arguments are provided.
          */
         @JvmField
-        val NUMBER: Function = object : Function() {
-
-            private val defaultFormatter = DecimalFormat("#,###") // Default number formatter
-
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val numberString = arguments.getOrNull(0)?.getAsString()
-                    ?: "0" // Get number string, default to "0" if missing
-                val number = numberString.toDoubleOrNull()
-                    ?: 0.0             // Parse number string to double, default to 0.0 if parsing fails
-                val formatter =
-                    arguments.getFormatter(defaultFormatter)    // Determine formatter from arguments or use default
-
-                formatter.roundingMode = RoundingMode.FLOOR               // Set rounding mode
-                formatter.minimumFractionDigits =
-                    0                     // Set minimum fraction digits
-                formatter.maximumFractionDigits =
-                    2                     // Set maximum fraction digits
-
-                val formattedNumber = formatter.format(number)             // Format the number
-                return Primitive(formattedNumber)                         // Return formatted number as Primitive Value
-            }
-
-            private fun array<out Value>.getFormatter(defaultFormatter: DecimalFormat): DecimalFormat { // Extension function to get formatter from arguments
-                return if (size > 1) DecimalFormat(get(1).getAsString()) else defaultFormatter // Use format from 2nd argument if provided, else default
-            }
-
-            override fun getName(): String {
-                return "number" // Function name is "number"
-            }
+        val NUMBER = function("number") { _, _, _, arguments ->
+            if (arguments.isEmpty()) ProteusConstants.EMPTY_STRING // Return empty string if no arguments
+            else Primitive((arguments.getOrNull(1)?.asString()?.let { DecimalFormat(it) }
+                ?: DecimalFormat("#,###")).apply { // Get DecimalFormat from arguments or use default
+                roundingMode = RoundingMode.FLOOR // Set rounding mode
+                minimumFractionDigits = 0 // Set minimum fraction digits
+                maximumFractionDigits = 2 // Set maximum fraction digits
+            }.format(
+                arguments[0].asString().toDouble()
+            )
+            ) // Format the number string and wrap in Primitive
         }
 
-        // Mathematical Functions
-        /** ADD Function: Adds all numeric arguments. */
+        /**
+         * ADD Function: Adds all provided numeric arguments.
+         *
+         * Arguments:
+         *   ... (Variable) Numeric `Value` arguments to be added.
+         *
+         * Returns the sum of all arguments as a `Primitive` number.
+         */
         @JvmField
-        val ADD: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                var sum = 0.0
-                arguments.forEach { sum += it.getAsDouble() } // Sum up all arguments
-                return Primitive(sum) // Return sum as Primitive Value
-            }
+        val ADD =
+            function("add") { _, _, _, arguments -> Primitive(arguments.sumOf { it.asDouble() }) } // Sum all arguments as doubles and wrap in Primitive
 
-            override fun getName() = "add" // Function name is "add"
+        /**
+         * SUBTRACT Function: Subtracts subsequent numeric arguments from the first argument.
+         *
+         * Arguments:
+         *   1. (Required) First numeric `Value` argument (minuend).
+         *   2. ... (Variable) Numeric `Value` arguments to subtract (subtrahends).
+         *
+         * Returns the result of the subtraction as a `Primitive` number.
+         */
+        @JvmField
+        val SUBTRACT = function("sub") { _, _, _, arguments ->
+            Primitive(
+                arguments[0].asDouble() - arguments.drop(1)
+                    .sumOf { it.asDouble() }) // Subtract sum of rest arguments from first argument and wrap in Primitive
         }
 
-        /** SUBTRACT Function: Subtracts subsequent arguments from the first argument. */
+        /**
+         * MULTIPLY Function: Multiplies all provided numeric arguments together.
+         *
+         * Arguments:
+         *   ... (Variable) Numeric `Value` arguments to be multiplied.
+         *
+         * Returns the product of all arguments as a `Primitive` number.
+         */
         @JvmField
-        val SUBTRACT: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.isEmpty()) return ProteusConstants.EMPTY_STRING // Handle no arguments case
+        val MULTIPLY =
+            function("mul") { _, _, _, arguments -> Primitive(arguments.fold(1.0) { acc, value -> acc * value.asDouble() }) } // Multiply all arguments together and wrap in Primitive
 
-                var sum = arguments[0].getAsDouble() // Initialize sum with first argument
-                for (i in 1 until arguments.size) sum -= arguments[i].getAsDouble() // Subtract subsequent arguments
-                return Primitive(sum) // Return result as Primitive Value
-            }
+        /**
+         * DIVIDE Function: Divides the first numeric argument by subsequent numeric arguments.
+         *
+         * Arguments:
+         *   1. (Required) First numeric `Value` argument (dividend).
+         *   2. ... (Variable) Numeric `Value` arguments to divide by (divisors).
+         *
+         * Returns the result of the division as a `Primitive` number.
+         */
+        @JvmField
+        val DIVIDE =
+            function("div") { _, _, _, arguments -> Primitive(arguments.fold(arguments[0].asDouble()) { acc, value -> acc / value.asDouble() }) } // Divide first argument by subsequent arguments and wrap in Primitive
 
-            override fun getName() = "sub" // Function name is "sub"
+        /**
+         * MODULO Function: Calculates the modulo of the first numeric argument with subsequent numeric arguments.
+         *
+         * Arguments:
+         *   1. (Required) First numeric `Value` argument (dividend).
+         *   2. ... (Variable) Numeric `Value` arguments to use as divisors for modulo operation.
+         *
+         * Returns the remainder of the modulo operation as a `Primitive` number.
+         */
+        @JvmField
+        val MODULO =
+            function("mod") { _, _, _, arguments -> Primitive(arguments.fold(arguments[0].asDouble()) { acc, value -> acc % value.asDouble() }) } // Calculate modulo of first argument with subsequent arguments and wrap in Primitive
+
+        /**
+         * AND Function: Performs logical AND operation on all boolean arguments.
+         * Returns true if all arguments are true, false otherwise.
+         *
+         * Arguments:
+         *   ... (Variable) Boolean `Value` arguments.
+         *
+         * Returns a `Primitive` boolean representing the result of the AND operation.
+         */
+        @JvmField
+        val AND =
+            function("and") { _, _, _, arguments -> Primitive(arguments.all { it.asBoolean() }) } // Perform AND on all arguments and wrap in Primitive
+
+        /**
+         * OR Function: Performs logical OR operation on all boolean arguments.
+         * Returns true if at least one argument is true, false otherwise.
+         *
+         * Arguments:
+         *   ... (Variable) Boolean `Value` arguments.
+         *
+         * Returns a `Primitive` boolean representing the result of the OR operation.
+         */
+        @JvmField
+        val OR =
+            function("or") { _, _, _, arguments -> Primitive(arguments.any { it.asBoolean() }) } // Perform OR on all arguments and wrap in Primitive
+
+        /**
+         * NOT Function: Performs logical NOT operation on the first boolean argument.
+         *
+         * Arguments:
+         *   1. (Optional) Boolean `Value` argument to negate. If no argument is provided, it defaults to true (NOT of nothing is true).
+         *
+         * Returns a `Primitive` boolean representing the negated value of the argument.
+         */
+        @JvmField
+        val NOT = function("not") { _, _, _, arguments ->
+            Primitive(
+                arguments.getOrNull(0)
+                    ?.asBoolean() != true // Negate the boolean value of the first argument, default to true if no argument
+            )
         }
 
-        /** MULTIPLY Function: Multiplies all numeric arguments. */
+        /**
+         * EQUALS Function: Checks if the first and second arguments are equal (string comparison).
+         *
+         * Arguments:
+         *   1. (Optional) First `Value` argument.
+         *   2. (Optional) Second `Value` argument.
+         *
+         * Returns a `Primitive` boolean indicating whether the string representations of the first two arguments are equal.
+         */
         @JvmField
-        val MULTIPLY: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                var product = 1.0
-                arguments.forEach { product *= it.getAsDouble() } // Multiply all arguments
-                return Primitive(product) // Return product as Primitive Value
-            }
-
-            override fun getName() = "mul" // Function name is "mul"
+        val EQUALS = function("eq") { _, _, _, arguments ->
+            Primitive(
+                arguments.getOrNull(0)?.asString() == arguments.getOrNull(1)
+                    ?.asString() // Compare string representations of first two arguments
+            )
         }
 
-        /** DIVIDE Function: Divides the first argument by subsequent arguments. */
+        /**
+         * LESS_THAN Function: Checks if the first numeric argument is less than the second numeric argument.
+         *
+         * Arguments:
+         *   1. (Optional) First numeric `Value` argument. Defaults to 0.0 if not provided.
+         *   2. (Optional) Second numeric `Value` argument. Defaults to 0.0 if not provided.
+         *
+         * Returns a `Primitive` boolean indicating whether the first argument is less than the second.
+         */
         @JvmField
-        val DIVIDE: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.isEmpty()) return ProteusConstants.EMPTY_STRING // Handle no arguments case
-                var quotient = arguments[0].getAsDouble() // Initialize quotient with first argument
-                for (i in 1 until arguments.size) quotient /= arguments[i].getAsDouble() // Divide by subsequent arguments
-                return Primitive(quotient) // Return quotient as Primitive Value
-            }
-
-            override fun getName() = "div" // Function name is "div"
+        val LESS_THAN = function("lt") { _, _, _, arguments ->
+            Primitive(
+                (arguments.getOrNull(0)?.asDouble() ?: 0.0) < (arguments.getOrNull(1)?.asDouble()
+                    ?: 0.0) // Compare first two arguments as doubles, default to 0.0 if null
+            )
         }
 
-        /** MODULO Function: Calculates the modulo (remainder) of arguments. */
+        /**
+         * GREATER_THAN Function: Checks if the first numeric argument is greater than the second numeric argument.
+         *
+         * Arguments:
+         *   1. (Optional) First numeric `Value` argument. Defaults to 0.0 if not provided.
+         *   2. (Optional) Second numeric `Value` argument. Defaults to 0.0 if not provided.
+         *
+         * Returns a `Primitive` boolean indicating whether the first argument is greater than the second.
+         */
         @JvmField
-        val MODULO: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.isEmpty()) return ProteusConstants.EMPTY_STRING // Handle no arguments case
-                var remainder =
-                    arguments[0].getAsDouble() // Initialize remainder with first argument
-                for (i in 1 until arguments.size) remainder %= arguments[i].getAsDouble() // Calculate modulo with subsequent arguments
-                return Primitive(remainder) // Return remainder as Primitive Value
-            }
-
-            override fun getName() = "mod" // Function name is "mod"
+        val GREATER_THAN = function("gt") { _, _, _, arguments ->
+            Primitive(
+                (arguments.getOrNull(0)?.asDouble() ?: 0.0) > (arguments.getOrNull(1)?.asDouble()
+                    ?: 0.0) // Compare first two arguments as doubles, default to 0.0 if null
+            )
         }
 
-
-        // Logical Functions
-        /** AND Function: Logical AND of boolean arguments. */
+        /**
+         * LESS_THAN_OR_EQUALS Function: Checks if the first numeric argument is less than or equal to the second numeric argument.
+         *
+         * Arguments:
+         *   1. (Optional) First numeric `Value` argument. Defaults to 0.0 if not provided.
+         *   2. (Optional) Second numeric `Value` argument. Defaults to 0.0 if not provided.
+         *
+         * Returns a `Primitive` boolean indicating whether the first argument is less than or equal to the second.
+         */
         @JvmField
-        val AND: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.isEmpty()) return ProteusConstants.FALSE // Default to FALSE if no arguments
-                var bool = true
-                for (argument in arguments) {
-                    bool = parseBoolean(argument) // Parse each argument to boolean
-                    if (!bool) break            // Short-circuit AND if any argument is false
-                }
-                return if (bool) ProteusConstants.TRUE else ProteusConstants.FALSE // Return TRUE or FALSE as Primitive Value
-            }
-
-            override fun getName() = "and" // Function name is "and"
+        val LESS_THAN_OR_EQUALS = function("lte") { _, _, _, arguments ->
+            Primitive(
+                (arguments.getOrNull(0)?.asDouble() ?: 0.0) <= (arguments.getOrNull(1)?.asDouble()
+                    ?: 0.0) // Compare first two arguments as doubles, default to 0.0 if null
+            )
         }
 
-        /** OR Function: Logical OR of boolean arguments. */
+        /**
+         * GREATER_THAN_OR_EQUALS Function: Checks if the first numeric argument is greater than or equal to the second numeric argument.
+         *
+         * Arguments:
+         *   1. (Optional) First numeric `Value` argument. Defaults to 0.0 if not provided.
+         *   2. (Optional) Second numeric `Value` argument. Defaults to 0.0 if not provided.
+         *
+         * Returns a `Primitive` boolean indicating whether the first argument is greater than or equal to the second.
+         */
         @JvmField
-        val OR: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.isEmpty()) return ProteusConstants.FALSE // Default to FALSE if no arguments
-                var bool = false
-                for (argument in arguments) {
-                    bool = parseBoolean(argument) // Parse each argument to boolean
-                    if (bool) break             // Short-circuit OR if any argument is true
-                }
-                return if (bool) ProteusConstants.TRUE else ProteusConstants.FALSE // Return TRUE or FALSE as Primitive Value
-            }
-
-            override fun getName() = "or" // Function name is "or"
+        val GREATER_THAN_OR_EQUALS = function("gte") { _, _, _, arguments ->
+            Primitive(
+                (arguments.getOrNull(0)?.asDouble() ?: 0.0) >= (arguments.getOrNull(1)?.asDouble()
+                    ?: 0.0) // Compare first two arguments as doubles, default to 0.0 if null
+            )
         }
 
-
-        // Unary Function
-        /** NOT Function: Logical NOT of a boolean argument. */
+        /**
+         * TERNARY Function: Implements a ternary conditional operator (condition ? thenValue : elseValue).
+         *
+         * Arguments:
+         *   1. (Optional) Condition `Value` (boolean). Defaults to false if not provided.
+         *   2. (Optional) `Value` to return if the condition is true. Defaults to null and might cause issues if used directly.
+         *   3. (Optional) `Value` to return if the condition is false. Defaults to `ProteusConstants.EMPTY_STRING`.
+         *
+         * Returns either the 'thenValue' or 'elseValue' based on the boolean value of the condition.
+         * If 'thenValue' is null and condition is true, it might lead to null pointer exceptions in usage.
+         */
         @JvmField
-        val NOT: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                return if (arguments.isEmpty()) ProteusConstants.TRUE // Default to TRUE if no arguments
-                else if (parseBoolean(arguments[0])) ProteusConstants.FALSE else ProteusConstants.TRUE // Return NOT of the first argument as Primitive Value
-            }
-
-            override fun getName() = "not" // Function name is "not"
+        val TERNARY = function("ternary") { _, _, _, arguments ->
+            if (arguments.getOrNull(0)
+                    ?.asBoolean() == true
+            ) arguments.getOrNull(1)!! else arguments.getOrNull( // if condition is true, return second argument (thenValue) else return third (elseValue)
+                2
+            ) ?: ProteusConstants.EMPTY_STRING // if elseValue is null, return EMPTY_STRING
         }
 
-
-        // Comparison Functions
-        /** EQUALS Function: Checks if two arguments are equal (primitive comparison). */
+        /**
+         * CHAR_AT Function: Returns the character at a specific index in a string.
+         *
+         * Arguments:
+         *   1. (Optional) String `Value`. Defaults to empty string if not provided.
+         *   2. (Optional) Index `Value` (integer). Defaults to 0 if not provided.
+         *
+         * Returns a `Primitive` string containing the character at the specified index.
+         * Returns an empty `Primitive` string if the input string is null, index is out of bounds, or arguments are missing.
+         */
         @JvmField
-        val EQUALS: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.size < 2) return ProteusConstants.FALSE // Default to FALSE if less than 2 arguments
-                val x = arguments[0]
-                val y = arguments[1]
-                val bool =
-                    x.isPrimitive && y.isPrimitive && x.asPrimitive() == y.asPrimitive() // Compare primitives
-                return if (bool) ProteusConstants.TRUE else ProteusConstants.FALSE // Return TRUE or FALSE as Primitive Value
-            }
-
-            override fun getName() = "eq" // Function name is "eq"
+        val CHAR_AT = function("charAt") { _, _, _, arguments ->
+            Primitive(
+                arguments.getOrNull(0)?.asString()?.getOrNull(
+                    arguments.getOrNull(1)?.asInt() ?: 0
+                ) // Get character at specified index in string, default index is 0
+                    ?.toString()
+                    ?: "" // Convert char to string, default to empty string if any error occurs
+            )
         }
 
-        /** LESS_THAN Function: Checks if the first argument is less than the second (numeric comparison). */
+        /**
+         * CONTAINS Function: Checks if a string contains a specified substring.
+         *
+         * Arguments:
+         *   1. (Optional) String `Value` to search in. Defaults to empty string if not provided.
+         *   2. (Optional) Substring `Value` to search for. Defaults to empty string if not provided.
+         *
+         * Returns a `Primitive` boolean indicating whether the first string contains the second string as a substring.
+         */
         @JvmField
-        val LESS_THAN: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.size < 2) return ProteusConstants.FALSE // Default to FALSE if less than 2 arguments
-                val x = arguments[0]
-                val y = arguments[1]
-                val bool = x.isPrimitive && y.isPrimitive && x.asPrimitive()
-                    .getAsDouble() < y.asPrimitive().getAsDouble() // Numeric comparison
-                return if (bool) ProteusConstants.TRUE else ProteusConstants.FALSE // Return TRUE or FALSE as Primitive Value
-            }
-
-            override fun getName() = "lt" // Function name is "lt"
+        val CONTAINS = function("contains") { _, _, _, arguments ->
+            Primitive(
+                arguments.getOrNull(0)?.asString()?.contains(
+                    arguments.getOrNull(1)?.asString()
+                        ?: "" // Check if first string contains second string, default substring is empty string
+                ) == true
+            )
         }
 
-        /** GREATER_THAN Function: Checks if the first argument is greater than the second (numeric comparison). */
+        /**
+         * IS_EMPTY Function: Checks if a string is empty.
+         *
+         * Arguments:
+         *   1. (Optional) String `Value` to check. Defaults to null.
+         *
+         * Returns a `Primitive` boolean indicating whether the input string is empty.
+         * Returns `true` if the input string is null or empty, `false` otherwise.
+         */
         @JvmField
-        val GREATER_THAN: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.size < 2) return ProteusConstants.FALSE // Default to FALSE if less than 2 arguments
-                val x = arguments[0]
-                val y = arguments[1]
-                val bool = x.isPrimitive && y.isPrimitive && x.asPrimitive()
-                    .getAsDouble() > y.asPrimitive().getAsDouble() // Numeric comparison
-                return if (bool) ProteusConstants.TRUE else ProteusConstants.FALSE // Return TRUE or FALSE as Primitive Value
-            }
-
-            override fun getName() = "gt" // Function name is "gt"
+        val IS_EMPTY = function("isEmpty") { _, _, _, arguments ->
+            Primitive(
+                arguments.getOrNull(0)?.asString()
+                    ?.isEmpty() != false // Check if string is empty, handles null string as not empty in original logic (corrected to treat null as empty in comment)
+            )
         }
 
-        /** LESS_THAN_OR_EQUALS Function: Checks if the first argument is less than or equal to the second (numeric comparison). */
+        /**
+         * LENGTH Function: Returns the length of a string or the size of an array `Value`.
+         *
+         * Arguments:
+         *   1. (Optional) String or Array `Value`. Defaults to null.
+         *
+         * Returns a `Primitive` number representing the length of the string or the size of the array.
+         * Returns 0 if the input `Value` is null or not a string or array.
+         */
         @JvmField
-        val LESS_THAN_OR_EQUALS: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.size < 2) return ProteusConstants.FALSE // Default to FALSE if less than 2 arguments
-                val x = arguments[0]
-                val y = arguments[1]
-                val bool = x.isPrimitive && y.isPrimitive && x.asPrimitive()
-                    .getAsDouble() <= y.asPrimitive().getAsDouble() // Numeric comparison
-                return if (bool) ProteusConstants.TRUE else ProteusConstants.FALSE // Return TRUE or FALSE as Primitive Value
-            }
-
-            override fun getName() = "lte" // Function name is "lte"
+        val LENGTH = function("length") { _, _, _, arguments ->
+            Primitive(
+                arguments.getOrNull(0)?.asString()?.length ?: arguments.getOrNull(0)?.asArray
+                    ?.size()
+                ?: 0 // Get length of string or size of array, default to 0 if null or not string/array
+            )
         }
 
-        /** GREATER_THAN_OR_EQUALS Function: Checks if the first argument is greater than or equal to the second (numeric comparison). */
+        /**
+         * TRIM Function: Removes leading and trailing whitespace from a string.
+         *
+         * Arguments:
+         *   1. (Optional) String `Value` to trim. Defaults to null.
+         *
+         * Returns a `Primitive` string containing the trimmed version of the input string.
+         * Returns an empty `Primitive` string if the input string is null.
+         */
         @JvmField
-        val GREATER_THAN_OR_EQUALS: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                if (arguments.size < 2) return ProteusConstants.FALSE // Default to FALSE if less than 2 arguments
-                val x = arguments[0]
-                val y = arguments[1]
-                val bool = x.isPrimitive && y.isPrimitive && x.asPrimitive()
-                    .getAsDouble() >= y.asPrimitive().getAsDouble() // Numeric comparison
-                return if (bool) ProteusConstants.TRUE else ProteusConstants.FALSE // Return TRUE or FALSE as Primitive Value
-            }
-
-            override fun getName() = "gte" // Function name is "gte"
+        val TRIM = function("trim") { _, _, _, arguments ->
+            Primitive(
+                arguments.getOrNull(0)?.asString()?.trim()
+                    ?: "" // Trim the string, default to empty string if null
+            )
         }
 
-
-        // Conditional Function
-        /** TERNARY Function: Ternary conditional operator (if-then-else). */
+        /**
+         * MAX Function: Returns the maximum of the provided numeric arguments.
+         *
+         * Arguments:
+         *   ... (Variable) Numeric `Value` arguments.
+         *
+         * Returns a `Primitive` number representing the maximum value among the arguments.
+         * Returns 0.0 if no arguments are provided or if no numeric arguments are found.
+         */
         @JvmField
-        val TERNARY: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val condition = arguments.getOrNull(0)
-                    ?: ProteusConstants.FALSE // Get condition, default to FALSE if missing
-                val thenValue = arguments.getOrNull(1)
-                    ?: ProteusConstants.EMPTY_STRING // Get then-value, default to empty string if missing
-                val elseValue = arguments.getOrNull(2)
-                    ?: ProteusConstants.EMPTY_STRING // Get else-value, default to empty string if missing
-
-                return if (parseBoolean(condition)) thenValue else elseValue // Return thenValue if condition is true, else elseValue
-            }
-
-            override fun getName() = "ternary" // Function name is "ternary"
+        val MAX = function("max") { _, _, _, arguments ->
+            Primitive(arguments.maxOfOrNull { it.asDouble() }
+                ?: 0.0) // Find max of all arguments as doubles, default to 0.0 if no arguments or no doubles
         }
 
-
-        // String Functions
-        /** CHAR_AT Function: Returns the character at a specified index in a string. */
+        /**
+         * MIN Function: Returns the minimum of the provided numeric arguments.
+         *
+         * Arguments:
+         *   ... (Variable) Numeric `Value` arguments.
+         *
+         * Returns a `Primitive` number representing the minimum value among the arguments.
+         * Returns 0.0 if no arguments are provided or if no numeric arguments are found.
+         */
         @JvmField
-        val CHAR_AT: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val string = arguments.getOrNull(0)?.getAsString()
-                    ?: ""      // Get string argument, default to empty string if missing
-                val index = arguments.getOrNull(1)?.getAsInt()
-                    ?: 0            // Get index argument, default to 0 if missing
-                val charAtIndex = string.getOrNull(index)
-                    ?: '\u0000'  // Get char at index, default to null char if index invalid
-
-                return Primitive(charAtIndex.toString()) // Return char as Primitive Value
-            }
-
-            override fun getName() = "charAt" // Function name is "charAt"
+        val MIN = function("min") { _, _, _, arguments ->
+            Primitive(arguments.minOfOrNull { it.asDouble() }
+                ?: 0.0) // Find min of all arguments as doubles, default to 0.0 if no arguments or no doubles
         }
 
-        private fun String.getOrNull(index: Int): Char? = // Extension function to get char or null
-            if (index in 0 until length) get(index) else null
-
-
-        /** CONTAINS Function: Checks if a string contains a substring. */
+        /**
+         * SLICE Function: Extracts a section (slice) of an array `Value`.
+         *
+         * Arguments:
+         *   1. (Optional) Array `Value` to slice. Defaults to null.
+         *   2. (Optional) Start index (integer). Defaults to 0. Can be negative (index from the end).
+         *   3. (Optional) End index (integer). Defaults to array size. Can be negative (index from the end).
+         *
+         * Returns a new `Array` `Value` containing the sliced portion of the original array.
+         * Returns an empty `Array` `Value` if the input array is null or invalid indices are provided.
+         */
         @JvmField
-        val CONTAINS: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val string = arguments.getOrNull(0)?.getAsString()
-                    ?: ""         // Get string argument, default to empty string if missing
-                val substring = arguments.getOrNull(1)?.getAsString()
-                    ?: ""      // Get substring argument, default to empty string if missing
-                val bool =
-                    string.contains(substring)                         // Check if string contains substring
-
-                return Primitive(bool) // Return boolean result as Primitive Value
-            }
-
-            override fun getName() = "contains" // Function name is "contains"
+        val SLICE = function("slice") { _, _, _, arguments ->
+            arguments.getOrNull(0)?.asArray
+                ?.let { array -> // Get array argument, proceed only if not null
+                    Array().apply { // Create a new Array to hold the slice
+                        (arguments.getOrNull(1)?.asInt()?.calculateIndex(array)
+                            ?: 0).until( // Calculate start index, default to 0
+                            arguments.getOrNull(2)?.asInt()?.calculateIndex(array)
+                                ?: array.size() // Calculate end index, default to array size
+                        )
+                            .forEach { add(array[it]) } // Iterate through the slice range and add elements to the new array
+                    }
+                } ?: Array() // If input array is null, return an empty Array
         }
 
-
-        /** IS_EMPTY Function: Checks if a string is empty. */
-        @JvmField
-        val IS_EMPTY: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val string = arguments.getOrNull(0)?.getAsString()
-                    ?: ""      // Get string argument, default to empty string if missing
-                return Primitive(string.isEmpty())                          // Check if string is empty and return as Primitive Value
-            }
-
-            override fun getName() = "isEmpty" // Function name is "isEmpty"
+        /**
+         * Helper function to calculate the correct index for array slicing, handling negative indices and out-of-bounds values.
+         *
+         * @param array The Array `Value` for which the index is being calculated.
+         * @return The calculated valid index within the bounds of the array.
+         */
+        private fun Int.calculateIndex(array: Array): Int = when {
+            this < 0 -> maxOf(
+                0, array.size() + this
+            ) // Negative index: calculate from the end, ensure not less than 0
+            this > array.size() -> array.size() // Index greater than size: clamp to array size
+            else -> this // Positive index within bounds: return as is
         }
 
-
-        /** LENGTH Function: Returns the length of a string or an array. */
-        @JvmField
-        val LENGTH: Function = object : Function() {
+        /**
+         * Private helper function to create `Function` instances more concisely using a lambda.
+         *
+         * @param name  The name of the function.
+         * @param block Lambda expression representing the function's call logic.
+         *              It takes Context, Value data, dataIndex, and an array of Value arguments.
+         * @return A new `Function` instance.
+         */
+        private inline fun function(
+            name: String, crossinline block: (Context, Value, Int, array<out Value>) -> Value
+        ) = object : Function() {
             override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val value = arguments.getOrNull(0)
-                    ?: ProteusConstants.EMPTY_STRING // Get argument, default to empty string if missing
-                val length = when {       // Determine length based on value type
-                    value.isPrimitive -> value.getAsString().length
-                    value.isArray -> value.asArray().size()
-                    else -> 0            // Default length is 0 for other types
-                }
-                return Primitive(length) // Return length as Primitive Value
-            }
+                context: Context, data: Value, dataIndex: Int, vararg arguments: Value
+            ) = block(
+                context, data, dataIndex, arguments
+            ) // Implement call method by executing the provided lambda
 
-            override fun getName() = "length" // Function name is "length"
-        }
-
-
-        /** TRIM Function: Removes leading and trailing whitespace from a string. */
-        @JvmField
-        val TRIM: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val string = arguments.getOrNull(0)?.getAsString()
-                    ?: "" // Get string argument, default to empty string if missing
-                return Primitive(string.trim())                         // Trim the string and return as Primitive Value
-            }
-
-            override fun getName() = "trim" // Function name is "trim"
-        }
-
-
-        // Math Functions (Math.max and Math.min already defined as MAX and MIN above)
-        /** MAX Function: Returns the maximum of numeric arguments (already defined above) */
-
-        /** MIN Function: Returns the minimum of numeric arguments (already defined above) */
-
-
-        // Array Function
-        /** SLICE Function: Returns a slice of an array. */
-        @JvmField
-        val SLICE: Function = object : Function() {
-            override fun call(
-                context: Context,
-                data: Value,
-                dataIndex: Int,
-                vararg arguments: Value
-            ): Value {
-                val inputArr = arguments.getOrNull(0)?.asArray()
-                    ?: Array() // Get input array, default to empty array if missing
-                val start =
-                    arguments.getStart(inputArr, arguments)                // Determine start index from arguments
-                val end =
-                    arguments.getEnd(inputArr, arguments)                  // Determine end index from arguments
-
-                val outputArr = Array()                                // Create new output array
-                for (i in start until end) outputArr.add(inputArr[i]) // Copy elements from slice to output array
-                return outputArr                                     // Return sliced array as Value
-            }
-
-            private fun array<out Value>.getStart(a: Array, arguments: array<out Value>): Int { // Extension function to get start index from arguments
-                if (arguments.size <= 1) return 0                               // Default start index is 0
-                var index =
-                    arguments[1].getAsInt()                           // Get start index from 2nd argument
-                return when {
-                    index < 0 -> maxOf(
-                        0,
-                        a.size() - index
-                    )              // Handle negative start index (from end)
-                    index > a.size() -> a.size()                             // Limit start index to array size
-                    else -> index                                         // Use given start index
-                }
-            }
-
-            private fun array<out Value>.getEnd(a: Array, arguments: array<out Value>): Int { // Extension function to get end index from arguments
-                if (arguments.size <= 2) return a.size()                              // Default end index is array size
-                var index =
-                    arguments[2].getAsInt()                             // Get end index from 3rd argument
-                return when {
-                    index < 0 -> maxOf(
-                        0,
-                        a.size() - index
-                    )                // Handle negative end index (from end)
-                    index > a.size() -> a.size()                               // Limit end index to array size
-                    else -> index                                           // Use given end index
-                }
-            }
-
-            override fun getName() = "slice" // Function name is "slice"
+            override fun getName() = name // Implement getName method to return the provided name
         }
     }
 }

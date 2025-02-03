@@ -64,13 +64,13 @@ class ObjectValue : Value() {
      * Checks if member is a boolean primitive.
      */
     fun isBoolean(memberName: String): Boolean =
-        contains(memberName) && this[memberName] is Primitive && getAsPrimitive(memberName)?.isBoolean() == true
+        contains(memberName) && this[memberName] is Primitive && asPrimitive(memberName)?.isBoolean() == true
 
     /**
      * Checks if member is a number primitive.
      */
     fun isNumber(memberName: String): Boolean =
-        contains(memberName) && this[memberName] is Primitive && getAsPrimitive(memberName)?.isNumber() == true
+        contains(memberName) && this[memberName] is Primitive && asPrimitive(memberName)?.isNumber() == true
 
     /**
      * Checks if member is an ObjectValue.
@@ -106,87 +106,86 @@ class ObjectValue : Value() {
     /**
      * Returns the value with a given property key as a primitive.
      */
-    fun getAsPrimitive(memberName: String): Primitive? = this[memberName] as? Primitive
+    fun asPrimitive(memberName: String): Primitive? = this[memberName] as? Primitive
 
     /**
      * Returns the value with a given property key as a boolean.
      */
-    fun getAsBoolean(memberName: String): Boolean? = getAsPrimitive(memberName)?.getAsBoolean()
+    fun asBoolean(memberName: String): Boolean? = asPrimitive(memberName)?.asBoolean()
 
     /**
      * Returns the value with a given property key as a boolean, returns the default value if the property is not set.
      */
-    fun getAsBoolean(memberName: String, defaultValue: Boolean): Boolean =
-        getAsBoolean(memberName) ?: defaultValue
+    fun asBoolean(memberName: String, defaultValue: Boolean): Boolean =
+        asBoolean(memberName) ?: defaultValue
 
     /**
      * Returns the value with a given property key as a integer.
      */
-    fun getAsInteger(memberName: String): Int? = getAsPrimitive(memberName)?.getAsInt()
+    fun asInteger(memberName: String): Int? = asPrimitive(memberName)?.asInt()
 
     /**
      * Returns the value with a given property key as a integer, returns the default value if the property is not set.
      */
-    fun getAsInteger(memberName: String, defaultValue: Int): Int =
-        getAsInteger(memberName) ?: defaultValue
+    fun asInteger(memberName: String, defaultValue: Int): Int =
+        asInteger(memberName) ?: defaultValue
 
     /**
      * Returns the value with a given property key as a float.
      */
-    fun getAsFloat(memberName: String): Float? = getAsPrimitive(memberName)?.getAsFloat()
+    fun asFloat(memberName: String): Float? = asPrimitive(memberName)?.asFloat()
 
     /**
      * Returns the value with a given property key as a float, returns the default value if the property is not set.
      */
-    fun getAsFloat(memberName: String, defaultValue: Float): Float =
-        getAsFloat(memberName) ?: defaultValue
+    fun asFloat(memberName: String, defaultValue: Float): Float =
+        asFloat(memberName) ?: defaultValue
 
     /**
      * Returns the value with a given property key as a double.
      */
-    fun getAsDouble(memberName: String): Double? = getAsPrimitive(memberName)?.getAsDouble()
+    fun asDouble(memberName: String): Double? = asPrimitive(memberName)?.asDouble()
 
     /**
      * Returns the value with a given property key as a double, returns the default value if the property is not set.
      */
-    fun getAsDouble(memberName: String, defaultValue: Double): Double =
-        getAsDouble(memberName) ?: defaultValue
+    fun asDouble(memberName: String, defaultValue: Double): Double =
+        asDouble(memberName) ?: defaultValue
 
     /**
      * Returns the value with a given property key as a long.
      */
-    fun getAsLong(memberName: String): Long? = getAsPrimitive(memberName)?.getAsLong()
+    fun asLong(memberName: String): Long? = asPrimitive(memberName)?.asLong()
 
     /**
      * Returns the value with a given property key as a long, returns the default value if the property is not set.
      */
-    fun getAsLong(memberName: String, defaultValue: Long): Long =
-        getAsLong(memberName) ?: defaultValue
+    fun asLong(memberName: String, defaultValue: Long): Long = asLong(memberName) ?: defaultValue
 
     /**
      * Returns the value with a given property key as a String.
      */
-    fun getAsString(memberName: String): String? = getAsPrimitive(memberName)?.getAsString()
+    fun asString(memberName: String): String? = asPrimitive(memberName)?.asString()
 
     /**
      * Returns the value with a given property key as an Array.
      */
-    fun getAsArray(memberName: String): Array? = this[memberName] as? Array
+    fun asArray(memberName: String): Array? = this[memberName] as? Array
 
     /**
      * Returns the value with a given property key as an ObjectValue.
      */
-    fun getAsObject(memberName: String): ObjectValue? = this[memberName] as? ObjectValue
+    fun asObject(memberName: String): ObjectValue? = this[memberName] as? ObjectValue
 
     /**
      * Returns the value with a given property key as a Layout.
      */
-    fun getAsLayout(memberName: String): Layout? = this[memberName] as? Layout
+    fun asLayout(memberName: String): Layout? = this[memberName] as? Layout
 
     /**
      * Returns the value with a given property key as a Binding.
      */
-    fun getAsBinding(memberName: String): Binding? = this[memberName] as? Binding
+    fun asBinding(memberName: String): Binding? = this[memberName] as? Binding
 
     /**
      * Returns the value of the property with a given key, or null if the property is not found
