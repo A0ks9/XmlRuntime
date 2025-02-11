@@ -11,8 +11,6 @@ class NestedBinding private constructor(val value: Value) : Binding() {
         fun valueOf(value: Value): NestedBinding = NestedBinding(value)
     }
 
-    fun getValue(): Value = value
-
     override fun evaluate(context: Context, data: Value, index: Int): Value =
         evaluate(context, value, data, index)
 

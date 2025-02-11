@@ -1,5 +1,6 @@
 package com.flipkart.android.proteus
 
+import android.view.View
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.Value
 
@@ -15,7 +16,7 @@ import com.flipkart.android.proteus.value.Value
  * @param styleManager    Optional StyleManager for retrieving Styles by name. Nullable.
  */
 class ProteusResources(
-    private val parsers: Map<String, ViewTypeParser<*>>, // Parsers Map (non-null) - using wildcard generic type
+    private val parsers: Map<String, ViewTypeParser<View>>, // Parsers Map (non-null) - using wildcard generic type
     private val layoutManager: LayoutManager?, // LayoutManager (nullable)
     private val functionManager: FunctionManager, // FunctionManager (non-null)
     private val styleManager: StyleManager? // StyleManager (nullable)
@@ -62,7 +63,7 @@ class ProteusResources(
      * @return The Map of ViewTypeParsers. Must be non-null.
      */
 
-    fun getParsers(): Map<String, ViewTypeParser<*>> { // Returns non-null Parsers Map
+    fun getParsers(): Map<String, ViewTypeParser<View>> { // Returns non-null Parsers Map
         return parsers // Returns the Parsers Map
     }
 

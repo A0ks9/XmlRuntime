@@ -8,11 +8,15 @@ import android.text.Html
 import android.util.TypedValue
 import android.view.ViewGroup
 import android.widget.TextView
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
+import com.flipkart.android.proteus.parser.ParseHelper
 import com.flipkart.android.proteus.processor.*
 import com.flipkart.android.proteus.toolbox.Attributes
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
+import com.flipkart.android.proteus.view.ProteusTextView
 
 /**
  * Kotlin implementation of TextViewParser, responsible for creating and configuring TextView views.
@@ -96,22 +100,22 @@ class TextViewParser<T : TextView> :
         // Attribute processor for 'drawablePadding' attribute (Dimension - padding between drawables and text) - using lambda
         addAttributeProcessor(Attributes.TextView.DrawablePadding,
             DimensionAttributeProcessor { view, dimension -> // Lambda for setting drawable padding
-                view.compoundDrawablePadding =
+                view?.compoundDrawablePadding =
                     dimension.toInt() // Set compound drawable padding (int value of dimension)
             })
 
         // Attribute processor for 'textSize' attribute (Dimension - text size) - using lambda
         addAttributeProcessor(Attributes.TextView.TextSize,
             DimensionAttributeProcessor { view, dimension -> // Lambda for setting text size
-                view.textSize = TypedValue.COMPLEX_UNIT_PX to dimension // Set text size in pixels
+                view?.setTextSize(TypedValue.COMPLEX_UNIT_PX, dimension) // Set text size in pixels
             })
 
         // Attribute processor for 'gravity' attribute (Gravity - text alignment and positioning) - using lambda
-        addAttributeProcessor(
-            Attributes.TextView.Gravity,
-            GravityAttributeProcessor { view, gravity ->
+        addAttributeProcessor(Attributes.TextView.Gravity, object : GravityAttributeProcessor<T>() {
+            override fun setGravity(view: T, @ProteusGravity gravity: Int) {
                 view.gravity = gravity
-            }) // Lambda for setting gravity
+            }
+        })
 
         // Attribute processor for 'textColor' attribute (ColorResource - text color) - using lambda, handles both color int and ColorStateList
         addAttributeProcessor(Attributes.TextView.TextColor,
@@ -220,9 +224,8 @@ class TextViewParser<T : TextView> :
         addAttributeProcessor(Attributes.TextView.Ellipsize,
             StringAttributeProcessor { view, value -> // Lambda for setting ellipsize mode
                 ParseHelper.parseEllipsize(value)
-                    ?.let { ellipsize -> // Parse ellipsize string using ParseHelper, use let for null safety
-                        view.ellipsize =
-                            ellipsize as? android.text.TextUtils.TruncateAt // Set ellipsize mode after casting
+                    .let { ellipsize -> // Parse ellipsize string using ParseHelper, use let for null safety
+                        view.ellipsize = ellipsize // Set ellipsize mode after casting
                     }
             })
 
@@ -238,13 +241,13 @@ class TextViewParser<T : TextView> :
         // Attribute processor for 'prefix' attribute (String - text prefix) - using lambda
         addAttributeProcessor(Attributes.TextView.Prefix,
             StringAttributeProcessor { view, value -> // Lambda for setting prefix
-                view.text = value + view.text // Prepend value to existing text
+                prependTextStringBuilder(view, value) // Prepend value to existing text
             })
 
         // Attribute processor for 'suffix' attribute (String - text suffix) - using lambda
         addAttributeProcessor(Attributes.TextView.Suffix,
             StringAttributeProcessor { view, value -> // Lambda for setting suffix
-                view.text = view.text.toString() + value // Append value to existing text
+                appendTextStringBuilder(view, value) // Append value to existing text
             })
 
         // Attribute processor for 'textStyle' attribute (String - text style like "bold", "italic", etc.) - using lambda
@@ -274,5 +277,23 @@ class TextViewParser<T : TextView> :
         addAttributeProcessor(Attributes.TextView.Hint, StringAttributeProcessor { view, value ->
             view.hint = value
         }) // Lambda for setting hint text
+    }
+
+    // Prepending with StringBuilder
+    fun prependTextStringBuilder(view: TextView, value: Any?) {
+        val currentText = view.text?.toString() ?: "" // Get current text safely
+        val builder =
+            StringBuilder(value.toString()) // Initialize StringBuilder with the value to prepend
+        builder.append(currentText)                 // Append the current text
+        view.text = builder.toString()             // Set the modified string back to the TextView
+    }
+
+    // Appending with StringBuilder
+    fun appendTextStringBuilder(view: TextView, value: Any?) {
+        val currentText = view.text?.toString() ?: "" // Get current text safely
+        val builder =
+            StringBuilder(currentText)     // Initialize StringBuilder with the current text
+        builder.append(value.toString())             // Append the new value
+        view.text = builder.toString()             // Set the modified string back to the TextView
     }
 }

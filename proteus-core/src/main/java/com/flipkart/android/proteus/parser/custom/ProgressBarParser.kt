@@ -10,10 +10,13 @@ import android.graphics.drawable.ShapeDrawable
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.ProgressBar
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
 import com.flipkart.android.proteus.parser.ParseHelper
 import com.flipkart.android.proteus.processor.AttributeProcessor
 import com.flipkart.android.proteus.processor.ColorResourceProcessor
+import com.flipkart.android.proteus.processor.StringAttributeProcessor
 import com.flipkart.android.proteus.toolbox.Attributes
 import com.flipkart.android.proteus.value.AttributeResource
 import com.flipkart.android.proteus.value.Layout
@@ -21,6 +24,7 @@ import com.flipkart.android.proteus.value.ObjectValue
 import com.flipkart.android.proteus.value.Resource
 import com.flipkart.android.proteus.value.StyleResource
 import com.flipkart.android.proteus.value.Value
+import com.flipkart.android.proteus.view.ProteusProgressBar
 
 /**
  * A [ViewTypeParser] for parsing and creating [ProgressBar] views in a Proteus layout.

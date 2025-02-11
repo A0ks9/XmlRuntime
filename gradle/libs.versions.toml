@@ -12,7 +12,7 @@ constraintlayout = "2.2.0"
 rxjava = "3.1.10"
 rxandroid = "3.0.2"
 kotlinCoroutines = "1.10.1"
-kotlinxDateTime = "0.6.1"
+gson = "2.12.1"
 
 
 [libraries]
@@ -29,7 +29,7 @@ rx-android = { group = "io.reactivex.rxjava3", name = "rxandroid", version.ref =
 kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinCoroutines" }
 kotlin-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinCoroutines" }
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
-kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDateTime" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

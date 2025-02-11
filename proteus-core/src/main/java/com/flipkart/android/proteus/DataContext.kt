@@ -30,7 +30,6 @@ class DataContext private constructor( // Made primary constructor private to en
      * Data used for data binding attribute values in the layout.
      */
     var data: ObjectValue = ObjectValue() // Mutable data property, initialized to empty ObjectValue
-        private set // Restrict setter to within this class
 
     /**
      * Copy constructor for creating a clone of another DataContext.
@@ -150,24 +149,10 @@ class DataContext private constructor( // Made primary constructor private to en
     }
 
     /**
-     * Returns the data index of this DataContext.
-     */
-    fun getIndex(): Int {
-        return index
-    }
-
-    /**
      * Returns the scope map of this DataContext. Nullable.
      */
     fun getScope(): Map<String, Value>? {
         return scope
-    }
-
-    /**
-     * Returns the data [ObjectValue] of this DataContext.
-     */
-    fun getData(): ObjectValue {
-        return data
     }
 
     /** Not needed as data is now mutable var with private setter

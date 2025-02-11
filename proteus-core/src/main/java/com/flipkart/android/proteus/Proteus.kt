@@ -1,6 +1,7 @@
 package com.flipkart.android.proteus
 
 import android.content.Context
+import android.view.View
 import androidx.annotation.Size
 
 /**
@@ -21,7 +22,7 @@ class Proteus(
     private val types: Map<String, Type> // Converted to Kotlin property, made private and immutable
 ) {
 
-    private val parsers: Map<String, ViewTypeParser<*>> // Converted to Kotlin property, inferred type, wildcard for generics
+    private val parsers: Map<String, ViewTypeParser<View>> // Converted to Kotlin property, inferred type, wildcard for generics
 
     init { // Constructor body becomes init block in Kotlin
         parsers = createParsersMap(types) // Initialize parsers map in init block
@@ -53,7 +54,7 @@ class Proteus(
     /**
      * Creates a map of view type parsers from the given map of view types.
      */
-    private fun createParsersMap(types: Map<String, Type>): Map<String, ViewTypeParser<*>> { // Converted to Kotlin function, inferred return type, wildcard generics
+    private fun createParsersMap(types: Map<String, Type>): Map<String, ViewTypeParser<View>> { // Converted to Kotlin function, inferred return type, wildcard generics
         return types.mapValues { entry -> entry.value.parser } // Using mapValues for concise map transformation
     }
 
@@ -98,7 +99,7 @@ class Proteus(
     data class Type( // Converted inner class to data class for conciseness
         val id: Int, // Converted to Kotlin property, made immutable using val
         val type: String, // Converted to Kotlin property, made immutable using val
-        val parser: ViewTypeParser<*>, // Converted to Kotlin property, made immutable using val, wildcard for generics
+        val parser: ViewTypeParser<View>, // Converted to Kotlin property, made immutable using val, wildcard for generics
         private val attributes: ViewTypeParser.AttributeSet // Converted to Kotlin property, made private and immutable
     ) {
 

@@ -3,9 +3,14 @@ package com.flipkart.android.proteus.parser.custom
 import android.view.View
 import android.view.ViewGroup
 import com.flipkart.android.proteus.ProteusConstants
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
+import com.flipkart.android.proteus.exceptions.ProteusInflateException
+import com.flipkart.android.proteus.managers.ViewGroupManager
 import com.flipkart.android.proteus.processor.AttributeProcessor
 import com.flipkart.android.proteus.processor.BooleanAttributeProcessor
+import com.flipkart.android.proteus.processor.StringAttributeProcessor
 import com.flipkart.android.proteus.toolbox.Attributes
 import com.flipkart.android.proteus.value.AttributeResource
 import com.flipkart.android.proteus.value.Binding
@@ -15,6 +20,7 @@ import com.flipkart.android.proteus.value.ObjectValue
 import com.flipkart.android.proteus.value.Resource
 import com.flipkart.android.proteus.value.StyleResource
 import com.flipkart.android.proteus.value.Value
+import com.flipkart.android.proteus.view.ProteusAspectRatioFrameLayout
 
 /**
  * Kotlin implementation of ViewGroupParser, responsible for creating and configuring ViewGroup views.
@@ -92,15 +98,15 @@ open class ViewGroupParser<T : ViewGroup> :
         view: ProteusView,
         layout: Layout,
         data: ObjectValue,
-        caller: ViewTypeParser<*>?, // Using Kotlin's nullable ViewTypeParser?
+        caller: ViewTypeParser<View>?, // Using Kotlin's nullable ViewTypeParser?
         parent: ViewGroup?, // Using Kotlin's nullable ViewGroup?
         dataIndex: Int
     ): ProteusView.Manager {
         val dataContext = createDataContext(
             context, layout, data, parent, dataIndex
         ) // Create DataContext for the view
-        return ViewGroupManager(
-            context, caller ?: this, view.asView(), layout, dataContext
+        @Suppress("UNCHECKED_CAST") return ViewGroupManager(
+            context, caller ?: (this as ViewTypeParser<View>), view.asView, layout, dataContext
         ) // Create and return ViewGroupManager
     }
 
@@ -111,20 +117,16 @@ open class ViewGroupParser<T : ViewGroup> :
     override fun addAttributeProcessors() { // Override addAttributeProcessors() to register custom attribute handlers
 
         // Attribute processor for 'clipChildren' attribute (Boolean) - using lambda
-        addAttributeProcessor(
-            Attributes.ViewGroup.ClipChildren,
-            object : BooleanAttributeProcessor<T>() {
-                override fun setBoolean(view: T, value: Boolean) {
-                    view.clipChildren = value
-                }
+        addAttributeProcessor(Attributes.ViewGroup.ClipChildren,
+            BooleanAttributeProcessor<T> { view, value ->
+                view.clipChildren = value
             }) // setting clipChildren
 
         // Attribute processor for 'clipToPadding' attribute (Boolean) - using lambda
-        addAttributeProcessor(Attributes.ViewGroup.ClipToPadding,
-            object : BooleanAttributeProcessor<T>() {
-                override fun setBoolean(view: T, value: Boolean) {
-                    view.clipToPadding = value
-                }
+        addAttributeProcessor(
+            Attributes.ViewGroup.ClipToPadding,
+            BooleanAttributeProcessor<T> { view, value ->
+                view.clipToPadding = value
             }) // setting clipToPadding
 
         // Attribute processor for 'layoutMode' attribute (String - "clipBounds" or "opticalBounds") - using lambda and API level check
@@ -140,11 +142,10 @@ open class ViewGroupParser<T : ViewGroup> :
             })
 
         // Attribute processor for 'splitMotionEvents' attribute (Boolean) - using lambda
-        addAttributeProcessor(Attributes.ViewGroup.SplitMotionEvents,
-            object : BooleanAttributeProcessor<T>() {
-                override fun setBoolean(view: T, value: Boolean) {
-                    view.isMotionEventSplittingEnabled = value
-                }
+        addAttributeProcessor(
+            Attributes.ViewGroup.SplitMotionEvents,
+            BooleanAttributeProcessor<T> { view, value ->
+                view.isMotionEventSplittingEnabled = value
             }) // setting motionEventSplittingEnabled
 
         // Attribute processor for 'children' attribute (special AttributeProcessor to handle Layout array or data-bound children)
@@ -201,7 +202,8 @@ open class ViewGroupParser<T : ViewGroup> :
         val proteusView =
             view as ProteusView // Cast to ProteusView to access Proteus framework methods
         val viewManager = proteusView.viewManager // Get ViewManager from ProteusView
-        val layoutInflater = viewManager.context.inflater // Get ProteusLayoutInflater from context
+        val layoutInflater =
+            viewManager.context.getInflater() // Get ProteusLayoutInflater from context
         val data = viewManager.dataContext.data // Get current data context
         val dataIndex = viewManager.dataContext.index // Get current data index
 
@@ -212,7 +214,7 @@ open class ViewGroupParser<T : ViewGroup> :
                 if (!element.isLayout) { // Check if the element is a Layout Value
                     throw ProteusInflateException("attribute  'children' must be an array of 'Layout' objects") // Throw exception if not a Layout
                 }
-                val child = layoutInflater.inflate(
+                val child = layoutInflater!!.inflate(
                     element.asLayout, data, view, dataIndex
                 ) // Inflate child layout
                 addView(
@@ -263,7 +265,7 @@ open class ViewGroupParser<T : ViewGroup> :
         val length = dataset.asArray.size() // Get size of the dataset array
         val count = view.childCount // Get current child count
         val data = dataContext.data // Get current data
-        val inflater = manager.context.inflater // Get ProteusLayoutInflater
+        val inflater = manager.context.getInflater() // Get ProteusLayoutInflater
         var child: ProteusView // Variable to hold inflated ProteusView
         var temp: View // Variable to hold child View
 
@@ -301,8 +303,8 @@ open class ViewGroupParser<T : ViewGroup> :
     override fun addView(
         parent: ProteusView, view: ProteusView
     ): Boolean { // Override addView to handle ProteusView children
-        if (parent.getAsView() is ViewGroup) { // Check if parent ProteusView's underlying view is a ViewGroup
-            (parent.getAsView() as ViewGroup).addView(view.asView()) // Add the child ProteusView's view to the parent ViewGroup
+        if (parent.asView is ViewGroup) { // Check if parent ProteusView's underlying view is a ViewGroup
+            (parent.asView as ViewGroup).addView(view.asView) // Add the child ProteusView's view to the parent ViewGroup
             return true // Return true indicating successful addition
         }
         return false // Return false if parent is not a ViewGroup

@@ -1,20 +1,19 @@
 package com.flipkart.android.proteus.value
 
 import java.util.ArrayList
-import kotlin.Array as array
 
-class Array(values: array<Value> = emptyArray()) : Value() {
+class Array() : Value() {
 
     /**
-     * The internal mutable list storing the values of this array
+     * The mutable list storing the values of this array
      */
-    internal var values: MutableList<Value> = values.toMutableList()
+    var values: MutableList<Value> = mutableListOf()
 
 
     /**
      * Constructor to create an empty array with a specific capacity
      */
-    constructor(capacity: Int) : this(emptyArray()) {
+    constructor(capacity: Int) : this() {
         // Initialize with ArrayList of given capacity for internal mutable list
         // while still using emptyArray() for the primary constructor parameter
         this.values = ArrayList<Value>(capacity)
@@ -23,12 +22,14 @@ class Array(values: array<Value> = emptyArray()) : Value() {
     /**
      * Constructor to create an array by passing variable number of arguments of type Value
      */
-    constructor(vararg values: Value) : this(arrayOf(*values))
+    constructor(vararg values: Value) : this() {
+        this.values = values.toMutableList()
+    }
 
     /**
      * Creates a deep copy of this Array.
      */
-    override fun copy(): Array = Array(values.map { it.copy() }.toTypedArray())
+    override fun copy(): Array = Array(*values.map { it.copy() }.toTypedArray())
 
     /**
      * Adds the specified boolean value to this array, creates a Null value in case the value is null.
@@ -133,17 +134,17 @@ class Array(values: array<Value> = emptyArray()) : Value() {
     /**
      * Transforms the elements of this Array to a new Array using the given transformation.
      */
-    fun <R : Value> map(transform: (Value) -> R): Array {
+    inline fun <reified R : Value> map(transform: (Value) -> R): Array {
         val mappedList = values.map { transform(it) }
-        return Array(mappedList.toTypedArray())
+        return Array(*mappedList.toTypedArray())
     }
 
     /**
      * Transforms the elements of this Array to a new Array using the given transformation and the index of the element.
      */
-    fun <R : Value> mapIndexed(transform: (index: Int, Value) -> R): Array {
+    inline fun <reified R : Value> mapIndexed(transform: (index: Int, Value) -> R): Array {
         val mappedList = values.mapIndexed { index, value -> transform(index, value) }
-        return Array(mappedList.toTypedArray())
+        return Array(*mappedList.toTypedArray())
     }
 
     /**

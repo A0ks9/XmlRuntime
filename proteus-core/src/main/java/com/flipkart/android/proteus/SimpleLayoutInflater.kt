@@ -3,6 +3,7 @@ package com.flipkart.android.proteus
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import com.flipkart.android.proteus.exceptions.ProteusInflateException
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
 import com.flipkart.android.proteus.value.Value
@@ -15,11 +16,11 @@ import com.flipkart.android.proteus.value.Value
  * for generating unique View IDs. It implements the `ProteusLayoutInflater` interface.
  *
  * @param context     The ProteusContext associated with this LayoutInflater. Must be non-null.
- * @param idGenerator The IdGenerator to be used for generating unique View IDs. Must be non-null.
+ * @param simpleIdGenerator The IdGenerator to be used for generating unique View IDs. Must be non-null.
  */
 open class SimpleLayoutInflater( // Kotlin class declaration, marked 'open' to allow subclassing
     protected val context: ProteusContext, // ProteusContext (non-null, protected for subclass access)
-    protected val idGenerator: IdGenerator // IdGenerator (non-null, protected for subclass access)
+    protected val simpleIdGenerator: IdGenerator // IdGenerator (non-null, protected for subclass access)
 ) : ProteusLayoutInflater { // Implementing ProteusLayoutInflater interface
 
     companion object { // Companion object for constants and static members
@@ -32,7 +33,7 @@ open class SimpleLayoutInflater( // Kotlin class declaration, marked 'open' to a
      * @param type The name of the view type. Must be non-null.
      * @return     The ViewTypeParser associated with the view type, or null if not found.
      */
-    override fun getParser(type: String): ViewTypeParser<*>? { // Implementation of getParser from ProteusLayoutInflater
+    override fun getParser(type: String): ViewTypeParser<View>? { // Implementation of getParser from ProteusLayoutInflater
         return context.getParser(type) // Retrieves ViewTypeParser from ProteusContext
     }
 
@@ -46,14 +47,12 @@ open class SimpleLayoutInflater( // Kotlin class declaration, marked 'open' to a
      * @param dataIndex An index of data, if it's associated with an array. Default is 0.
      * @return          A new ProteusView instance. Must be non-null.
      */
-    @Suppress("UNCHECKED_CAST") // Suppress unchecked cast - cast is safe in this context due to generic type constraints
     override fun inflate( // Implementation of inflate with parent ViewGroup from ProteusLayoutInflater
         layout: Layout, data: ObjectValue, parent: ViewGroup?, // Using Kotlin's nullable ViewGroup?
         dataIndex: Int
     ): ProteusView {
 
-        val parser =
-            getParser(layout.type) as? ViewTypeParser<View> // Get ViewTypeParser for the layout type
+        val parser = getParser(layout.type) // Get ViewTypeParser for the layout type
         if (parser == null) { // If no parser found for the type
             return onUnknownViewEncountered(
                 layout.type, layout, data, dataIndex
@@ -166,9 +165,8 @@ open class SimpleLayoutInflater( // Kotlin class declaration, marked 'open' to a
      *
      * @return The IdGenerator instance. Must be non-null.
      */
-    override fun getIdGenerator(): IdGenerator { // Implementation of getIdGenerator from ProteusLayoutInflater
-        return idGenerator // Return the IdGenerator instance
-    }
+    override val idGenerator: IdGenerator =
+        simpleIdGenerator // IdGenerator is used to generate unique View IDs
 
     /**
      * Creates a new Android View (wrapped in ProteusView) using the provided ViewTypeParser.
@@ -204,7 +202,7 @@ open class SimpleLayoutInflater( // Kotlin class declaration, marked 'open' to a
      * @return          A new ProteusView.Manager instance. Must be non-null.
      */
     protected open fun createViewManager( // Open function to create ViewManager, can be overridden
-        parser: ViewTypeParser<*>,
+        parser: ViewTypeParser<View>,
         view: ProteusView,
         layout: Layout,
         data: ObjectValue,

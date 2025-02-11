@@ -3,6 +3,8 @@ package com.flipkart.android.proteus
 import android.content.res.XmlResourceParser
 import android.view.View
 import android.view.ViewGroup
+import com.flipkart.android.proteus.managers.ViewManager
+import com.flipkart.android.proteus.parser.ViewParser
 import com.flipkart.android.proteus.processor.AttributeProcessor
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
@@ -122,7 +124,7 @@ abstract class ViewTypeParser<V : View> {
         view: ProteusView,
         layout: Layout,
         data: ObjectValue,
-        caller: ViewTypeParser<*>?, // Using Kotlin's nullable type for
+        caller: ViewTypeParser<View>?, // Using Kotlin's nullable type for
         parent: ViewGroup?, // Using Kotlin's nullable type for
         dataIndex: Int
     ): ProteusView.Manager {
@@ -132,8 +134,8 @@ abstract class ViewTypeParser<V : View> {
         } else {
             // Otherwise, create a DataContext and a ViewManager for this parser
             val dataContext = createDataContext(context, layout, data, parent, dataIndex)
-            ViewManager(
-                context, caller ?: this, view.asView, layout, dataContext
+            @Suppress("UNCHECKED_CAST") ViewManager(
+                context, caller ?: (this as ViewParser<View>), view.asView, layout, dataContext
             ) // Use caller if available, otherwise use 'this' as parser
         }
     }

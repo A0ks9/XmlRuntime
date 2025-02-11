@@ -6,7 +6,6 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.accessibility.AccessibilityNodeInfo
-import android.view.animation.Animation
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
@@ -21,6 +20,8 @@ import com.flipkart.android.proteus.processor.DrawableResourceProcessor
 import com.flipkart.android.proteus.processor.EventProcessor
 import com.flipkart.android.proteus.processor.GravityAttributeProcessor
 import com.flipkart.android.proteus.processor.GravityAttributeProcessor.ProteusGravity
+import com.flipkart.android.proteus.processor.StringAttributeProcessor
+import com.flipkart.android.proteus.processor.TweenAnimationResourceProcessor
 import com.flipkart.android.proteus.toolbox.Attributes
 import com.flipkart.android.proteus.value.AttributeResource
 import com.flipkart.android.proteus.value.Layout
@@ -28,6 +29,7 @@ import com.flipkart.android.proteus.value.ObjectValue
 import com.flipkart.android.proteus.value.Resource
 import com.flipkart.android.proteus.value.StyleResource
 import com.flipkart.android.proteus.value.Value
+import com.flipkart.android.proteus.view.ProteusAndroidView
 
 /**
  * Kotlin class for parsing and processing attributes of generic Android Views in Proteus layouts.
@@ -82,11 +84,9 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
      */
     override fun addAttributeProcessors() {
 
-        addAttributeProcessor(
-            Attributes.View.Activated,
-            BooleanAttributeProcessor<V> { view, value ->
-                view.isActivated = value // Kotlin property syntax for setting activated state
-            })
+        addAttributeProcessor(Attributes.View.Activated, BooleanAttributeProcessor { view, value ->
+            view.isActivated = value // Kotlin property syntax for setting activated state
+        })
 
         addAttributeProcessor(Attributes.View.OnClick,
             object : EventProcessor<V>() { // Anonymous object for EventProcessor
@@ -126,12 +126,12 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
                 }
             })
         addAttributeProcessor(Attributes.View.Background,
-            DrawableResourceProcessor<V> { view, drawable ->
+            DrawableResourceProcessor { view, drawable ->
                 view.background = drawable // Modern setBackground method
             })
 
         addAttributeProcessor(Attributes.View.Height,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 view!!.layoutParams?.let { // Using let to safely access and modify layoutParams if not null
                     it.height = dimension.toInt() // Set height to dimension
                     view.layoutParams = it // Re-apply layoutParams to view
@@ -140,29 +140,25 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
 
         addAttributeProcessor(
             Attributes.View.Width,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 view!!.layoutParams?.let { // Using let to safely access and modify layoutParams if not null
                     it.width = dimension.toInt() // Set width to dimension
                     view.layoutParams = it // Re-apply layoutParams to view
                 }
             })
 
-        addAttributeProcessor(Attributes.View.Weight,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-                override fun setString(view: V, value: String) {
-                    if (view.layoutParams is LinearLayout.LayoutParams) { // Check if layoutParams is LinearLayout.LayoutParams using 'is'
-                        val layoutParams =
-                            view.layoutParams as LinearLayout.LayoutParams // Smart cast after 'is' check
-                        layoutParams.weight = ParseHelper.parseFloat(value) // Parse weight value
-                        view.layoutParams = layoutParams // Re-apply layoutParams
-                    } else {
-                        if (ProteusConstants.isLoggingEnabled()) {
-                            Log.e(TAG, "'weight' is only supported for LinearLayouts")
-                        }
-                    }
+        addAttributeProcessor(Attributes.View.Weight, StringAttributeProcessor { view, value ->
+            if (view.layoutParams is LinearLayout.LayoutParams) { // Check if layoutParams is LinearLayout.LayoutParams using 'is'
+                val layoutParams =
+                    view.layoutParams as LinearLayout.LayoutParams // Smart cast after 'is' check
+                layoutParams.weight = ParseHelper.parseFloat(value) // Parse weight value
+                view.layoutParams = layoutParams // Re-apply layoutParams
+            } else {
+                if (ProteusConstants.isLoggingEnabled()) {
+                    Log.e(TAG, "'weight' is only supported for LinearLayouts")
                 }
-            })
+            }
+        })
 
         addAttributeProcessor(Attributes.View.LayoutGravity,
             object :
@@ -194,13 +190,13 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
             })
 
         addAttributeProcessor(Attributes.View.Padding,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 val padding = dimension.toInt()
                 view?.setPadding(padding, padding, padding, padding) // Set padding on all sides
             })
 
         addAttributeProcessor(Attributes.View.PaddingLeft,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 view?.setPadding(
                     dimension.toInt(), view.paddingTop, view.paddingRight, view.paddingBottom
                 ) // Set left padding
@@ -208,7 +204,7 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
 
         addAttributeProcessor(
             Attributes.View.PaddingTop,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 view?.setPadding(
                     view.paddingLeft, dimension.toInt(), view.paddingRight, view.paddingBottom
                 ) // Set top padding
@@ -216,14 +212,14 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
 
         addAttributeProcessor(
             Attributes.View.PaddingRight,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 view?.setPadding(
                     view.paddingLeft, view.paddingTop, dimension.toInt(), view.paddingBottom
                 ) // Set right padding
             })
 
         addAttributeProcessor(Attributes.View.PaddingBottom,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 view?.setPadding(
                     view.paddingLeft, view.paddingTop, view.paddingRight, dimension.toInt()
                 ) // Set bottom padding
@@ -231,7 +227,7 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
 
         addAttributeProcessor(
             Attributes.View.Margin,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 if (view?.layoutParams is ViewGroup.MarginLayoutParams) { // Check if layoutParams is ViewGroup.MarginLayoutParams using 'is'
                     val layoutParams =
                         view.layoutParams as ViewGroup.MarginLayoutParams // Smart cast after 'is' check
@@ -248,7 +244,7 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
             })
 
         addAttributeProcessor(Attributes.View.MarginLeft,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 if (view?.layoutParams is ViewGroup.MarginLayoutParams) { // Check if layoutParams is ViewGroup.MarginLayoutParams using 'is'
                     val layoutParams =
                         view.layoutParams as ViewGroup.MarginLayoutParams // Smart cast after 'is' check
@@ -262,7 +258,7 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
             })
 
         addAttributeProcessor(Attributes.View.MarginTop,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 if (view?.layoutParams is ViewGroup.MarginLayoutParams) { // Check if layoutParams is ViewGroup.MarginLayoutParams using 'is'
                     val layoutParams =
                         view.layoutParams as ViewGroup.MarginLayoutParams // Smart cast after 'is' check
@@ -277,7 +273,7 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
 
         addAttributeProcessor(
             Attributes.View.MarginRight,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 if (view?.layoutParams is ViewGroup.MarginLayoutParams) { // Check if layoutParams is ViewGroup.MarginLayoutParams using 'is'
                     val layoutParams =
                         view.layoutParams as ViewGroup.MarginLayoutParams // Smart cast after 'is' check
@@ -291,7 +287,7 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
             })
 
         addAttributeProcessor(Attributes.View.MarginBottom,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 if (view?.layoutParams is ViewGroup.MarginLayoutParams) { // Check if layoutParams is ViewGroup.MarginLayoutParams using 'is'
                     val layoutParams =
                         view.layoutParams as ViewGroup.MarginLayoutParams // Smart cast after 'is' check
@@ -306,28 +302,24 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
 
         addAttributeProcessor(
             Attributes.View.MinHeight,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 view?.minimumHeight = dimension.toInt() // Kotlin property syntax for minimumHeight
             })
 
         addAttributeProcessor(Attributes.View.MinWidth,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 view?.minimumWidth = dimension.toInt() // Kotlin property syntax for minimumWidth
             })
 
         addAttributeProcessor(
             Attributes.View.Elevation,
-            DimensionAttributeProcessor<V> { view, dimension ->
+            DimensionAttributeProcessor { view, dimension ->
                 view?.elevation = dimension // Kotlin property syntax for elevation
             })
 
-        addAttributeProcessor(Attributes.View.Alpha,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-                override fun setString(view: V, value: String) {
-                    view.alpha = ParseHelper.parseFloat(value) // Kotlin property syntax for alpha
-                }
-            })
+        addAttributeProcessor(Attributes.View.Alpha, StringAttributeProcessor { view, value ->
+            view.alpha = ParseHelper.parseFloat(value) // Kotlin property syntax for alpha
+        })
 
         addAttributeProcessor(Attributes.View.Visibility,
             object : AttributeProcessor<V>() { // Anonymous object for AttributeProcessor
@@ -376,186 +368,141 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
 //                }
             })
 
-        addAttributeProcessor(Attributes.View.Id,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-                override fun setString(view: V, value: String) {
-                    if (view is ProteusView) { // Check if view is ProteusView using 'is'
-                        view.id = (view as ProteusView).viewManager.context.getInflater()
-                            .getUniqueViewId(value) // Set ID using ProteusContext inflater
-                    }
+        addAttributeProcessor(Attributes.View.Id, StringAttributeProcessor { view, value ->
+            if (view is ProteusView) { // Check if view is ProteusView using 'is'
+                view.id = (view as ProteusView).viewManager.context.getInflater()
+                    .getUniqueViewId(value) // Set ID using ProteusContext inflater
+            }
 
-                    // set view id resource name for accessibility
-                    val resourceName = value
-                    view.accessibilityDelegate =
-                        object : View.AccessibilityDelegate() { // Anonymous AccessibilityDelegate
-                            override fun onInitializeAccessibilityNodeInfo(
-                                host: View, info: AccessibilityNodeInfo
-                            ) {
-                                super.onInitializeAccessibilityNodeInfo(host, info)
-                                val normalizedResourceName: String
-                                if (!TextUtils.isEmpty(resourceName)) {
-                                    val id = if (resourceName.startsWith(ID_STRING_START_PATTERN)) {
-                                        resourceName.substring(ID_STRING_START_PATTERN.length)
-                                    } else if (resourceName.startsWith(ID_STRING_START_PATTERN1)) {
-                                        resourceName.substring(ID_STRING_START_PATTERN1.length)
-                                    } else {
-                                        resourceName
-                                    }
-                                    normalizedResourceName =
-                                        view.context.packageName + ID_STRING_NORMALIZED_PATTERN + id
-                                } else {
-                                    normalizedResourceName = ""
-                                }
-                                info.setViewIdResourceName(normalizedResourceName)
+            // set view id resource name for accessibility
+            val resourceName = value
+            view.accessibilityDelegate =
+                object : View.AccessibilityDelegate() { // Anonymous AccessibilityDelegate
+                    override fun onInitializeAccessibilityNodeInfo(
+                        host: View, info: AccessibilityNodeInfo
+                    ) {
+                        super.onInitializeAccessibilityNodeInfo(host, info)
+                        val normalizedResourceName: String
+                        if (!TextUtils.isEmpty(resourceName)) {
+                            val id = if (resourceName.startsWith(ID_STRING_START_PATTERN)) {
+                                resourceName.substring(ID_STRING_START_PATTERN.length)
+                            } else if (resourceName.startsWith(ID_STRING_START_PATTERN1)) {
+                                resourceName.substring(ID_STRING_START_PATTERN1.length)
+                            } else {
+                                resourceName
                             }
+                            normalizedResourceName =
+                                view.context.packageName + ID_STRING_NORMALIZED_PATTERN + id
+                        } else {
+                            normalizedResourceName = ""
                         }
+                        info.setViewIdResourceName(normalizedResourceName)
+                    }
                 }
+        })
+
+        addAttributeProcessor(
+            Attributes.View.ContentDescription,
+            StringAttributeProcessor { view, value ->
+                view.contentDescription = value // Kotlin property syntax for contentDescription
             })
 
-        addAttributeProcessor(Attributes.View.ContentDescription,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-                override fun setString(view: V, value: String) {
-                    view.contentDescription = value // Kotlin property syntax for contentDescription
-                }
-            })
+        addAttributeProcessor(Attributes.View.Clickable, BooleanAttributeProcessor { view, value ->
+            view.isClickable = value // Kotlin property syntax for clickable
+        })
 
-        addAttributeProcessor(Attributes.View.Clickable,
-            BooleanAttributeProcessor<V> { view, value ->
-                view.isClickable = value // Kotlin property syntax for clickable
-            })
+        addAttributeProcessor(Attributes.View.Tag, StringAttributeProcessor { view, value ->
+            view.tag = value // Kotlin property syntax for tag
+        })
 
-        addAttributeProcessor(Attributes.View.Tag,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-                override fun setString(view: V, value: String) {
-                    view.tag = value // Kotlin property syntax for tag
-                }
-            })
-
-        addAttributeProcessor(Attributes.View.Enabled, BooleanAttributeProcessor<V> { view, value ->
+        addAttributeProcessor(Attributes.View.Enabled, BooleanAttributeProcessor { view, value ->
             view.isEnabled = value // Kotlin property syntax for enabled
         })
 
-        addAttributeProcessor(Attributes.View.Selected,
-            BooleanAttributeProcessor<V> { view, value ->
-                view.isSelected = value // Kotlin property syntax for selected
-            })
+        addAttributeProcessor(Attributes.View.Selected, BooleanAttributeProcessor { view, value ->
+            view.isSelected = value // Kotlin property syntax for selected
+        })
 
-        addAttributeProcessor(Attributes.View.Style,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-                override fun setString(view: V, value: String) {
-                    val viewManager =
-                        (view as ProteusView).viewManager // Cast to ProteusView and access viewManager
-                    val context = viewManager.context
-                    val layout = viewManager.layout
+        addAttributeProcessor(Attributes.View.Style, StringAttributeProcessor { view, value ->
+            val viewManager =
+                (view as ProteusView).viewManager // Cast to ProteusView and access viewManager
+            val context = viewManager.context
+            val layout = viewManager.layout
 
-                    val handler = context.inflater.getParser(layout.type)
+            val handler = context.getInflater().getParser(layout.type)
 
-                    val styleSet = value.split(ProteusConstants.STYLE_DELIMITER)
-                    for (styleName in styleSet) {
-                        val style = context.getStyle(styleName)
-                        style?.let { // Using let for null-safe style processing
-                            process(
-                                it, view as ProteusView, handler ?: this@ViewParser
-                            ) // Process style, use 'this@ViewParser' for outer class reference
-                        }
-                    }
+            val styleSet = value.split(ProteusConstants.STYLE_DELIMITER)
+            for (styleName in styleSet) {
+                val style = context.getStyle(styleName)
+                style?.let { // Using let for null-safe style processing
+                    process(
+                        it, view as ProteusView, handler ?: this@ViewParser
+                    ) // Process style, use 'this@ViewParser' for outer class reference
                 }
-
-                private fun process(
-                    style: Map<String, Value>, proteusView: ProteusView, handler: ViewTypeParser<*>
-                ) { //Note: handler is ViewTypeParser<*> to avoid generic type issues
-                    for (entry in style) {
-                        @Suppress("UNCHECKED_CAST") // Suppress UncheckedCast warning - handler.handleAttribute needs to be correctly typed in implementations
-                        (handler as ViewTypeParser<View>).handleAttribute(
-                            proteusView.asView, handler.getAttributeId(entry.key), entry.value
-                        )
-                    }
-                }
-            })
+            }
+        })
 
         addAttributeProcessor(Attributes.View.TransitionName,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-                override fun setString(view: V, value: String) {
-                    view.transitionName = value // Kotlin property syntax for transitionName
-                }
+            StringAttributeProcessor { view, value ->
+                view.transitionName = value // Kotlin property syntax for transitionName
             })
 
         addAttributeProcessor(Attributes.View.RequiresFadingEdge,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
+            StringAttributeProcessor { view, value ->
+                val NONE = "none"
+                val BOTH = "both"
+                val VERTICAL = "vertical"
+                val HORIZONTAL = "horizontal"
 
-                private val NONE = "none"
-                private val BOTH = "both"
-                private val VERTICAL = "vertical"
-                private val HORIZONTAL = "horizontal"
+                when (value) {
+                    NONE -> {
+                        view.isVerticalFadingEdgeEnabled = false // Kotlin property syntax
+                        view.isHorizontalFadingEdgeEnabled = false // Kotlin property syntax
+                    }
 
-                override fun setString(view: V, value: String) {
+                    BOTH -> {
+                        view.isVerticalFadingEdgeEnabled = true // Kotlin property syntax
+                        view.isHorizontalFadingEdgeEnabled = true // Kotlin property syntax
+                    }
 
-                    when (value) {
-                        NONE -> {
-                            view.isVerticalFadingEdgeEnabled = false // Kotlin property syntax
-                            view.isHorizontalFadingEdgeEnabled = false // Kotlin property syntax
-                        }
+                    VERTICAL -> {
+                        view.isVerticalFadingEdgeEnabled = true // Kotlin property syntax
+                        view.isHorizontalFadingEdgeEnabled = false // Kotlin property syntax
+                    }
 
-                        BOTH -> {
-                            view.isVerticalFadingEdgeEnabled = true // Kotlin property syntax
-                            view.isHorizontalFadingEdgeEnabled = true // Kotlin property syntax
-                        }
+                    HORIZONTAL -> {
+                        view.isVerticalFadingEdgeEnabled = false // Kotlin property syntax
+                        view.isHorizontalFadingEdgeEnabled = true // Kotlin property syntax
+                    }
 
-                        VERTICAL -> {
-                            view.isVerticalFadingEdgeEnabled = true // Kotlin property syntax
-                            view.isHorizontalFadingEdgeEnabled = false // Kotlin property syntax
-                        }
-
-                        HORIZONTAL -> {
-                            view.isVerticalFadingEdgeEnabled = false // Kotlin property syntax
-                            view.isHorizontalFadingEdgeEnabled = true // Kotlin property syntax
-                        }
-
-                        else -> {
-                            view.isVerticalFadingEdgeEnabled =
-                                false // Default to false if value is not recognized
-                            view.isHorizontalFadingEdgeEnabled =
-                                false // Default to false if value is not recognized
-                        }
+                    else -> {
+                        view.isVerticalFadingEdgeEnabled =
+                            false // Default to false if value is not recognized
+                        view.isHorizontalFadingEdgeEnabled =
+                            false // Default to false if value is not recognized
                     }
                 }
             })
 
         addAttributeProcessor(Attributes.View.FadingEdgeLength,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-                override fun setString(view: V, value: String) {
-                    view.fadingEdgeLength =
-                        ParseHelper.parseInt(value) // Kotlin property syntax for fadingEdgeLength
-                }
+            StringAttributeProcessor { view, value ->
+                view.setFadingEdgeLength(
+                    ParseHelper.parseInt(value)
+                ) // Kotlin property syntax for fadingEdgeLength
             })
 
-        addAttributeProcessor(Attributes.View.Animation,
-            object :
-                TweenAnimationResourceProcessor<V>() { // Anonymous object for TweenAnimationResourceProcessor
-
-                override fun setAnimation(view: V, animation: Animation) {
-                    view.animation = animation // Kotlin property syntax for animation
-                }
+        addAttributeProcessor(
+            Attributes.View.Animation,
+            TweenAnimationResourceProcessor { view, animation ->
+                view.animation = animation // Kotlin property syntax for animation
             })
 
         addAttributeProcessor(Attributes.View.TextAlignment,
-            object :
-                StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-
-                override fun setString(view: V, value: String) {
-
-                    val textAlignment = ParseHelper.parseTextAlignment(value)
-                    textAlignment?.let { // Using let for null-safe textAlignment setting
-                        @Suppress("ResourceType") // Suppress ResourceType warning - textAlignment is IntDef
-                        view.textAlignment = it // Kotlin property syntax for textAlignment
-                    }
+            StringAttributeProcessor { view, value ->
+                val textAlignment = ParseHelper.parseTextAlignment(value)
+                textAlignment?.let { // Using let for null-safe textAlignment setting
+                    @Suppress("ResourceType") // Suppress ResourceType warning - textAlignment is IntDef
+                    view.textAlignment = it // Kotlin property syntax for textAlignment
                 }
             })
 
@@ -650,14 +597,11 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
     }
 
     private fun createRelativeLayoutRuleProcessor(rule: Int): AttributeProcessor<V> {
-        return object :
-            StringAttributeProcessor<V>() { // Anonymous object for StringAttributeProcessor
-            override fun setString(view: V, value: String) {
-                if (view is ProteusView) { // Check if view is ProteusView using 'is'
-                    val id =
-                        (view as ProteusView).viewManager.context.inflater.getUniqueViewId(value)
-                    ParseHelper.addRelativeLayoutRule(view, rule, id)
-                }
+        return StringAttributeProcessor<V> { view, value ->
+            if (view is ProteusView) { // Check if view is ProteusView using 'is'
+                val id =
+                    (view as ProteusView).viewManager.context.getInflater().getUniqueViewId(value)
+                ParseHelper.addRelativeLayoutRule(view, rule, id)
             }
         }
     }
@@ -666,6 +610,17 @@ open class ViewParser<V : View> : ViewTypeParser<V>() { // Made class 'open' to 
         return BooleanAttributeProcessor<V> { view, value ->
             val trueOrFalse = ParseHelper.parseRelativeLayoutBoolean(value)
             ParseHelper.addRelativeLayoutRule(view, rule, trueOrFalse)
+        }
+    }
+
+    private fun process(
+        style: Map<String, Value>, proteusView: ProteusView, handler: ViewTypeParser<*>
+    ) { //Note: handler is ViewTypeParser<*> to avoid generic type issues
+        for (entry in style) {
+            @Suppress("UNCHECKED_CAST") // Suppress UncheckedCast warning - handler.handleAttribute needs to be correctly typed in implementations
+            (handler as ViewTypeParser<View>).handleAttribute(
+                proteusView.asView, handler.getAttributeId(entry.key), entry.value
+            )
         }
     }
 

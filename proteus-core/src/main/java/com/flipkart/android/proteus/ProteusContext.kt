@@ -2,6 +2,7 @@ package com.flipkart.android.proteus
 
 import android.content.Context
 import android.content.ContextWrapper
+import android.view.View
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.Value
 
@@ -122,7 +123,7 @@ open class ProteusContext(
      * @return     The ViewTypeParser instance for the given type, or null if no parser is registered for that type.
      */
 
-    fun getParser(type: String): ViewTypeParser<*>? { // Returns nullable ViewTypeParser with wildcard generic type
+    fun getParser(type: String): ViewTypeParser<View>? { // Returns nullable ViewTypeParser with wildcard generic type
         return resources.getParsers()[type] // Gets ViewTypeParser from resources by type name
     }
 
@@ -162,7 +163,7 @@ open class ProteusContext(
         private val functionManager: FunctionManager // FunctionManager (non-null)
 
 
-        private val parsers: Map<String, ViewTypeParser<*>> // Parsers Map (non-null)
+        private val parsers: Map<String, ViewTypeParser<View>> // Parsers Map (non-null)
 
 
         private var loader: ProteusLayoutInflater.ImageLoader? =
@@ -187,7 +188,7 @@ open class ProteusContext(
          */
         internal constructor( // Internal constructor, meant for framework use
             context: Context, // Base Context
-            parsers: Map<String, ViewTypeParser<*>>, // Parsers Map
+            parsers: Map<String, ViewTypeParser<View>>, // Parsers Map
             functionManager: FunctionManager // FunctionManager
         ) {
             this.base = context

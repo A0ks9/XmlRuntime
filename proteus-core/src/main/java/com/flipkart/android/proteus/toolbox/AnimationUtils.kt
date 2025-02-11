@@ -39,7 +39,7 @@ object AnimationUtils {
      */
     @JvmStatic
     fun loadAnimation(context: Context, value: Value): Animation? = when {
-        value.isPrimitive -> handleString(context, value.asPrimitive().asString())
+        value.isPrimitive -> handleString(context, value.asPrimitive.asString())
         value.isObject -> handleElement(context, value.asObject)
         else -> {
             if (ProteusConstants.isLoggingEnabled()) {
@@ -56,7 +56,7 @@ object AnimationUtils {
             try {
                 val animationId = c.resources.getIdentifier(value, "anim", c.packageName)
                 android.view.animation.AnimationUtils.loadAnimation(c, animationId)
-            } catch (ex: Exception) {
+            } catch (_: Exception) {
                 println("Could not load local resource $value")
                 null
             }
@@ -98,7 +98,7 @@ object AnimationUtils {
             try {
                 val interpolatorID = c.resources.getIdentifier(value, "anim", c.packageName)
                 android.view.animation.AnimationUtils.loadInterpolator(c, interpolatorID)
-            } catch (ex: Exception) {
+            } catch (_: Exception) {
                 println("Could not load local resource $value")
                 null
             }
@@ -143,7 +143,7 @@ object AnimationUtils {
             fun parseValue(value: Value?): Description {
                 val d = Description()
                 if (value != null && value.isPrimitive) {
-                    val primitive = value.asPrimitive()
+                    val primitive = value.asPrimitive
                     when {
                         primitive.isNumber() -> {
                             d.type = Animation.ABSOLUTE
@@ -245,8 +245,13 @@ object AnimationUtils {
 
             children?.let {
                 when {
-                    it.isArray -> it.asArray
-                        .forEach { animationSet.addAnimation(loadAnimation(c, it)) }
+                    it.isArray -> it.asArray.forEach {
+                        animationSet.addAnimation(
+                            loadAnimation(
+                                c, it
+                            )
+                        )
+                    }
 
                     it.isObject || it.isPrimitive -> animationSet.addAnimation(loadAnimation(c, it))
                 }

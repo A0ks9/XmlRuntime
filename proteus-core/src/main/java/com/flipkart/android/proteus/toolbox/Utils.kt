@@ -45,8 +45,7 @@ object Utils { // Converted class to object as it contains only static members
      * @return The modified [destination] ObjectValue.
      */
     fun addAllEntries(
-        destination: ObjectValue,
-        source: ObjectValue
+        destination: ObjectValue, source: ObjectValue
     ): ObjectValue { // Converted to Kotlin function
         source.forEach { key, value -> // Using forEach for cleaner iteration over Map.Entry
             if (destination[key] == null) { // Using map-like access for ObjectValue and null check
@@ -76,15 +75,13 @@ object Utils { // Converted class to object as it contains only static members
      * @return The joined string.
      */
     fun join(
-        array: Array,
-        delimiter: String,
-        @QuoteStyle style: Int
+        array: Array, delimiter: String, @QuoteStyle style: Int
     ): String { // Converted to Kotlin function, kept annotation
         val sb = StringBuilder()
         for (i in 0 until array.size()) { // Using until for index iteration, more Kotlin-like
             val value = array[i] // Using array-like access for Proteus Array
             if (value.isPrimitive) {
-                val primitive = value.asPrimitive() // Using 'as' cast, Kotlin style
+                val primitive = value.asPrimitive // Using 'as' cast, Kotlin style
                 val string = when (style) { // Using when expression for cleaner switch-case
                     STYLE_NONE -> primitive.asString()
                     STYLE_SINGLE -> primitive.getAsSingleQuotedString()
@@ -122,14 +119,10 @@ object Utils { // Converted class to object as it contains only static members
      * @return The joined string.
      */
     fun join(
-        array: array<Value>,
-        delimiter: String,
-        @QuoteStyle style: Int
+        array: array<Value>, delimiter: String, @QuoteStyle style: Int
     ): String { // Overload function
         return join(
-            Array(array),
-            delimiter,
-            style
+            Array(*array), delimiter, style
         ) // Create Proteus Array and call main join function
     }
 
@@ -142,8 +135,7 @@ object Utils { // Converted class to object as it contains only static members
      */
     fun join(array: array<Value>, delimiter: String): String { // Overload function
         return join(
-            Array(array),
-            delimiter
+            Array(*array), delimiter
         ) // Create Proteus Array and call main join function with default style
     }
 

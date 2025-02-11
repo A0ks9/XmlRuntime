@@ -1,11 +1,19 @@
 package com.flipkart.android.proteus.parser.custom
 
 import android.view.ViewGroup
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
+import com.flipkart.android.proteus.parser.ParseHelper
 import com.flipkart.android.proteus.processor.BooleanAttributeProcessor
+import com.flipkart.android.proteus.processor.DimensionAttributeProcessor
+import com.flipkart.android.proteus.processor.DrawableResourceProcessor
+import com.flipkart.android.proteus.processor.StringAttributeProcessor
 import com.flipkart.android.proteus.toolbox.Attributes
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
+import com.flipkart.android.proteus.view.ProteusFixedRatingBar
+import com.flipkart.android.proteus.view.custom.FixedRatingBar
 
 /**
  * Kotlin implementation of RatingBarParser, responsible for creating and configuring RatingBar views (specifically `FixedRatingBar`).
@@ -84,7 +92,7 @@ class RatingBarParser<T : FixedRatingBar> :
         // Attribute processor for 'isIndicator' attribute (Boolean) - using lambda
         addAttributeProcessor(Attributes.RatingBar.IsIndicator,
             BooleanAttributeProcessor { view, value -> // Lambda for setting isIndicator
-                view.isIndicator = value // Set isIndicator boolean value
+                view.setIsIndicator(value) // Set isIndicator boolean value
             })
 
         // Attribute processor for 'stepSize' attribute (String - parseFloat) - using lambda
@@ -97,7 +105,8 @@ class RatingBarParser<T : FixedRatingBar> :
         // Attribute processor for 'minHeight' attribute (Dimension) - using lambda
         addAttributeProcessor(Attributes.RatingBar.MinHeight,
             DimensionAttributeProcessor { view, dimension -> // Lambda for setting minHeight
-                view.minimumHeight = dimension.toInt() // Set minimumHeight (int value of dimension)
+                view?.minimumHeight =
+                    dimension.toInt() // Set minimumHeight (int value of dimension)
             })
 
         // Attribute processor for 'progressDrawable' attribute (Drawable resource) - using lambda and tiled drawable logic

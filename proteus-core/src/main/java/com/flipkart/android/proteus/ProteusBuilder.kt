@@ -8,6 +8,9 @@ import com.flipkart.android.proteus.parser.IncludeParser
 import com.flipkart.android.proteus.parser.ViewParser
 import com.flipkart.android.proteus.parser.custom.*
 import com.flipkart.android.proteus.processor.AttributeProcessor
+import com.flipkart.android.proteus.view.custom.AspectRatioFrameLayout
+import com.flipkart.android.proteus.view.custom.FixedRatingBar
+import com.flipkart.android.proteus.view.custom.HorizontalProgressBar
 
 /**
  * A builder class for configuring and creating a [Proteus] instance.
@@ -87,7 +90,7 @@ open class ProteusBuilder {
     }
 
     private val processors = mutableMapOf<String, MutableMap<String, AttributeProcessor<*>>>()
-    private val parsers = mutableMapOf<String, ViewTypeParser<*>>()
+    private val parsers = mutableMapOf<String, ViewTypeParser<View>>()
     private val functions = mutableMapOf<String, Function>()
 
     init {
@@ -130,7 +133,7 @@ open class ProteusBuilder {
         if (parentType != null && !parsers.containsKey(parentType)) {
             throw IllegalStateException("$parentType is not a registered type parser")
         }
-        parsers[parser.getType()] = parser
+        @Suppress("UNCHECKED_CAST") parsers[parser.getType()] = parser as ViewTypeParser<View>
         return this
     }
 
@@ -181,10 +184,10 @@ open class ProteusBuilder {
      * @return A [Proteus.Type] instance.
      */
     @Suppress("UNCHECKED_CAST")
-    protected fun <V : View> prepare(parser: ViewTypeParser<V>): Proteus.Type {
+    protected fun prepare(parser: ViewTypeParser<View>): Proteus.Type {
         val name = parser.getType()
-        val parent = parser.getParentType()?.let { parsers[it] } as ViewTypeParser<V>
-        val extras = processors[name] as Map<String, AttributeProcessor<V>>
+        val parent = parser.getParentType()?.let { parsers[it] } as ViewTypeParser<View>
+        val extras = processors[name] as Map<String, AttributeProcessor<View>>
         return Proteus.Type(-1, name, parser, parser.prepare(parent, extras))
     }
 

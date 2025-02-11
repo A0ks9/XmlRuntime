@@ -1,7 +1,7 @@
 package com.runtimexml.activities;
 
-import static com.runtimexml.utils.UtilsKt.convertXmlToJson;
-import static com.runtimexml.utils.UtilsKt.getFileNameFromUri;
+import static com.runtimexml.utils.FileHelper.convertXmlToJson;
+import static com.runtimexml.utils.FileHelper.getFileNameFromUri;
 
 import android.Manifest;
 import android.content.ContentResolver;
@@ -73,9 +73,7 @@ public class MainActivity extends AppCompatActivity {
         binding.showXml.setOnClickListener(v -> {
             View view = DynamicLayoutInflation.inflateJson(this, createdFileUri, binding.parentLayout);
             DynamicLayoutInflation.setDelegate(view, getApplicationContext());
-            view.post(() -> {
-                Log.d("MainActivity", "Inflated view: " + view);
-            });
+            view.post(() -> android.util.Log.d("MainActivity", "Inflated view: " + view));
         });
     }
 

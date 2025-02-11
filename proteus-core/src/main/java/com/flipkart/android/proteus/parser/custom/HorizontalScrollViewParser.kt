@@ -2,12 +2,15 @@ package com.flipkart.android.proteus.parser.custom
 
 import android.view.ViewGroup
 import android.widget.HorizontalScrollView
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
 import com.flipkart.android.proteus.processor.BooleanAttributeProcessor
 import com.flipkart.android.proteus.processor.StringAttributeProcessor
 import com.flipkart.android.proteus.toolbox.Attributes
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
+import com.flipkart.android.proteus.view.ProteusHorizontalScrollView
 
 /**
  * Kotlin implementation of HorizontalScrollViewParser, responsible for creating and configuring HorizontalScrollView views.
@@ -74,40 +77,32 @@ class HorizontalScrollViewParser<T : HorizontalScrollView> :
 
         // Attribute processor for handling the 'fillViewPort' attribute (boolean)
         addAttributeProcessor(Attributes.HorizontalScrollView.FillViewPort,
-            object : BooleanAttributeProcessor<T>() { // Anonymous BooleanAttributeProcessor
-                override fun setBoolean(
-                    view: T, value: Boolean
-                ) { // Override setBoolean to apply fillViewport property
-                    view.isFillViewport = value // Set fillViewport property of HorizontalScrollView
-                }
+            BooleanAttributeProcessor<T> { view, value ->
+                view.isFillViewport = value // Set fillViewport property of HorizontalScrollView
             })
 
         // Attribute processor for handling the 'scrollbars' attribute (string)
         addAttributeProcessor(Attributes.ScrollView.Scrollbars,
-            object : StringAttributeProcessor<T>() { // Anonymous StringAttributeProcessor
-                override fun setString(
-                    view: T, value: String
-                ) { // Override setString to handle scrollbar visibility
-                    when (value) { // Use when for string matching scrollbar values
-                        "none" -> { // If value is "none", disable both horizontal and vertical scrollbars
-                            view.isHorizontalScrollBarEnabled = false
-                            view.isVerticalScrollBarEnabled = false
-                        }
+            StringAttributeProcessor<T> { view, value ->
+                when (value) { // Use when for string matching scrollbar values
+                    "none" -> { // If value is "none", disable both horizontal and vertical scrollbars
+                        view.isHorizontalScrollBarEnabled = false
+                        view.isVerticalScrollBarEnabled = false
+                    }
 
-                        "horizontal" -> { // If value is "horizontal", enable horizontal and disable vertical scrollbar
-                            view.isHorizontalScrollBarEnabled = true
-                            view.isVerticalScrollBarEnabled = false
-                        }
+                    "horizontal" -> { // If value is "horizontal", enable horizontal and disable vertical scrollbar
+                        view.isHorizontalScrollBarEnabled = true
+                        view.isVerticalScrollBarEnabled = false
+                    }
 
-                        "vertical" -> { // If value is "vertical", disable horizontal and enable vertical scrollbar (Note: Vertical scrollbar makes less sense for HorizontalScrollView)
-                            view.isHorizontalScrollBarEnabled = false
-                            view.isVerticalScrollBarEnabled = true
-                        }
+                    "vertical" -> { // If value is "vertical", disable horizontal and enable vertical scrollbar (Note: Vertical scrollbar makes less sense for HorizontalScrollView)
+                        view.isHorizontalScrollBarEnabled = false
+                        view.isVerticalScrollBarEnabled = true
+                    }
 
-                        else -> { // Default case (or any other value), disable both scrollbars
-                            view.isHorizontalScrollBarEnabled = false
-                            view.isVerticalScrollBarEnabled = false
-                        }
+                    else -> { // Default case (or any other value), disable both scrollbars
+                        view.isHorizontalScrollBarEnabled = false
+                        view.isVerticalScrollBarEnabled = false
                     }
                 }
             })

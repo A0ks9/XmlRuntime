@@ -1,9 +1,13 @@
 package com.flipkart.android.proteus.parser.custom
 
 import android.view.ViewGroup
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
+import com.flipkart.android.proteus.view.ProteusHorizontalProgressBar
+import com.flipkart.android.proteus.view.custom.HorizontalProgressBar
 
 
 /**

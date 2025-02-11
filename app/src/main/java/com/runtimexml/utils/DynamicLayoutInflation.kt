@@ -1,5 +1,6 @@
 package com.runtimexml.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -23,15 +24,16 @@ import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
-import com.runtimexml.utils.DimensionConvertor.stringToDimension
-import com.runtimexml.utils.DimensionConvertor.stringToDimensionPixelSize
-import com.runtimexml.utils.UtilsKt.convertXml
-import com.runtimexml.utils.UtilsKt.getFileExtension
+import com.runtimexml.utils.Attributes.Common
+import com.runtimexml.utils.Attributes.MaterialButton
+import com.runtimexml.utils.FileHelper.convertXml
+import com.runtimexml.utils.FileHelper.getFileExtension
 import com.runtimexml.utils.interfaces.ViewParamAction
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.lang.reflect.InvocationTargetException
+import com.runtimexml.utils.Attributes.View as ViewAttribute
 
 /**
  * Object that handles the dynamic inflation of layouts from JSON or XML resources.
@@ -158,7 +160,7 @@ object DynamicLayoutInflation {
         HashMap<String, String>(jsonObject.length()).apply {
             jsonObject.keys().forEach {
                 // Put all the attributes from json object into a map.
-                put(it.removePrefix("android:"), jsonObject.optString(it))
+                put(it.removePrefix("android:").removePrefix("app:"), jsonObject.optString(it))
             }
         }
 
@@ -204,27 +206,28 @@ object DynamicLayoutInflation {
             if (ViewProperties.containsKey(key)) continue
             //Check which key and value we need to handle.
             when {
-                key.startsWith("cornerRadius") -> {
+                key.startsWith(MaterialButton.MATERIAL_BUTTON_CORNER_RADIUS) -> {
                     //If the key is about cornerRadius, then we just extract boolean of hasCornerRadius and hasCornerRadii,
                     //and continue the loop to next attribute.
                     hasCornerRadius = true
-                    hasCornerRadii = !key.equals("cornerRadius", ignoreCase = true)
+                    hasCornerRadii =
+                        !key.equals(MaterialButton.MATERIAL_BUTTON_CORNER_RADIUS, ignoreCase = true)
                 }
 
-                key == "id" -> parent?.getGeneratedViewInfo()?.let { generatedView ->
+                key == Common.ID -> parent?.getGeneratedViewInfo()?.let { generatedView ->
                     //If the key is id, then generate new ID for it, and add it to GeneratedView data class.
                     view.id =
                         View.generateViewId().also { generatedView.viewID[parseID(value)] = it }
                 }
 
-                key in listOf("width", "layout_width") -> {
+                key in listOf(Common.WIDTH, Common.LAYOUT_WIDTH) -> {
                     //Set the width of the layoutParams for the view.
                     viewParams.width = when (value) {
                         "fill_parent", "match_parent" -> ViewGroup.LayoutParams.MATCH_PARENT
                         "wrap_content" -> ViewGroup.LayoutParams.WRAP_CONTENT
-                        else -> stringToDimensionPixelSize(
-                            value, view.resources.displayMetrics, parent, true
-                        )
+                        else -> value.toPixels(
+                            view.resources.displayMetrics, parent, true, true
+                        ) as Int
                     }
                     Log.d(
                         "DynamicLayoutInflation",
@@ -232,14 +235,14 @@ object DynamicLayoutInflation {
                     )
                 }
 
-                key in listOf("height", "layout_height") -> {
+                key in listOf(Common.HEIGHT, Common.LAYOUT_HEIGHT) -> {
                     //Set the height of the layoutParams for the view.
                     viewParams.height = when (value) {
                         "fill_parent", "match_parent" -> ViewGroup.LayoutParams.MATCH_PARENT
                         "wrap_content" -> ViewGroup.LayoutParams.WRAP_CONTENT
-                        else -> stringToDimensionPixelSize(
-                            value, view.resources.displayMetrics, parent, false
-                        )
+                        else -> value.toPixels(
+                            view.resources.displayMetrics, parent, false, true
+                        ) as Int
                     }
                     Log.d(
                         "DynamicLayoutInflation",
@@ -248,7 +251,7 @@ object DynamicLayoutInflation {
 
                 }
 
-                key == "layout_gravity" -> when (parent) {
+                key == Common.LAYOUT_GRAVITY -> when (parent) {
                     // set the gravity of the layoutParams
                     is LinearLayout -> (viewParams as LinearLayout.LayoutParams).gravity =
                         parseGravity(value)
@@ -257,71 +260,89 @@ object DynamicLayoutInflation {
                         parseGravity(value)
                 }
 
-                key == "layout_weight" && parent is LinearLayout -> {
+                key == Common.WEIGHT && parent is LinearLayout -> {
                     //Set the weight of the layoutParams
                     (viewParams as LinearLayout.LayoutParams).weight = value.toFloat()
                 }
 
-                key == "layout_below" -> layoutRule = RelativeLayout.BELOW
-                key == "layout_above" -> layoutRule = RelativeLayout.ABOVE
-                key == "layout_toLeftOf" -> layoutRule = RelativeLayout.LEFT_OF
-                key == "layout_toRightOf" -> layoutRule = RelativeLayout.RIGHT_OF
-                key == "layout_alignBottom" -> layoutRule = RelativeLayout.ALIGN_BOTTOM
-                key == "layout_alignTop" -> layoutRule = RelativeLayout.ALIGN_TOP
-                key == "layout_alignLeft" -> layoutRule = RelativeLayout.ALIGN_LEFT
-                key == "layout_alignStart" -> layoutRule = RelativeLayout.ALIGN_START
-                key == "layout_alignRight" -> layoutRule = RelativeLayout.ALIGN_RIGHT
-                key == "layout_alignEnd" -> layoutRule = RelativeLayout.ALIGN_END
-                key == "layout_alignParentBottom" -> layoutRule = RelativeLayout.ALIGN_PARENT_BOTTOM
-                key == "layout_alignParentTop" -> layoutRule = RelativeLayout.ALIGN_PARENT_TOP
-                key == "layout_alignParentLeft" -> layoutRule = RelativeLayout.ALIGN_PARENT_LEFT
-                key == "layout_alignParentStart" -> layoutRule = RelativeLayout.ALIGN_PARENT_START
-                key == "layout_alignParentRight" -> layoutRule = RelativeLayout.ALIGN_PARENT_RIGHT
-                key == "layout_alignParentEnd" -> layoutRule = RelativeLayout.ALIGN_PARENT_END
-                key == "layout_centerHorizontal" -> layoutRule = RelativeLayout.CENTER_HORIZONTAL
-                key == "layout_centerVertical" -> layoutRule = RelativeLayout.CENTER_VERTICAL
-                key == "layout_centerInParent" -> layoutRule = RelativeLayout.CENTER_IN_PARENT
-                key == "layout_margin" -> stringToDimensionPixelSize(
-                    value, view.resources.displayMetrics
-                ).let {
+                key == ViewAttribute.VIEW_BELOW -> layoutRule = RelativeLayout.BELOW
+                key == ViewAttribute.VIEW_ABOVE -> layoutRule = RelativeLayout.ABOVE
+                key == ViewAttribute.VIEW_TO_LEFT_OF -> layoutRule = RelativeLayout.LEFT_OF
+                key == ViewAttribute.VIEW_TO_RIGHT_OF -> layoutRule = RelativeLayout.RIGHT_OF
+                key == ViewAttribute.VIEW_ALIGN_BOTTOM -> layoutRule = RelativeLayout.ALIGN_BOTTOM
+                key == ViewAttribute.VIEW_ALIGN_TOP -> layoutRule = RelativeLayout.ALIGN_TOP
+                key == ViewAttribute.VIEW_ALIGN_LEFT -> layoutRule = RelativeLayout.ALIGN_LEFT
+                key == ViewAttribute.VIEW_ALIGN_START -> layoutRule = RelativeLayout.ALIGN_START
+                key == ViewAttribute.VIEW_ALIGN_RIGHT -> layoutRule = RelativeLayout.ALIGN_RIGHT
+                key == ViewAttribute.VIEW_ALIGN_END -> layoutRule = RelativeLayout.ALIGN_END
+                key == ViewAttribute.VIEW_ALIGN_PARENT_BOTTOM -> layoutRule =
+                    RelativeLayout.ALIGN_PARENT_BOTTOM
+
+                key == ViewAttribute.VIEW_ALIGN_PARENT_TOP -> layoutRule =
+                    RelativeLayout.ALIGN_PARENT_TOP
+
+                key == ViewAttribute.VIEW_ALIGN_PARENT_LEFT -> layoutRule =
+                    RelativeLayout.ALIGN_PARENT_LEFT
+
+                key == ViewAttribute.VIEW_ALIGN_PARENT_START -> layoutRule =
+                    RelativeLayout.ALIGN_PARENT_START
+
+                key == ViewAttribute.VIEW_ALIGN_PARENT_RIGHT -> layoutRule =
+                    RelativeLayout.ALIGN_PARENT_RIGHT
+
+                key == ViewAttribute.VIEW_ALIGN_PARENT_END -> layoutRule =
+                    RelativeLayout.ALIGN_PARENT_END
+
+                key == ViewAttribute.VIEW_CENTER_HORIZONTAL -> layoutRule =
+                    RelativeLayout.CENTER_HORIZONTAL
+
+                key == ViewAttribute.VIEW_CENTER_VERTICAL -> layoutRule =
+                    RelativeLayout.CENTER_VERTICAL
+
+                key == ViewAttribute.VIEW_CENTER_IN_PARENT -> layoutRule =
+                    RelativeLayout.CENTER_IN_PARENT
+
+                key == Common.LAYOUT_MARGIN -> (value.toPixels(
+                    view.resources.displayMetrics, asInt = true
+                ) as Int).let {
                     marginLeft = it
                     marginRight = it
                     marginTop = it
                     marginBottom = it
                 }
 
-                key in listOf("layout_marginLeft", "layout_marginStart") -> marginLeft =
-                    stringToDimensionPixelSize(value, view.resources.displayMetrics, parent, true)
+                key in listOf(Common.LAYOUT_MARGIN_LEFT, Common.LAYOUT_MARGIN_START) -> marginLeft =
+                    value.toPixels(view.resources.displayMetrics, parent, true, true) as Int
 
-                key in listOf("layout_marginRight", "layout_marginEnd") -> marginRight =
-                    stringToDimensionPixelSize(value, view.resources.displayMetrics, parent, true)
+                key in listOf(Common.LAYOUT_MARGIN_RIGHT, Common.LAYOUT_MARGIN_END) -> marginRight =
+                    value.toPixels(view.resources.displayMetrics, parent, true, true) as Int
 
-                key == "layout_marginTop" -> marginTop =
-                    stringToDimensionPixelSize(value, view.resources.displayMetrics, parent, false)
+                key == Common.LAYOUT_MARGIN_TOP -> marginTop =
+                    value.toPixels(view.resources.displayMetrics, parent, false, true) as Int
 
-                key == "layout_marginBottom" -> marginBottom =
-                    stringToDimensionPixelSize(value, view.resources.displayMetrics, parent, false)
+                key == Common.LAYOUT_MARGIN_BOTTOM -> marginBottom =
+                    value.toPixels(view.resources.displayMetrics, parent, false, true) as Int
 
-                key == "padding" -> stringToDimensionPixelSize(
-                    value, view.resources.displayMetrics
-                ).let {
+                key == Common.PADDING -> (value.toPixels(
+                    view.resources.displayMetrics, asInt = true
+                ) as Int).let {
                     paddingLeft = it
                     paddingRight = it
                     paddingTop = it
                     paddingBottom = it
                 }
 
-                key in listOf("paddingStart", "paddingLeft") -> paddingLeft =
-                    stringToDimensionPixelSize(value, view.resources.displayMetrics)
+                key in listOf(Common.PADDING_START, Common.PADDING_LEFT) -> paddingLeft =
+                    value.toPixels(view.resources.displayMetrics, asInt = true) as Int
 
-                key in listOf("paddingEnd", "paddingRight") -> paddingRight =
-                    stringToDimensionPixelSize(value, view.resources.displayMetrics)
+                key in listOf(Common.PADDING_END, Common.PADDING_RIGHT) -> paddingRight =
+                    value.toPixels(view.resources.displayMetrics, asInt = true) as Int
 
-                key == "paddingTop" -> paddingTop =
-                    stringToDimensionPixelSize(value, view.resources.displayMetrics)
+                key == Common.PADDING_TOP -> paddingTop =
+                    value.toPixels(view.resources.displayMetrics, asInt = true) as Int
 
-                key == "paddingBottom" -> paddingBottom =
-                    stringToDimensionPixelSize(value, view.resources.displayMetrics)
+                key == Common.PADDING_BOTTOM -> paddingBottom =
+                    value.toPixels(view.resources.displayMetrics, asInt = true) as Int
             }
         }
         Log.d(
@@ -361,10 +382,9 @@ object DynamicLayoutInflation {
                         for (i in 0 until CORNERS.size) {
                             val corner = CORNERS[i]
                             if (attrs.containsKey("cornerRadius$corner")) {
-                                val radius = stringToDimension(
-                                    attrs["cornerRadius$corner"].toString(),
+                                val radius = attrs["cornerRadius$corner"].toString().toPixels(
                                     view.resources.displayMetrics
-                                )
+                                ) as Float
                                 radii[i * 2] = radius
                                 radii[i * 2 + 1] = radius
                             }
@@ -372,16 +392,16 @@ object DynamicLayoutInflation {
                             pressedGradientDrawable.cornerRadii = radii
                         }
                     } else if (hasCornerRadius) {
-                        val radius = stringToDimension(
-                            attrs["cornerRadius"].toString(), view.resources.displayMetrics
-                        )
+                        val radius = attrs["cornerRadius"].toString().toPixels(
+                            view.resources.displayMetrics
+                        ) as Float
                         gradientDrawable.cornerRadius = radius
                         pressedGradientDrawable.cornerRadius = radius
                     }
                     if (attrs.containsKey("borderColor")) {
                         val borderWidth = attrs["borderWidth"] ?: "1dp"
                         val borderWidthPixel =
-                            stringToDimensionPixelSize(borderWidth, view.resources.displayMetrics)
+                            borderWidth.toPixels(view.resources.displayMetrics) as Int
                         val borderColor = parseColor(view, attrs["borderColor"].toString())
                         gradientDrawable.setStroke(borderWidthPixel, borderColor)
                         pressedGradientDrawable.setStroke(borderWidthPixel, borderColor)
@@ -425,6 +445,7 @@ object DynamicLayoutInflation {
      * @param name The name of the drawable (without prefix).
      * @return The Drawable object.
      */
+    @SuppressLint("DiscouragedApi")
     private fun getDrawable(view: View, name: String): Drawable? = view.resources.run {
         ResourcesCompat.getDrawable(
             this, getIdentifier(name, "drawable", view.context.packageName), null
@@ -458,7 +479,7 @@ object DynamicLayoutInflation {
      * @param id The string id to parse.
      * @return the parsed id.
      */
-    private fun parseID(id: String): String = id.removePrefix("@+id/").removePrefix("@id/")
+    private fun parseID(id: String): String = id.removePrefix("@+id/")
 
     /**
      * Get a click listener.
@@ -611,7 +632,7 @@ object DynamicLayoutInflation {
             this["textSize"] = ViewParamAction { view, value, _, _ ->
                 if (view is TextView) view.setTextSize(
                     TypedValue.COMPLEX_UNIT_PX,
-                    stringToDimension(value, view.resources.displayMetrics)
+                    value.toPixels(view.resources.displayMetrics) as Float
                 )
             }
             this["textColor"] = ViewParamAction { view, value, _, _ ->
@@ -676,7 +697,7 @@ object DynamicLayoutInflation {
                     if (imageName.startsWith("//")) imageName = "http:$imageName"
                     if (imageName.startsWith("http")) {
                         attrs["cornerRadius"]?.let {
-                            stringToDimensionPixelSize(it, view.resources.displayMetrics)
+                            it.toPixels(view.resources.displayMetrics) as Int
                         } ?: 0
                     } else if (imageName.startsWith("@drawable/")) {
                         val drawableName = imageName.substring("@drawable/".length)
@@ -684,20 +705,20 @@ object DynamicLayoutInflation {
                     }
                 }
             }
-            this["visibility"] = ViewParamAction { view, value, _, _ ->
+            this[Common.VISIBILITY] = ViewParamAction { view, value, _, _ ->
                 view?.visibility = when (value.lowercase()) {
                     "gone" -> View.GONE
                     "invisible" -> View.INVISIBLE
                     else -> View.VISIBLE
                 }
             }
-            this["clickable"] = ViewParamAction { view, value, _, _ ->
+            this[Common.CLICKABLE] = ViewParamAction { view, value, _, _ ->
                 view?.isClickable = value.equals("true", ignoreCase = true)
             }
-            this["tag"] = ViewParamAction { view, value, _, _ ->
+            this[Common.TAG] = ViewParamAction { view, value, _, _ ->
                 if (view?.tag == null) view?.tag = value
             }
-            this["onClick"] = ViewParamAction { view, value, parent, _ ->
+            this[ViewAttribute.VIEW_ON_CLICK] = ViewParamAction { view, value, parent, _ ->
                 view?.setOnClickListener(getClickListener(parent, value))
             }
         }

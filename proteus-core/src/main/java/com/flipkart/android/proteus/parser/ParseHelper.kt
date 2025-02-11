@@ -267,9 +267,7 @@ object ParseHelper { // Converted class to object as it's a utility class with s
      */
     fun parseBoolean(value: Value?): Boolean { // Converted to Kotlin function, nullable Value
         return value?.let { // Using let scope function for concise null handling and chaining
-            if (it.isPrimitive && it.asPrimitive
-                    .isBoolean()
-            ) { // Check if Value is Primitive and boolean
+            if (it.isPrimitive && it.asPrimitive.isBoolean()) { // Check if Value is Primitive and boolean
                 it.asBoolean() // Return boolean value if it is
             } else {
                 !it.isNull && value.asString()

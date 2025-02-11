@@ -2,10 +2,14 @@ package com.flipkart.android.proteus.parser.custom
 
 import android.view.ViewGroup
 import android.widget.RelativeLayout
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
+import com.flipkart.android.proteus.processor.GravityAttributeProcessor
 import com.flipkart.android.proteus.toolbox.Attributes
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
+import com.flipkart.android.proteus.view.ProteusRelativeLayout
 
 /**
  * Kotlin implementation of RelativeLayoutParser, responsible for creating and configuring RelativeLayout views.
@@ -68,8 +72,10 @@ class RelativeLayoutParser<T : RelativeLayout> :
     override fun addAttributeProcessors() { // Override addAttributeProcessors() to register custom attribute handlers
 
         // Attribute processor for 'gravity' attribute (using GravityAttributeProcessor) - using lambda
-        addAttributeProcessor(Attributes.View.Gravity, GravityAttributeProcessor { view, gravity ->
-            view.gravity = gravity
-        }) // Lambda using GravityAttributeProcessor to set gravity
+        addAttributeProcessor(Attributes.View.Gravity, object : GravityAttributeProcessor<T>() {
+            override fun setGravity(view: T, gravity: Int) {
+                view.gravity = gravity
+            }
+        })
     }
 }

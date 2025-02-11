@@ -6,6 +6,7 @@ import com.flipkart.android.proteus.ProteusConstants
 import com.flipkart.android.proteus.ProteusContext
 import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
+import com.flipkart.android.proteus.exceptions.ProteusInflateException
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
 
@@ -40,8 +41,8 @@ class IncludeParser<V : View> : ViewTypeParser<V>() {
     /**
      * Creates a [ProteusView] by inflating the layout specified in the `<include>` tag.
      *
-     * It retrieves the 'layout' attribute from the include's extras, gets the corresponding [Layout] object
-     * from the [ProteusContext], merges the include's attributes, and inflates the resulting layout.
+     * It retrieves the 'layout' attribute from the includes extras, gets the corresponding [Layout] object
+     * from the [ProteusContext], merges the includes attributes, and inflates the resulting layout.
      *
      * @param context   The ProteusContext for inflation.
      * @param include   The Layout representing the `<include>` tag.

@@ -207,7 +207,7 @@ abstract class AttributeProcessor<V : View> {
             (view as? ProteusView)?.viewManager?.dataContext // Safe cast and null check
         val resolved = dataContext?.let { // Using let for null safety
             evaluate(
-                value, view.context ?: contextForEvaluate!!, it.data, it.getIndex()
+                value, view.context ?: contextForEvaluate!!, it.data, it.index
             ) // Evaluate binding if dataContext and context are available
         } ?: Null // If dataContext is null, resolve to Null Value
 

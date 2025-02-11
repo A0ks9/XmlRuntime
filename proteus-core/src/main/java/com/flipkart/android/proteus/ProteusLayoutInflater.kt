@@ -119,7 +119,7 @@ interface ProteusLayoutInflater { // Kotlin interface declaration
      * @return The IdGenerator instance. Must be non-null.
      */
 
-    fun getIdGenerator(): IdGenerator
+    val idGenerator: IdGenerator
 
     /**
      * Callback interface for ProteusLayoutInflater events.

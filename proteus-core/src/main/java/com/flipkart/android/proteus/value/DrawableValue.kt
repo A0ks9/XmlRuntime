@@ -9,8 +9,11 @@ import android.graphics.drawable.*
 import android.view.View
 import com.flipkart.android.proteus.ProteusLayoutInflater
 import com.flipkart.android.proteus.ProteusView
+import com.flipkart.android.proteus.exceptions.ProteusInflateException
 import com.flipkart.android.proteus.parser.ParseHelper
 import com.flipkart.android.proteus.processor.ColorResourceProcessor
+import com.flipkart.android.proteus.processor.DimensionAttributeProcessor
+import com.flipkart.android.proteus.processor.DrawableResourceProcessor
 import kotlin.Array as array
 
 abstract class DrawableValue : Value() {
@@ -753,11 +756,14 @@ abstract class DrawableValue : Value() {
 
         override fun apply(view: ProteusView, drawable: GradientDrawable) {
             if (dashWidth == null) {
-                drawable.setStroke(DimensionAttributeProcessor.evaluate(width, view).toInt(), color)
+                drawable.setStroke(
+                    DimensionAttributeProcessor.evaluate(width, view).toInt(),
+                    ColorResourceProcessor.evaluate(color, view)!!.color
+                )
             } else if (dashGap != null) {
                 drawable.setStroke(
                     DimensionAttributeProcessor.evaluate(width, view).toInt(),
-                    color,
+                    ColorResourceProcessor.evaluate(color, view)!!.color,
                     DimensionAttributeProcessor.evaluate(dashWidth, view),
                     DimensionAttributeProcessor.evaluate(dashGap, view)
                 )

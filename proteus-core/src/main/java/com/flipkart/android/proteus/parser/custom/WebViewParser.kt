@@ -2,10 +2,14 @@ package com.flipkart.android.proteus.parser.custom
 
 import android.view.ViewGroup
 import android.webkit.WebView
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
+import com.flipkart.android.proteus.processor.StringAttributeProcessor
 import com.flipkart.android.proteus.toolbox.Attributes
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
+import com.flipkart.android.proteus.view.ProteusWebView
 
 /**
  * Kotlin implementation of WebViewParser, responsible for creating and configuring WebView views.

@@ -2,11 +2,18 @@ package com.flipkart.android.proteus.parser.custom
 
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import com.flipkart.android.proteus.ProteusContext
+import com.flipkart.android.proteus.ProteusView
 import com.flipkart.android.proteus.ViewTypeParser
 import com.flipkart.android.proteus.parser.ParseHelper
+import com.flipkart.android.proteus.processor.DimensionAttributeProcessor
+import com.flipkart.android.proteus.processor.DrawableResourceProcessor
+import com.flipkart.android.proteus.processor.GravityAttributeProcessor
+import com.flipkart.android.proteus.processor.StringAttributeProcessor
 import com.flipkart.android.proteus.toolbox.Attributes
 import com.flipkart.android.proteus.value.Layout
 import com.flipkart.android.proteus.value.ObjectValue
+import com.flipkart.android.proteus.view.ProteusLinearLayout
 
 /**
  * A [ViewTypeParser] for parsing and creating [LinearLayout] views in a Proteus layout.
@@ -60,8 +67,10 @@ class LinearLayoutParser<T : LinearLayout> : ViewTypeParser<T>() {
             })
 
         // Processor for setting the gravity
-        addAttributeProcessor(Attributes.View.Gravity, GravityAttributeProcessor { view, gravity ->
-            view.gravity = gravity
+        addAttributeProcessor(Attributes.View.Gravity, object : GravityAttributeProcessor<T>() {
+            override fun setGravity(view: T, @ProteusGravity gravity: Int) {
+                view.gravity = gravity
+            }
         })
 
         // Processor for setting the divider drawable (API level 11+)
@@ -73,7 +82,7 @@ class LinearLayoutParser<T : LinearLayout> : ViewTypeParser<T>() {
         // Processor for setting the divider padding (API level 11+)
         addAttributeProcessor(Attributes.LinearLayout.DividerPadding,
             DimensionAttributeProcessor { view, dimension ->
-                view.dividerPadding = dimension.toInt()
+                view?.dividerPadding = dimension.toInt()
             })
 
         // Processor for setting the show dividers mode (API level 11+)
