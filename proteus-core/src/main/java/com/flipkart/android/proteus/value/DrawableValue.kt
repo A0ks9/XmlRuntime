@@ -244,6 +244,8 @@ abstract class DrawableValue : Value() {
 
         }
 
+        fun getIds(): Iterator<Int> = ids.iterator()
+        fun getLayers(): Iterator<Value> = layers.iterator()
 
         override fun apply(
             view: ProteusView,
@@ -257,14 +259,12 @@ abstract class DrawableValue : Value() {
             drawables.indices.forEach { layerDrawable.setId(it, ids[it]) }
             callback.apply(layerDrawable)
         }
-
-
     }
 
 
     class StateListValue() : DrawableValue() {
 
-        private lateinit var states: array<IntArray>
+        lateinit var states: array<IntArray>
         private lateinit var values: array<Value>
 
         private constructor(states: array<IntArray>, values: array<Value>) : this() {
@@ -319,6 +319,8 @@ abstract class DrawableValue : Value() {
 
         }
 
+        fun getValues(): Iterator<Value> = values.iterator()
+
         override fun apply(
             view: ProteusView,
             context: Context,
@@ -359,6 +361,8 @@ abstract class DrawableValue : Value() {
             @JvmStatic
             fun value(levels: array<Level>) = LevelListValue(levels)
         }
+
+        fun getLevels(): Iterator<Level> = levels.iterator()
 
         override fun apply(
             view: ProteusView,
@@ -410,10 +414,10 @@ abstract class DrawableValue : Value() {
 
     class RippleValue() : DrawableValue() {
 
-        private lateinit var color: Value
-        private var mask: Value? = null
-        private var content: Value? = null
-        private var defaultBackground: Value? = null
+        lateinit var color: Value
+        var mask: Value? = null
+        var content: Value? = null
+        var defaultBackground: Value? = null
 
         constructor(
             color: Value, mask: Value?, content: Value?, defaultBackground: Value?
@@ -476,7 +480,7 @@ abstract class DrawableValue : Value() {
 
     class UrlValue() : DrawableValue() {
 
-        private lateinit var url: String
+        lateinit var url: String
 
         constructor(url: String) : this() {
             this.url = url

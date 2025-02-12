@@ -2,6 +2,7 @@ package com.flipkart.android.proteus.gson
 
 import com.flipkart.android.proteus.value.Value
 import com.google.gson.TypeAdapter
+import com.google.gson.stream.JsonWriter
 
 /**
  * An abstract base class for creating custom type adapters for subclasses of {@link Value}.
@@ -68,3 +69,19 @@ abstract class CustomValueTypeAdapter<V : Value>(
      */
     val type: Int // 'val' for final and immutable in Kotlin, default public visibility
 ) : TypeAdapter<V>() // Kotlin syntax for inheritance
+{
+    /**
+     * Helper function to write a [Value] instance using this adapter.
+     *
+     * This function safely casts the given [Value] to the expected type [V] and
+     * then calls the [write] method. It is useful when you have a [Value] that is not
+     * statically known to be of type [V], but you are confident it is compatible.
+     *
+     * @param out The [JsonWriter] to write to.
+     * @param value The [Value] to write. It must be of a type that is compatible with [V].
+     * @throws ClassCastException if [value] is not of type [V].
+     */
+    fun writeValue(out: JsonWriter, value: Value) {
+        @Suppress("UNCHECKED_CAST") write(out, value as V)
+    }
+}
