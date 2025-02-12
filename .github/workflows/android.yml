@@ -43,7 +43,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build Debug Apk
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/master' }}
         run: ./gradlew assembleDebug -Dorg.gradle.parallel=true -Dorg.gradle.daemon=true
 
       - name: Upload Debug
