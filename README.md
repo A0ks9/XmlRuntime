@@ -1,3 +1,8 @@
+Below is a complete **README.md** file that includes all the requested sections—with a dedicated "Roadmap & Improvements" table using true/false markers—and explains the project in detail. This file outlines what the project does, how it works, and what features (including roadmap items) are implemented.
+
+---
+
+```markdown
 # XmlRuntime
 
 **XmlRuntime** is an Android library that enables dynamic UI rendering from XML definitions at runtime. The library is designed with a lean architecture—using fewer classes and concise, maintainable Kotlin code—to actively handle custom views and custom attributes while ensuring efficient performance and a responsive UI.
@@ -117,3 +122,58 @@ Below is a checklist for planned improvements and enhancements for XmlRuntime:
           })
       }
   })
+  ```
+
+- **Inflating Layouts at Runtime:**  
+  Use the library’s API to load and inflate your XML layouts dynamically:
+
+  ```kotlin
+  // Load your XML layout (possibly converted to JSON or another internal format)
+  val xmlLayoutDefinition = /* your XML layout data */
+  
+  // Initialize Proteus with your context
+  val proteus = Proteus.Builder()
+      .setContext(this)
+      .build()
+  
+  // Inflate the view using the layout definition
+  val view = proteus.createView(xmlLayoutDefinition)
+  
+  // Set the inflated view as your activity's content
+  setContentView(view)
+  ```
+
+---
+
+## Contributing
+
+Contributions are welcome! To contribute:
+
+1. **Fork the Repository:**  
+   Create your own branch for your feature or bug fix.
+
+2. **Write Tests:**  
+   Ensure your changes are covered by appropriate tests.
+
+3. **Update Documentation:**  
+   Update the README or inline documentation if necessary.
+
+4. **Submit a Pull Request:**  
+   Open a pull request with a detailed description of your changes.
+
+For any questions or discussions, please open an issue on the [GitHub repository](https://github.com/A0ks9/XmlRuntime).
+
+---
+
+## License
+
+XmlRuntime uses core functionality from Proteus, which is licensed under the **Apache License 2.0**.  
+See [Proteus LICENSE](https://github.com/Flipkart/Proteus/blob/master/LICENSE) for details.
+
+XmlRuntime itself is released under the **[Your License Here]**. (You may choose to use the same license as Proteus or another compatible open-source license.)
+
+---
+
+## Contact
+
+For more information, please visit the [XmlRuntime GitHub repository](https://github.com/A0ks9/XmlRuntime) or contact the project maintainer.
