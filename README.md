@@ -30,12 +30,12 @@
 
 | Feature                                      | Implemented |
 |----------------------------------------------|:-----------:|
-| Dynamic XML UI Rendering                     |    True     |
-| Active Custom View Handling                  |    True     |
-| Active Custom Attribute Handling             |    True     |
-| Lean Architecture (fewer classes)            |    True     |
-| Concise & Clean Kotlin Code                  |    True     |
-| Efficient Performance                        |    True     |
+| Dynamic XML UI Rendering                     |    False     |
+| Active Custom View Handling                  |    False     |
+| Active Custom Attribute Handling             |    False     |
+| Lean Architecture (fewer classes)            |    False     |
+| Concise & Clean Kotlin Code                  |    False     |
+| Efficient Performance                        |    False     |
 | **Reduce Class Count:** Further merge similar functionalities to simplify the codebase. |   False   |
 | **Enhanced Customization:** Streamline registration & processing of custom views/attributes.    |   False   |
 | **Improve Error Handling:** Enhance parsing and runtime error messages for layout inflation.     |   False   |
