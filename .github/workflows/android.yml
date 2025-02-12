@@ -16,18 +16,18 @@ jobs:
     steps:
       # Step 1: Checkout code
       - name: Checkout code
-        uses: actions/checkout@v4  # Latest stable version
+        uses: actions/checkout@v4
 
       # Step 2: Set up JDK
       - name: Set up JDK
-        uses: actions/setup-java@v4  # Latest version
+        uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'  # Use Azul Zulu JDK
-          java-version: '21'    # Specify Java version compatible with your project
+          distribution: 'zulu'
+          java-version: '17'
 
       # Step 3: Cache Gradle dependencies
       - name: Cache Gradle dependencies
-        uses: actions/cache@v4  # Latest version
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -36,19 +36,22 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
-      # Step 4: Set up Android SDK
+      # Step 4: Set up Android SDK (without api-level)
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3  # Latest version
-        with:
-          api-level: 35                 # Target API level (update based on your app's build.gradle)
+        uses: android-actions/setup-android@v3  # No 'api-level' input needed
 
-      # Step 5: Build the project
+      # Step 5: Install Android SDK API 35 manually
+      - name: Install Android SDK API 35
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;34.0.0"
+
+      # Step 6: Build the project
       - name: Build with Gradle
-        run: ./gradlew assembleRelease  # Replace with your build task (e.g., assembleDebug for debug builds)
+        run: ./gradlew assembleRelease
 
-      # Step 6: Upload APK or AAB artifact
+      # Step 7: Upload APK or AAB artifact
       - name: Upload APK
-        uses: actions/upload-artifact@v4  # Latest version
+        uses: actions/upload-artifact@v4
         with:
           name: app-release.apk
-          path: app/build/outputs/apk/release/*.apk  # Adjust path for your build type (APK or AAB)
+          path: app/build/outputs/apk/release/*.apk
