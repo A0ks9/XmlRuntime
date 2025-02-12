@@ -36,15 +36,6 @@
 | Lean Architecture (fewer classes)            |    True     |
 | Concise & Clean Kotlin Code                  |    True     |
 | Efficient Performance                        |    True     |
-
----
-
-## Roadmap & Improvements
-
-Below is a checklist for planned improvements and enhancements for XmlRuntime:
-
-| Improvement                                  | Implemented |
-|----------------------------------------------|:-----------:|
 | **Reduce Class Count:** Further merge similar functionalities to simplify the codebase. |   False   |
 | **Enhanced Customization:** Streamline registration & processing of custom views/attributes.    |   False   |
 | **Improve Error Handling:** Enhance parsing and runtime error messages for layout inflation.     |   False   |
