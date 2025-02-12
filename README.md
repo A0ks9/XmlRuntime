@@ -1,8 +1,3 @@
-Below is a complete **README.md** file that includes all the requested sections—with a dedicated "Roadmap & Improvements" table using true/false markers—and explains the project in detail. This file outlines what the project does, how it works, and what features (including roadmap items) are implemented.
-
----
-
-```markdown
 # XmlRuntime
 
 **XmlRuntime** is an Android library that enables dynamic UI rendering from XML definitions at runtime. The library is designed with a lean architecture—using fewer classes and concise, maintainable Kotlin code—to actively handle custom views and custom attributes while ensuring efficient performance and a responsive UI.
