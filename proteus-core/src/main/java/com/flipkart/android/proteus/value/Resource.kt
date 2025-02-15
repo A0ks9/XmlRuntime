@@ -48,7 +48,7 @@ class Resource(val resId: Int) : Value() {
         @JvmStatic
         fun getBoolean(resId: Int, context: Context): Boolean? = try {
             context.resources.getBoolean(resId)
-        } catch (e: Resources.NotFoundException) {
+        } catch (_: Resources.NotFoundException) {
             null
         }
 
@@ -60,7 +60,7 @@ class Resource(val resId: Int) : Value() {
             else @Suppress("DEPRECATION") /* Suppress deprecation warning */ context.resources.getColor(
                 resId
             )
-        } catch (e: Resources.NotFoundException) {
+        } catch (_: Resources.NotFoundException) {
             null
         }
 
@@ -68,7 +68,7 @@ class Resource(val resId: Int) : Value() {
         @JvmStatic
         fun getColorStateList(resId: Int, context: Context): ColorStateList? = try {
             AppCompatResources.getColorStateList(context, resId)
-        } catch (nfe: Resources.NotFoundException) {
+        } catch (_: Resources.NotFoundException) {
             null
         }
 
@@ -76,21 +76,21 @@ class Resource(val resId: Int) : Value() {
         @JvmStatic
         fun getDrawable(resId: Int, context: Context): Drawable? = try {
             AppCompatResources.getDrawable(context, resId)
-        } catch (e: Resources.NotFoundException) {
+        } catch (_: Resources.NotFoundException) {
             null
         }
 
         @JvmStatic
         fun getDimension(resId: Int, context: Context): Float? = try {
             context.resources.getDimension(resId)
-        } catch (e: Resources.NotFoundException) {
+        } catch (_: Resources.NotFoundException) {
             null
         }
 
         @JvmStatic
         fun getString(resId: Int, context: Context): String? = try {
             context.getString(resId)
-        } catch (e: Resources.NotFoundException) {
+        } catch (_: Resources.NotFoundException) {
             null
         }
 
@@ -126,7 +126,7 @@ class Resource(val resId: Int) : Value() {
 
     fun getInteger(resId: Int, context: Context): Int? = try {
         context.resources.getInteger(resId)
-    } catch (e: Resources.NotFoundException) {
+    } catch (_: Resources.NotFoundException) {
         null
     }
 

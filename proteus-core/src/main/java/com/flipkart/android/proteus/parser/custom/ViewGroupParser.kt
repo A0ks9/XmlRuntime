@@ -214,7 +214,7 @@ open class ViewGroupParser<T : ViewGroup> :
                 if (!element.isLayout) { // Check if the element is a Layout Value
                     throw ProteusInflateException("attribute  'children' must be an array of 'Layout' objects") // Throw exception if not a Layout
                 }
-                val child = layoutInflater!!.inflate(
+                val child = layoutInflater.inflate(
                     element.asLayout, data, view, dataIndex
                 ) // Inflate child layout
                 addView(

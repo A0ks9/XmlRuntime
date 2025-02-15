@@ -559,44 +559,10 @@ object DynamicLayoutInflation {
      *
      * @return The generated view or the tag value as `GeneratedView`
      */
-    private fun View.getGeneratedViewInfo(): GeneratedView =
+    internal fun View.getGeneratedViewInfo(): GeneratedView =
         (tag as? GeneratedView) ?: GeneratedView().also { tag = it }
 
-    /**
-     *  Retrieves the view id of a view inside the viewGroup.
-     *  If the view does not exists, then returns -1
-     *  @param root The root view that we are search inside
-     *  @param id The id to search for.
-     *  @return The integer Id of the view if present, or -1 if not found
-     */
-    private fun getViewID(root: View, id: String): Int {
-        if (root !is ViewGroup) return -1
-        return (root.tag as? GeneratedView)?.viewID?.get(id) ?: root.childrenSequence()
-            .mapNotNull { getViewID(it, id).takeIf { it > -1 } }.firstOrNull() ?: -1
-    }
 
-    /**
-     * Get a sequence of view's children for iteration.
-     * @return Sequence of the children.
-     */
-    private fun ViewGroup.childrenSequence(): Sequence<View> = object : Sequence<View> {
-        override fun iterator(): Iterator<View> = object : Iterator<View> {
-            private var index = 0
-            override fun hasNext(): Boolean = index < childCount
-            override fun next(): View = getChildAt(index++)
-        }
-    }
-
-    /**
-     * Tries to find a view from root View based on String ID
-     *
-     * @param id String id that should match with the ID of View
-     * @return The view which is found with the string id, otherwise null.
-     */
-    fun View.findViewByIdString(id: String): View? {
-        val idNum = getViewID(this, id)
-        return if (idNum < 0) null else findViewById(idNum)
-    }
 
     /**
      * Creates View properties actions that will be used for setting View properties.
@@ -723,10 +689,4 @@ object DynamicLayoutInflation {
             }
         }
     }
-
-    private data class GeneratedView(
-        var viewID: HashMap<String, Int> = HashMap(),
-        var delegate: Any? = null,
-        var bgDrawable: GradientDrawable? = null
-    )
 }

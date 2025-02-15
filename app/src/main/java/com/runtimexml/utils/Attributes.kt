@@ -43,8 +43,6 @@ object Attributes {
         const val FOREGROUND_TINT = "foregroundTint"//Applies a tint to the foreground of the view
         const val FOREGROUND_TINT_MODE =
             "foregroundTintMode"//Sets the blending mode for the foreground tint
-        const val MIN_HEIGHT = "minHeight"//Sets the minimum height of the view
-        const val MIN_WIDTH = "minWidth"//Sets the minimum width of the view
         const val ROTATION = "rotation"//Sets the rotation of the view in degrees
         const val ROTATION_X = "rotationX"//Sets the rotation of the view around the X axis
         const val ROTATION_Y = "rotationY"//Sets the rotation of the view around the Y axis
@@ -78,6 +76,10 @@ object Attributes {
         const val STYLE = "style"//Sets the style resource for the view
         const val ENABLED_STATE = "android:enabled"// enable stat
         const val FOCUSED_STATE = "android:state_focused" //Set Focus mode
+        const val MIN_WIDTH = "minWidth" // Sets the minimum width of the view
+        const val MIN_HEIGHT = "minHeight" // Sets the minimum height of the view
+        const val MAX_WIDTH = "maxWidth" // Sets the maximum width of the view
+        const val MAX_HEIGHT = "maxHeight" // Sets the maximum height of the view
     }
 
     /**
@@ -312,12 +314,8 @@ object Attributes {
             "lineSpacingMultiplier"//Sets the line spacing multiplier
         const val TEXTVIEW_MAX_EMS =
             "maxEms"//Sets the maximum width of the TextView to n 'M' characters
-        const val TEXTVIEW_MAX_HEIGHT = "maxHeight"//Sets the maximum height of the TextView
-        const val TEXTVIEW_MAX_WIDTH = "maxWidth"//Sets the maximum width of the TextView
         const val TEXTVIEW_MIN_EMS =
             "minEms"//Sets the minimum width of the TextView to n 'M' characters
-        const val TEXTVIEW_MIN_HEIGHT = "minHeight"//Sets the minimum height of the TextView
-        const val TEXTVIEW_MIN_WIDTH = "minWidth"//Sets the minimum width of the TextView
         const val TEXTVIEW_PRIVATE_IME_OPTIONS = "privateImeOptions"//Sets the private IME options
         const val TEXTVIEW_SELECT_ALL_ON_FOCUS =
             "selectAllOnFocus"//Sets whether to select all text when focused
@@ -364,12 +362,8 @@ object Attributes {
         const val EDITTEXT_LINE_SPACING_MULTIPLIER =
             "lineSpacingMultiplier"//Sets the line spacing multiplier
         const val EDITTEXT_MAX_EMS = "maxEms"//Sets the maximum number of EMS
-        const val EDITTEXT_MAX_HEIGHT = "maxHeight"//Sets the maximum height
         const val EDITTEXT_MAX_LENGTH = "maxLength"//Sets the maximum length
-        const val EDITTEXT_MAX_WIDTH = "maxWidth"//Sets the maximum width
         const val EDITTEXT_MIN_EMS = "minEms"//Sets the minimum number of EMS
-        const val EDITTEXT_MIN_HEIGHT = "minHeight"//Sets the minimum height
-        const val EDITTEXT_MIN_WIDTH = "minWidth"//Sets the minimum width
         const val EDITTEXT_PRIVATE_IME_OPTIONS = "privateImeOptions"//Sets the private IME options
         const val EDITTEXT_SCROLL_HORIZONTALLY =
             "scrollHorizontally"//Sets whether to scroll horizontally
@@ -391,8 +385,6 @@ object Attributes {
         const val BUTTON_TEXT_COLOR = "textColor" // Sets the text color
         const val BUTTON_BACKGROUND = "background" // Sets the background color or drawable
         const val BUTTON_ENABLED = "enabled" // Sets whether the button is enabled
-        const val BUTTON_MIN_WIDTH = "minWidth" // Sets the minimum width
-        const val BUTTON_MIN_HEIGHT = "minHeight" // Sets the minimum height
         const val BUTTON_PADDING = "padding" // Sets the padding
         const val BUTTON_GRAVITY = "gravity" // Sets the gravity of the text
         const val BUTTON_TEXT_STYLE = "textStyle"//Sets the text style (normal, bold, italic)
@@ -558,10 +550,6 @@ object Attributes {
             "indeterminateOnly"//Sets whether the progress bar is indeterminate only
         const val PROGRESSBAR_INCREMENTAL_SECONDARY_PROGRESS =
             "incrementSecondaryProgress"//Sets the incremental secondary progress
-        const val PROGRESSBAR_MAX_HEIGHT = "maxHeight"//Sets the maximum height
-        const val PROGRESSBAR_MAX_WIDTH = "maxWidth"//Sets the maximum width
-        const val PROGRESSBAR_MIN_HEIGHT = "minHeight"//Sets the minimum height
-        const val PROGRESSBAR_MIN_WIDTH = "minWidth"//Sets the minimum width
         const val PROGRESSBAR_PROGRESS_BACKGROUND_TINT =
             "progressBackgroundTint"//Sets the progress background tint color
         const val PROGRESSBAR_PROGRESS_TINT_MODE = "progressTintMode"//Sets the progress tint mode

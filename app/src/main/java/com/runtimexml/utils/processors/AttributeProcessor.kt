@@ -7,10 +7,21 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.runtimexml.utils.BaseView
+import com.runtimexml.utils.BaseViewAttributes
 import com.runtimexml.utils.annotations.AutoAttribute
+import com.runtimexml.utils.interfaces.AttributeProcessorRegistry
 
-class AttributeProcessor(private val codeGenerator: CodeGenerator, private val logger: KSPLogger) :
-    SymbolProcessor {
+open class AttributeProcessor() : SymbolProcessor {
+
+    private lateinit var codeGenerator: CodeGenerator
+    private lateinit var logger: KSPLogger
+
+    constructor(codeGenerator: CodeGenerator, logger: KSPLogger) : this() {
+        this.codeGenerator = codeGenerator
+        this.logger = logger
+    }
+
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val symbols = resolver.getSymbolsWithAnnotation(AutoAttribute::class.qualifiedName!!)
         if (symbols.none()) return emptyList()
@@ -149,9 +160,47 @@ class AttributeProcessor(private val codeGenerator: CodeGenerator, private val l
     }
 
     companion object {
+        private val processors = BaseViewAttributes.processors
+
         @JvmStatic
-        fun applyAttributes() {
-            //set up it manually for anything
+        fun attributeRegistry(block: AttributeProcessor.() -> Unit) =
+            AttributeProcessor().apply(block)
+
+        @JvmStatic
+        @Suppress("UNCHECKED_CAST")
+        fun <T> addAttribute(attribute: String, processor: AttributeProcessorRegistry<T>) {
+            processors[attribute] = processor as AttributeProcessorRegistry<Any>
+        }
+
+        @JvmStatic
+        fun <T> addAttributes(attributes: Map<String, AttributeProcessorRegistry<T>>) {
+            attributes.forEach { (attr, value) ->
+                addAttribute(attr, value)
+            }
+        }
+
+        @JvmStatic
+        fun <T> addAttributes(vararg attributes: String, processor: AttributeProcessorRegistry<T>) {
+            attributes.forEach { addAttribute(it, processor) }
+        }
+
+        @JvmStatic
+        fun <T> applyAttribute(view: BaseView, attrName: String, value: T?) {
+            if (processors.isEmpty()) throw IllegalArgumentException("No attributes found")
+            if (attrName !in processors) throw IllegalArgumentException("Attribute not found: $attrName")
+
+            processors[attrName]?.apply(view, value)
+        }
+
+        @JvmStatic
+        fun <T> applyAttributes(view: BaseView, attrs: Map<String, T?>) {
+            if (processors.isEmpty()) throw IllegalArgumentException("No attributes found")
+
+            attrs.forEach { (attr, value) ->
+                if (attr !in processors) throw IllegalArgumentException("Attribute not found: $attr")
+
+                processors[attr]?.apply(view, value)
+            }
         }
     }
 }
