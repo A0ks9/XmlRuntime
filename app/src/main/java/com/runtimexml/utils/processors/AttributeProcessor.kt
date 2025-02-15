@@ -1,5 +1,6 @@
 package com.runtimexml.utils.processors
 
+import android.view.View
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
@@ -7,7 +8,6 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.runtimexml.utils.BaseView
 import com.runtimexml.utils.BaseViewAttributes
 import com.runtimexml.utils.annotations.AutoAttribute
 import com.runtimexml.utils.interfaces.AttributeProcessorRegistry
@@ -169,7 +169,7 @@ open class AttributeProcessor() : SymbolProcessor {
         @JvmStatic
         @Suppress("UNCHECKED_CAST")
         fun <T> addAttribute(attribute: String, processor: AttributeProcessorRegistry<T>) {
-            processors[attribute] = processor as AttributeProcessorRegistry<Any>
+            processors.add(attribute to (processor as AttributeProcessorRegistry<Any>))
         }
 
         @JvmStatic
@@ -185,21 +185,21 @@ open class AttributeProcessor() : SymbolProcessor {
         }
 
         @JvmStatic
-        fun <T> applyAttribute(view: BaseView, attrName: String, value: T?) {
-            if (processors.isEmpty()) throw IllegalArgumentException("No attributes found")
-            if (attrName !in processors) throw IllegalArgumentException("Attribute not found: $attrName")
+        fun <T> applyAttribute(view: View, attrName: String, value: T?) {
+            if (processors.isEmpty) throw IllegalArgumentException("No attributes found")
+            if (!processors.any { it.first != attrName }) throw IllegalArgumentException("Attribute not found: $attrName")
 
-            processors[attrName]?.apply(view, value)
+            processors.find { it.first == attrName }?.second?.apply(view, value)
         }
 
         @JvmStatic
-        fun <T> applyAttributes(view: BaseView, attrs: Map<String, T?>) {
-            if (processors.isEmpty()) throw IllegalArgumentException("No attributes found")
+        fun <T> applyAttributes(view: View, attrs: Map<String, T?>) {
+            if (processors.isEmpty) throw IllegalArgumentException("No attributes found")
 
             attrs.forEach { (attr, value) ->
-                if (attr !in processors) throw IllegalArgumentException("Attribute not found: $attr")
+                if (!processors.any { it.first == attr }) throw IllegalArgumentException("Attribute not found: $attr")
 
-                processors[attr]?.apply(view, value)
+                processors.find { it.first == attr }?.second?.apply(view, value)
             }
         }
     }

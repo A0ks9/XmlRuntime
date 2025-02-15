@@ -75,7 +75,6 @@ class Utils {
      * @param root The View for which to set the delegate.
      * @param delegate  The delegate object to set.
      */
-    @JvmStatic
     fun setDelegate(root: View?, delegate: Any) {
         root?.getGeneratedViewInfo()?.delegate = delegate
     }

@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.kotlin.coroutines.core)
     implementation(libs.kotlin.stdlib)
     implementation(libs.androidx.appcompat)
+    implementation(libs.sliding.pane.layout)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)

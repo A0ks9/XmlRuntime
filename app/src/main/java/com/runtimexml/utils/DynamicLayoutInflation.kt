@@ -18,17 +18,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
 import com.runtimexml.utils.Attributes.Common
-import com.runtimexml.utils.Attributes.MaterialButton
 import com.runtimexml.utils.FileHelper.convertXml
 import com.runtimexml.utils.FileHelper.getFileExtension
 import com.runtimexml.utils.interfaces.ViewParamAction
+import com.runtimexml.utils.processors.AttributeProcessor
+import com.runtimexml.utils.processors.ViewProcessor
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -51,6 +51,7 @@ object DynamicLayoutInflation {
 
     // Initialization block where properties actions are created and added to ViewProperties map
     init {
+        BaseViewAttributes.initializeAttributes()
         createViewProperties()
     }
 
@@ -142,6 +143,8 @@ object DynamicLayoutInflation {
      * @return The created view or null if an exception is found.
      */
     private fun getViewForName(context: Context, name: String): View? = try {
+        if (ViewProcessor.isRegistered(name)) ViewProcessor.createView(name, context)
+
         val modifiedName = if (!name.contains(".")) "android.widget.$name" else name
         // Create a class object from the name
         Class.forName(modifiedName).getConstructor(Context::class.java)
@@ -179,19 +182,6 @@ object DynamicLayoutInflation {
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
         )
 
-
-        var layoutRule = NO_LAYOUT_RULE
-        var marginLeft = 0
-        var marginRight = 0
-        var marginTop = 0
-        var marginBottom = 0
-        var paddingLeft = 0
-        var paddingRight = 0
-        var paddingTop = 0
-        var paddingBottom = 0
-        var hasCornerRadius = false
-        var hasCornerRadii = false
-
         Log.d(
             "DynamicLayoutInflation",
             "Before apply attributes, View: ${view.javaClass.simpleName},  width: ${viewParams.width}, height: ${viewParams.height}, parent: ${parent?.javaClass?.simpleName}"
@@ -204,156 +194,13 @@ object DynamicLayoutInflation {
             ViewProperties[key]?.apply(view, value, parent, attrs)
             //If a viewAction exists in the viewProperties map then skip the rest of the checks.
             if (ViewProperties.containsKey(key)) continue
-            //Check which key and value we need to handle.
-            when {
-                key.startsWith(MaterialButton.MATERIAL_BUTTON_CORNER_RADIUS) -> {
-                    //If the key is about cornerRadius, then we just extract boolean of hasCornerRadius and hasCornerRadii,
-                    //and continue the loop to next attribute.
-                    hasCornerRadius = true
-                    hasCornerRadii =
-                        !key.equals(MaterialButton.MATERIAL_BUTTON_CORNER_RADIUS, ignoreCase = true)
-                }
-
-                key == Common.ID -> parent?.getGeneratedViewInfo()?.let { generatedView ->
-                    //If the key is id, then generate new ID for it, and add it to GeneratedView data class.
-                    view.id =
-                        View.generateViewId().also { generatedView.viewID[parseID(value)] = it }
-                }
-
-                key in listOf(Common.WIDTH, Common.LAYOUT_WIDTH) -> {
-                    //Set the width of the layoutParams for the view.
-                    viewParams.width = when (value) {
-                        "fill_parent", "match_parent" -> ViewGroup.LayoutParams.MATCH_PARENT
-                        "wrap_content" -> ViewGroup.LayoutParams.WRAP_CONTENT
-                        else -> value.toPixels(
-                            view.resources.displayMetrics, parent, true, true
-                        ) as Int
-                    }
-                    Log.d(
-                        "DynamicLayoutInflation",
-                        "width set : ${view.javaClass.simpleName}, value: $value,width: ${viewParams.width}"
-                    )
-                }
-
-                key in listOf(Common.HEIGHT, Common.LAYOUT_HEIGHT) -> {
-                    //Set the height of the layoutParams for the view.
-                    viewParams.height = when (value) {
-                        "fill_parent", "match_parent" -> ViewGroup.LayoutParams.MATCH_PARENT
-                        "wrap_content" -> ViewGroup.LayoutParams.WRAP_CONTENT
-                        else -> value.toPixels(
-                            view.resources.displayMetrics, parent, false, true
-                        ) as Int
-                    }
-                    Log.d(
-                        "DynamicLayoutInflation",
-                        "height set: ${view.javaClass.simpleName}, value: $value, height: ${viewParams.height}"
-                    )
-
-                }
-
-                key == Common.LAYOUT_GRAVITY -> when (parent) {
-                    // set the gravity of the layoutParams
-                    is LinearLayout -> (viewParams as LinearLayout.LayoutParams).gravity =
-                        parseGravity(value)
-
-                    is FrameLayout -> (viewParams as FrameLayout.LayoutParams).gravity =
-                        parseGravity(value)
-                }
-
-                key == Common.WEIGHT && parent is LinearLayout -> {
-                    //Set the weight of the layoutParams
-                    (viewParams as LinearLayout.LayoutParams).weight = value.toFloat()
-                }
-
-                key == ViewAttribute.VIEW_BELOW -> layoutRule = RelativeLayout.BELOW
-                key == ViewAttribute.VIEW_ABOVE -> layoutRule = RelativeLayout.ABOVE
-                key == ViewAttribute.VIEW_TO_LEFT_OF -> layoutRule = RelativeLayout.LEFT_OF
-                key == ViewAttribute.VIEW_TO_RIGHT_OF -> layoutRule = RelativeLayout.RIGHT_OF
-                key == ViewAttribute.VIEW_ALIGN_BOTTOM -> layoutRule = RelativeLayout.ALIGN_BOTTOM
-                key == ViewAttribute.VIEW_ALIGN_TOP -> layoutRule = RelativeLayout.ALIGN_TOP
-                key == ViewAttribute.VIEW_ALIGN_LEFT -> layoutRule = RelativeLayout.ALIGN_LEFT
-                key == ViewAttribute.VIEW_ALIGN_START -> layoutRule = RelativeLayout.ALIGN_START
-                key == ViewAttribute.VIEW_ALIGN_RIGHT -> layoutRule = RelativeLayout.ALIGN_RIGHT
-                key == ViewAttribute.VIEW_ALIGN_END -> layoutRule = RelativeLayout.ALIGN_END
-                key == ViewAttribute.VIEW_ALIGN_PARENT_BOTTOM -> layoutRule =
-                    RelativeLayout.ALIGN_PARENT_BOTTOM
-
-                key == ViewAttribute.VIEW_ALIGN_PARENT_TOP -> layoutRule =
-                    RelativeLayout.ALIGN_PARENT_TOP
-
-                key == ViewAttribute.VIEW_ALIGN_PARENT_LEFT -> layoutRule =
-                    RelativeLayout.ALIGN_PARENT_LEFT
-
-                key == ViewAttribute.VIEW_ALIGN_PARENT_START -> layoutRule =
-                    RelativeLayout.ALIGN_PARENT_START
-
-                key == ViewAttribute.VIEW_ALIGN_PARENT_RIGHT -> layoutRule =
-                    RelativeLayout.ALIGN_PARENT_RIGHT
-
-                key == ViewAttribute.VIEW_ALIGN_PARENT_END -> layoutRule =
-                    RelativeLayout.ALIGN_PARENT_END
-
-                key == ViewAttribute.VIEW_CENTER_HORIZONTAL -> layoutRule =
-                    RelativeLayout.CENTER_HORIZONTAL
-
-                key == ViewAttribute.VIEW_CENTER_VERTICAL -> layoutRule =
-                    RelativeLayout.CENTER_VERTICAL
-
-                key == ViewAttribute.VIEW_CENTER_IN_PARENT -> layoutRule =
-                    RelativeLayout.CENTER_IN_PARENT
-
-                key == Common.LAYOUT_MARGIN -> (value.toPixels(
-                    view.resources.displayMetrics, asInt = true
-                ) as Int).let {
-                    marginLeft = it
-                    marginRight = it
-                    marginTop = it
-                    marginBottom = it
-                }
-
-                key in listOf(Common.LAYOUT_MARGIN_LEFT, Common.LAYOUT_MARGIN_START) -> marginLeft =
-                    value.toPixels(view.resources.displayMetrics, parent, true, true) as Int
-
-                key in listOf(Common.LAYOUT_MARGIN_RIGHT, Common.LAYOUT_MARGIN_END) -> marginRight =
-                    value.toPixels(view.resources.displayMetrics, parent, true, true) as Int
-
-                key == Common.LAYOUT_MARGIN_TOP -> marginTop =
-                    value.toPixels(view.resources.displayMetrics, parent, false, true) as Int
-
-                key == Common.LAYOUT_MARGIN_BOTTOM -> marginBottom =
-                    value.toPixels(view.resources.displayMetrics, parent, false, true) as Int
-
-                key == Common.PADDING -> (value.toPixels(
-                    view.resources.displayMetrics, asInt = true
-                ) as Int).let {
-                    paddingLeft = it
-                    paddingRight = it
-                    paddingTop = it
-                    paddingBottom = it
-                }
-
-                key in listOf(Common.PADDING_START, Common.PADDING_LEFT) -> paddingLeft =
-                    value.toPixels(view.resources.displayMetrics, asInt = true) as Int
-
-                key in listOf(Common.PADDING_END, Common.PADDING_RIGHT) -> paddingRight =
-                    value.toPixels(view.resources.displayMetrics, asInt = true) as Int
-
-                key == Common.PADDING_TOP -> paddingTop =
-                    value.toPixels(view.resources.displayMetrics, asInt = true) as Int
-
-                key == Common.PADDING_BOTTOM -> paddingBottom =
-                    value.toPixels(view.resources.displayMetrics, asInt = true) as Int
-            }
+            AttributeProcessor.applyAttribute(view, key, value)
         }
+
         Log.d(
             "DynamicLayoutInflation",
             "After applying attributes, View: ${view.javaClass.simpleName}, width: ${viewParams.width}, height: ${viewParams.height}"
         )
-        (viewParams as? ViewGroup.MarginLayoutParams)?.setMargins(
-            marginLeft, marginTop, marginRight, marginBottom
-        )
-        view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom)
-        view.layoutParams = viewParams // Set the layout params
     }
 
     /**
@@ -561,7 +408,6 @@ object DynamicLayoutInflation {
      */
     internal fun View.getGeneratedViewInfo(): GeneratedView =
         (tag as? GeneratedView) ?: GeneratedView().also { tag = it }
-
 
 
     /**

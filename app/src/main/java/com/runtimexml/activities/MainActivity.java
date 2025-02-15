@@ -73,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
         binding.showXml.setOnClickListener(v -> {
             View view = DynamicLayoutInflation.inflateJson(this, createdFileUri, binding.parentLayout);
             DynamicLayoutInflation.setDelegate(view, getApplicationContext());
+            assert view != null;
             view.post(() -> android.util.Log.d("MainActivity", "Inflated view: " + view));
         });
     }
