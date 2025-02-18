@@ -27,15 +27,23 @@ internal fun String.isVisibility(): Boolean =
     )
 
 internal fun String.extractViewId(): String =
-    Regex("^@\\+?(?:android:id/|id/|id\\\\/)?(.+)$").find(this)?.groupValues?.get(2)!!
+    Regex("^@\\+?(?:android:id/|id/|id\\\\/)?(.+)$").find(this)?.groupValues?.get(1)!!
 
 /**
- * Retrieves the view ID of a view inside the ViewGroup using BFS.
- * If the view does not exist, returns -1.
+ * Traverses the view hierarchy starting from the current [View] using Breadth-First Search (BFS)
+ * to find a view ID associated with the given [id] within a [GeneratedView] tag.
  *
- * @param root The root view to search inside.
- * @param id The ID to search for.
- * @return The integer ID of the view if present, or -1 if not found.
+ * This function searches for a specific identifier within the `viewID` map of any [GeneratedView]
+ * tag attached to a view in the hierarchy. If a view has a [GeneratedView] tag, and that tag's
+ * `viewID` map contains the requested [id] as a key, the associated integer value (the view ID)
+ * is returned.
+ *
+ * If no such view is found within the entire hierarchy, -1 is returned.
+ *
+ * @param id The string identifier to search for within the `viewID` maps of [GeneratedView] tags.
+ * @return The integer view ID associated with the provided [id], or -1 if no matching ID is found.
+ *
+ * @see GeneratedView
  */
 internal fun View.getViewID(id: String): Int {
     val queue: ArrayDeque<View> = ArrayDeque() // Queue for BFS traversal
@@ -54,6 +62,14 @@ internal fun View.getViewID(id: String): Int {
     }
 
     return -1 // ID not found
+}
+
+internal fun View.setParentView(parent: ViewGroup?) {
+    ParentViewReference.storeParentView(this, parent)
+}
+
+internal fun View.getParentView(): ViewGroup? {
+    return if (parent == null) ParentViewReference.getParentView(this) else parent as? ViewGroup
 }
 
 /**

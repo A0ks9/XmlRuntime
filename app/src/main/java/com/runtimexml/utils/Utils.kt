@@ -6,7 +6,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import java.lang.reflect.InvocationTargetException
 
-class Utils {
+internal object Utils {
 
 
     /**
@@ -15,7 +15,7 @@ class Utils {
      * @param methodName The name of method to call when the button is clicked.
      * @return The OnClickListener.
      */
-    private fun getClickListener(parent: ViewGroup?, methodName: String): View.OnClickListener =
+    fun getClickListener(parent: ViewGroup?, methodName: String): View.OnClickListener =
         View.OnClickListener { view ->
             (parent?.getGeneratedViewInfo()?.delegate)?.let {
                 invokeMethod(it, methodName, false, view)
@@ -29,7 +29,7 @@ class Utils {
      * @param withView  If it needs to pass View as a parameter.
      * @param view The view, if needs to be passed as parameter.
      */
-    private fun invokeMethod(delegate: Any?, methodName: String, withView: Boolean, view: View?) {
+    fun invokeMethod(delegate: Any?, methodName: String, withView: Boolean, view: View?) {
         var args: Array<Any>? = null
         var finalMethod = methodName
         if (methodName.endsWith(")")) {
@@ -71,22 +71,13 @@ class Utils {
     }
 
     /**
-     * Sets the delegate object for a view.
-     * @param root The View for which to set the delegate.
-     * @param delegate  The delegate object to set.
-     */
-    fun setDelegate(root: View?, delegate: Any) {
-        root?.getGeneratedViewInfo()?.delegate = delegate
-    }
-
-    /**
      * Gets or creates a `GeneratedView` associated with a View.
      * If the View has a tag of type `GeneratedView` it returns that,
      * otherwise it creates a new `GeneratedView` instance and stores it as a tag.
      *
      * @return The generated view or the tag value as `GeneratedView`
      */
-    private fun View.getGeneratedViewInfo(): GeneratedView =
+    fun View.getGeneratedViewInfo(): GeneratedView =
         (tag as? GeneratedView) ?: GeneratedView().also { tag = it }
 
     /**

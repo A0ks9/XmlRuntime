@@ -1,8 +1,7 @@
 package com.runtimexml.utils.interfaces
 
 import android.view.View
-import com.runtimexml.utils.BaseView
 
-fun interface AttributeProcessorRegistry<T> {
-    fun apply(view: View, value: T?)
+fun interface AttributeProcessorRegistry<V : View, T> {
+    fun apply(view: V, value: T)
 }

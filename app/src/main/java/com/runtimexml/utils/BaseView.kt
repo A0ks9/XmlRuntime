@@ -8,11 +8,12 @@ import android.view.ViewGroup
 /**
  * Base view that extends View and provides a `getParentView()` function.
  */
-class BaseView @JvmOverloads constructor(
+open class BaseView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
     val realView: View = this
+    var originalParent: ViewGroup? = null
 
     /**
      * Safely gets the parent of this view as a ViewGroup.

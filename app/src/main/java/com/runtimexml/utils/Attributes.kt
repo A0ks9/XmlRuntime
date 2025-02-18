@@ -80,6 +80,7 @@ object Attributes {
         const val MIN_HEIGHT = "minHeight" // Sets the minimum height of the view
         const val MAX_WIDTH = "maxWidth" // Sets the maximum width of the view
         const val MAX_HEIGHT = "maxHeight" // Sets the maximum height of the view
+        const val TEXT = "text"
     }
 
     /**
@@ -268,7 +269,6 @@ object Attributes {
      * Mirrors the Java `Attributes.TextView` class.
      */
     object TextView {
-        const val TEXTVIEW_TEXT = "text" // Sets the text content
         const val TEXTVIEW_HTML = "html" // Sets HTML formatted text content
         const val TEXTVIEW_TEXT_SIZE = "textSize" // Sets the text size
         const val TEXTVIEW_TEXT_COLOR = "textColor" // Sets the text color
@@ -340,7 +340,6 @@ object Attributes {
         const val EDITTEXT_MAX_LINES = "maxLines" // Sets the maximum number of lines
         const val EDITTEXT_IME_OPTIONS =
             "imeOptions" // Sets the IME options (e.g., actionDone, actionNext)
-        const val EDITTEXT_TEXT = "text" // Sets the initial text
         const val EDITTEXT_TEXT_SIZE = "textSize"
         const val EDITTEXT_TEXT_COLOR = "textColor"
         const val EDITTEXT_TEXT_COLOR_HINT = "textColorHint"
@@ -380,7 +379,6 @@ object Attributes {
      * Contains constants for Button attributes.
      */
     object Button {
-        const val BUTTON_TEXT = "text" // Sets the text of the button
         const val BUTTON_TEXT_SIZE = "textSize" // Sets the text size
         const val BUTTON_TEXT_COLOR = "textColor" // Sets the text color
         const val BUTTON_BACKGROUND = "background" // Sets the background color or drawable
@@ -413,7 +411,6 @@ object Attributes {
     object CheckBox {
         const val CHECKBOX_CHECKED = "checked" // Sets the checked state
         const val CHECKBOX_BUTTON = "button" // Sets a custom button drawable
-        const val CHECKBOX_TEXT = "text"//Sets the text content
         const val CHECKBOX_TEXT_SIZE = "textSize"//Sets the text size
         const val CHECKBOX_TEXT_COLOR = "textColor"//Sets the text color
         const val CHECKBOX_DRAWABLE_START = "drawableStart" // Sets the Drawable stat
@@ -776,6 +773,8 @@ object Attributes {
             "layout_constraintHorizontal_chainStyle"//Horizontal chain style
         const val CONSTRAINTLAYOUT_CHAIN_VERTICAL_STYLE =
             "layout_constraintVertical_chainStyle"//Vertical chain style
+        const val CONSTRAINTLAYOUT_DIMENSION_RATIO =
+            "layout_constraintDimensionRatio" // layout_constraintDimensionRatio
     }
 
     /**
@@ -923,7 +922,6 @@ object Attributes {
     }
 
     object Chip {
-        const val CHIP_TEXT = "text" //Setting the text you see in your chips.
         const val CHIP_CHIP_BACKGROUND_COLOR =
             "chipBackgroundColor" //Customize background with a new color.
         const val CHIP_CHIP_TEXT_COLOR = "chipTextColor" // Changing the text color in the chip

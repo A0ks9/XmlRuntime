@@ -1,8 +1,8 @@
 package com.runtimexml.utils
 
-import com.runtimexml.utils.processors.AttributeProcessor
+import com.runtimexml.utils.processors.AttributeRegistry
 
-abstract class ViewTypeParser : AttributeProcessor() {
+abstract class ViewTypeParser : AttributeRegistry() {
 
     init {
         addAttributes()

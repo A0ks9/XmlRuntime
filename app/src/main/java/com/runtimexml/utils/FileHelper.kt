@@ -105,7 +105,7 @@ object FileHelper {
                     put("attributes", JSONObject())
                     for (i in 0 until it.length) {
                         getJSONObject("attributes").put(
-                            it.getQName(i), it.getValue(i)
+                            it.getLocalName(i), it.getValue(i)
                         )
                     }
                 }
