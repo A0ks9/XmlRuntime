@@ -16,6 +16,7 @@ gson = "2.12.1"
 ksp = "2.1.10-1.0.29"
 slidingPaneLayout = "1.2.0"
 glide = "4.16.0"
+room = "2.6.1"
 
 
 [libraries]
@@ -36,6 +37,9 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 symbol-processing-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "ksp" }
 sliding-pane-layout = { group = "androidx.slidingpanelayout", name = "slidingpanelayout", version.ref = "slidingPaneLayout" }
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

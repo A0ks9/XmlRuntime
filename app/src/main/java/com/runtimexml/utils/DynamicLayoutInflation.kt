@@ -20,138 +20,266 @@ import org.json.JSONObject
  * It provides methods to parse the structure and apply attributes to the views, as well as adding them to the view hierarchy
  */
 object DynamicLayoutInflation {
-    // Constant for layout rule when there is no rule is applied.
-    private const val NO_LAYOUT_RULE = -999
 
-    // List of corner names for drawing rounded corners.
-    private val CORNERS = listOf("TopLeft", "TopRight", "BottomLeft", "BottomRight")
+    internal val viewsState = mutableListOf<ViewState>()
 
     // Initialization block where properties actions are created and added to ViewProperties map
     init {
         BaseViewAttributes.initializeAttributes()
     }
 
+    //what if the file has JSONArray not JSONObject
     /**
      * Inflates a layout from a JSON or XML resource URI.
      *
      * @param context The context used to access resources.
-     * @param uri The URI of the JSON or XML resource.
+     * @param layoutUri The URI of the JSON or XML resource.
      * @param parent The parent ViewGroup that will contain the inflated views.
      * @return The root View of the inflated layout or null if an error occurs.
      */
     @JvmStatic
-    fun inflateJson(context: Context, uri: Uri, parent: ViewGroup): View? = try {
-        when (getFileExtension(context, uri)?.lowercase()) {
-            "json" -> context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                createViews(context, JSONObject(inputStream.bufferedReader().readText()), parent)
+    fun inflateJson(context: Context, layoutUri: Uri, parent: ViewGroup?): View? = try {
+        //check if the data that inside the file are jsonObject or array and based on that choose the fun that will do it
+        when (getFileExtension(context, layoutUri)?.lowercase()) {
+            "json" -> context.contentResolver.openInputStream(layoutUri)?.use { inputStream ->
+                createViews(context, JSONObject(inputStream.bufferedReader().readText()), parent, true)
             }
 
-            "xml" -> convertXml(context.contentResolver, uri)?.let {
+            "xml" -> convertXml(context.contentResolver, layoutUri)?.let {
                 createViews(
-                    context, it, parent
+                    context, it, parent, true
                 )
             }
 
             else -> null // If file type is not JSON or XML.
         }
-    } catch (e: Exception) {
-        Log.e("DynamicLayoutInflation", "Error inflating JSON", e)
-        null //If exception is encountered then return null.
+    } catch (error: Exception) {
+        Log.e("DynamicLayoutInflation", "Error inflating JSON", error)
+        null //If error is encountered then return null.
     }
 
+    //what if the jsonObject that the developer passed doesn't have container and the whole views are Views not ViewGroup
     /**
      * Inflates a layout from a JSON object.
      *
      * @param context The context used to access resources.
-     * @param json The JSON object representing the layout.
+     * @param layout The JSON object representing the layout.
      * @param parent The parent ViewGroup that will contain the inflated views.
      * @return The root View of the inflated layout or null if an error occurs.
      */
     @JvmStatic
-    fun inflateJson(context: Context, json: JSONObject, parent: ViewGroup): View? = try {
-        createViews(context, json, parent)
-    } catch (e: Exception) {
-        Log.e("DynamicLayoutInflation", "Error inflating JSON", e)
-        null //If exception is encountered then return null.
+    fun inflateJson(context: Context, layout: JSONObject, parent: ViewGroup?): View? = try {
+        val createdViews = createViews(context, layout, parent, true)
+        viewsState.updateViewStates(context.getActivityName(),
+            viewsState.filter { it.activityName == context.getActivityName() })
+        createdViews
+    } catch (error: Exception) {
+        Log.e("DynamicLayoutInflation", "Error inflating JSON", error)
+        null //If error is encountered then return null.
+    }
+
+    @JvmStatic
+    fun inflateJson(context: Context, layout: JSONArray, parent: ViewGroup?): List<View?> = try {
+        val createdViews = createViews(context, layout, parent)
+        viewsState.updateViewStates(context.getActivityName(),
+            viewsState.filter { it.activityName == context.getActivityName() })
+        createdViews
+    } catch (error: Exception) {
+        Log.e("DynamicLayoutInflation", "Error inflating JSON", error)
+        emptyList<View>()
+    }
+
+    /**
+     * Inflates a view hierarchy from a [ViewState] definition within a given parent.
+     *
+     * This function attempts to create and inflate a view hierarchy based on the provided [layout].
+     * It utilizes the `createViews` function to perform the actual view creation.
+     *
+     * If any exception occurs during the view creation process, it logs the error and returns `null`.
+     * This ensures that the application doesn't crash due to potential errors in the layout definition.
+     *
+     * @param context The application context used for view creation.
+     * @param layout The [ViewState] object defining the layout to be inflated. This object should
+     *                         contain the necessary information to create the desired view hierarchy.
+     * @param parent The [ViewGroup] into which the inflated view hierarchy will be added.
+     *                  This acts as the parent parent for the new views.
+     * @return The root [View] of the inflated hierarchy if successful, or `null` if an exception occurred.
+     *
+     * @throws Exception if there are problems during view creation, but these are caught internally and result in null return
+     *
+     * @see createViews
+     * @see ViewState
+     */
+    internal fun inflateViewState(
+        context: Context, layout: List<ViewState>, parent: ViewGroup?
+    ): List<View?> = try {
+        createViews(context, layout, parent)
+    } catch (error: Exception) {
+        Log.e("DynamicLayoutInflation", "Error inflating JSON", error)
+        emptyList<View?>()
     }
 
     /**
      * Creates the views dynamically from a JSON object.
      * @param context The Context used to access resources.
-     * @param json The JSON object representing the view.
+     * @param layout The JSON object representing the view.
      * @param parent The parent ViewGroup that will contain the created views
      * @return The created View, null if the View was not created successfully
      */
-    private fun createViews(context: Context, json: JSONObject, parent: ViewGroup): View? =
-        getViewForName(context, json.getString("type"))?.apply {
-            //Add the view to the parent
-            parent.addView(this)
-            //Apply attributes from JSON to the newly created view
-            applyAttributes(this, getAttrsMap(json.getJSONObject("attributes")), parent)
+    private fun createViews(
+        context: Context, layout: JSONObject, parent: ViewGroup?, isFirst: Boolean
+    ): View? = getViewForName(context, layout.getString("type"))?.apply {
+        //Add the view to the parent
+        parent?.addView(this)
+        //Apply attributes from JSON to the newly created view
+        val attrs = getAttrsMap(layout.getJSONObject("attributes"))
+        val viewState = if (isFirst) ViewState(
+            attrs[Attributes.Common.ID]!!,
+            context.getActivityName(),
+            layout.getString("type"),
+            attrs.toJsonString()
+        ) else null
+        applyAttributes(this, attrs, parent)
+        if (this is ViewGroup && (layout.optJSONArray("children")?.length() ?: 0) > 0) {
+            //If the view has children then parse these children.
+            parseChildren(context, layout.optJSONArray("children"), this)
+            viewState?.children = layout.optJSONArray("children")?.toString(4)
+        }
+        if (isFirst) viewsState.add(viewState!!)
+    }
 
-            if (this is ViewGroup && (json.optJSONArray("children")?.length() ?: 0) > 0) {
-                //If the view has children then parse these children.
-                parseChildren(context, json.optJSONArray("children"), this)
+
+    /**
+     * Creates a list of Android Views based on a JSON array representing a UI layout.
+     */
+    private fun createViews(context: Context, layout: JSONArray, parent: ViewGroup?): List<View?> {
+        val createdViews = mutableListOf<View?>()
+        (0 until layout.length()).forEach { i ->
+            val jsonObject = layout.getJSONObject(i)
+            getViewForName(context, jsonObject.getString("type"))?.apply {
+                //Add the view to the parent
+                parent?.addView(this)
+                //Apply attributes from JSON to the newly created view
+                val attrs = getAttrsMap(jsonObject.getJSONObject("attributes"))
+                applyAttributes(this, attrs, parent)
+                val viewState = ViewState(
+                    attrs["id"]!!,
+                    context.getActivityName(),
+                    jsonObject.getString("type"),
+                    attrs.toJsonString()
+                )
+                if (this is ViewGroup && (jsonObject.optJSONArray("children")?.length() ?: 0) > 0) {
+                    //If the view has children then parse these children.
+                    parseChildren(context, jsonObject.optJSONArray("children"), this)
+                    viewState.children = jsonObject.optJSONArray("children")?.toString(4)
+                }
+                viewsState.add(viewState)
+                createdViews.add(this)
             }
         }
+        return createdViews
+    }
+
+    /**
+     * Creates and configures a view based on the provided layout definition.
+     *
+     * This function is responsible for:
+     * 1. Retrieving the correct view class based on the `layout.type`.
+     * 2. Adding the newly created view to the specified `parent`.
+     * 3. Applying attributes defined in the `layout` to the view.
+     * 4. If the view is a `ViewGroup` and has child definitions in `layout.children`, recursively parsing and adding those child views.
+     *
+     * @param context          The application context. Used to create new View instances.
+     * @param layout The definition of the view to create, including its type, attributes, and children.
+     * @param parent        The ViewGroup to which the newly created view will be added.
+     * @return The newly created and configured View, or null if the view type was not recognized or an error occurred during view creation.
+     * @see ViewState
+     * @see getViewForName(Context, String)
+     * @see applyAttributes(View, Map, ViewGroup)
+     * @see parseChildren(Context, List, ViewGroup)
+     */
+    private fun createViews(
+        context: Context, layout: List<ViewState>, parent: ViewGroup?
+    ): List<View?> {
+        val createdViews = mutableListOf<View?>()
+        layout.forEach { layout ->
+            getViewForName(context, layout.type)?.apply {
+                //Add the view to the parent
+                parent?.addView(this)
+                //Apply attributes from JSON to the newly created view
+                applyAttributes(this, layout.getAttributes(), parent)
+                if (this is ViewGroup) {
+                    val viewChildren = layout.retrieveChildren()
+                    if (viewChildren != null && viewChildren.length() > 0) {
+                        //If the view has children then parse these children.
+                        parseChildren(context, layout.retrieveChildren(), this)
+                    }
+                }
+                createdViews.add(this)
+            }
+        }
+        return createdViews
+    }
 
     /**
      * Parses the child views and adds them to the parent.
      * @param context The Context used to access resources.
-     * @param array The JSON array of child views.
+     * @param children The JSON children of child views.
      * @param parent The parent view where the children should be added.
      */
     private fun parseChildren(
-        context: Context, array: JSONArray?, parent: ViewGroup
+        context: Context, children: JSONArray?, parent: ViewGroup
     ) {
-        array?.let {
-            for (i in 0 until it.length()) {
-                val child = it.getJSONObject(i)
-                createViews(context, child, parent)
+        children?.let {
+            for (index in 0 until it.length()) {
+                val childJson = it.getJSONObject(index)
+                createViews(context, childJson, parent, false)
             }
         }
     }
 
     /**
-     * Get an Android View from the name
+     * Get an Android View from the type
      * @param context The context used to access the resources
-     * @param name  The name of the View, such as TextView, LinearLayout.
+     * @param type  The type of the View, such as TextView, LinearLayout.
      * @return The created view or null if an exception is found.
      */
-    private fun getViewForName(context: Context, name: String): View? = try {
-        if (ViewProcessor.isRegistered(name)) ViewProcessor.createView(name, context)
+    private fun getViewForName(context: Context, type: String): View? = try {
+        val fullyQualifiedViewType = if (!type.contains(".")) "android.widget.$type" else type
+        if (ViewProcessor.isRegistered(type)) ViewProcessor.createView(type, context)
 
-        val modifiedName = if (!name.contains(".")) "android.widget.$name" else name
-        // Create a class object from the name
-        Class.forName(modifiedName).getConstructor(Context::class.java)
+        // Create a class object from the type
+        Class.forName(fullyQualifiedViewType).getConstructor(Context::class.java)
             .newInstance(context) as? View
-    } catch (e: Exception) {
-        Log.e("DynamicLayoutInflation", "Error getting view for name", e)
-        null // Returns null when an exception happens.
+    } catch (error: Exception) {
+        Log.e("DynamicLayoutInflation", "Error getting view for type", error)
+        null // Returns null when an error happens.
     }
 
     /**
-     * Get a Map of attributes that can be applied to the View.
-     * @param jsonObject the jsonObject that represents view's attributes
-     * @return HashMap that contains the key and values of attributes.
+     * Get a Map of rawAttributes that can be applied to the View.
+     * @param rawAttributes the rawAttributes that represents view's rawAttributes
+     * @return HashMap that contains the key and values of rawAttributes.
      */
-    private fun getAttrsMap(jsonObject: JSONObject): HashMap<String, String> =
-        HashMap<String, String>(jsonObject.length()).apply {
-            jsonObject.keys().forEach {
-                // Put all the attributes from json object into a map.
-                put(it, jsonObject.optString(it))
+    private fun getAttrsMap(rawAttributes: JSONObject): HashMap<String, String> =
+        HashMap<String, String>(rawAttributes.length()).apply {
+            rawAttributes.keys().forEach {
+                // Put all the rawAttributes from json object into a map.
+                put(it, rawAttributes.optString(it))
             }
         }
 
     /**
      * Applies attributes to a given view.
      * @param view The View to apply attributes to.
-     * @param attrs A map of attribute names to their values.
+     * @param attributes A map of attribute names to their values.
      * @param parent The parent ViewGroup of the view.
      */
-    private fun applyAttributes(view: View, attrs: HashMap<String, String>, parent: ViewGroup) {
+    private fun applyAttributes(
+        view: View, attributes: HashMap<String, String>, parent: ViewGroup?
+    ) {
         //Inside applyAttributes Function
-        val viewParams = view.layoutParams ?: if (parent is LinearLayout) LinearLayout.LayoutParams(
+        val params = view.layoutParams ?: if (parent is LinearLayout) LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
         )
         else RelativeLayout.LayoutParams(
@@ -160,16 +288,14 @@ object DynamicLayoutInflation {
 
         Log.d(
             "DynamicLayoutInflation",
-            "Before apply attributes, View: ${view.javaClass.simpleName},  width: ${viewParams.width}, height: ${viewParams.height}, parent: ${parent.javaClass.simpleName}"
+            "Before apply attributes, View: ${view.javaClass.simpleName},  width: ${params.width}, height: ${params.height}, parent: ${parent?.javaClass?.simpleName}"
         )
 
-        AttributeRegistry.applyAttribute(view, Attributes.Common.ID, attrs.get("id"))
-        attrs.remove("id")
-        AttributeRegistry.applyAttributes(view, attrs)
+        AttributeRegistry.applyAttributes(view, attributes)
 
         Log.d(
             "DynamicLayoutInflation",
-            "After applying attributes, View: ${view.javaClass.simpleName}, width: ${viewParams.width}, height: ${viewParams.height}"
+            "After applying attributes, View: ${view.javaClass.simpleName}, width: ${params.width}, height: ${params.height}"
         )
     }
 
@@ -236,11 +362,11 @@ object DynamicLayoutInflation {
 
     /**
      * Sets the delegate object for a view.
-     * @param root The View for which to set the delegate.
+     * @param view The View for which to set the delegate.
      * @param delegate  The delegate object to set.
      */
     @JvmStatic
-    fun setDelegate(root: View?, delegate: Any) {
-        root?.getGeneratedViewInfo()?.delegate = delegate
+    fun setDelegate(view: View?, delegate: Any) {
+        view?.getGeneratedViewInfo()?.delegate = delegate
     }
 }

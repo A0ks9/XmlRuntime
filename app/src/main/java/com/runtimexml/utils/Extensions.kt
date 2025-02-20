@@ -1,7 +1,12 @@
 package com.runtimexml.utils
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.view.View
 import android.view.ViewGroup
+import com.google.gson.Gson
+import org.json.JSONArray
 
 internal object Extensions {
     val trueValues = listOf<String>("true", "1", "yes")
@@ -81,4 +86,24 @@ internal fun View.getParentView(): ViewGroup? {
 fun View.findViewByIdString(id: String): View? {
     val idNum = this.getViewID(id)
     return if (idNum < 0) null else findViewById(idNum)
+}
+
+fun <V> ArrayList<V>.toJsonString(): String = JSONArray(Gson().toJson(this)).toString(4)
+
+fun <V, T> HashMap<V, T>.toJsonString(): String = Gson().toJson(this)
+
+internal fun MutableList<ViewState>.updateViewStates(activityName: String, newData: List<ViewState>) {
+    removeAll { it.activityName == activityName }
+    addAll(newData)
+}
+
+fun Context.getActivityName(): String {
+    var currentContext = this
+    while (currentContext is ContextWrapper) {
+        if (currentContext is Activity) {
+            return currentContext::class.simpleName ?: "Unknown"
+        }
+        currentContext = currentContext.baseContext
+    }
+    return "Unknown"
 }

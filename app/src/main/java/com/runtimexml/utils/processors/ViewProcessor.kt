@@ -1,5 +1,6 @@
 package com.runtimexml.utils.processors
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.SurfaceView
 import android.view.TextureView
@@ -42,6 +43,7 @@ import androidx.appcompat.widget.AppCompatTextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.cardview.widget.CardView
+import androidx.collection.SparseArrayCompat
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.widget.NestedScrollView
@@ -77,145 +79,192 @@ import android.widget.Toolbar as toolbar
 
 class ViewProcessor {
 
+    @SuppressLint("ShowToast")
     companion object {
-        private val viewCreators: LinkedHashSet<Pair<String, (Context) -> View>> =
-            linkedSetOf("View" to { View(it) },
-                "Space" to { Space(it) },
+        private val viewCreators = SparseArrayCompat<(Context) -> View>()
 
-                "TextView" to { TextView(it) },
-                "EditText" to { EditText(it) },
-                "androidx.appcompat.widget.AppCompatTextView" to { AppCompatTextView(it) },
-                "androidx.appcompat.widget.AppCompatEditText" to { AppCompatEditText(it) },
+        init {
+            registerView("android.widget.View") { View(it) }
+            registerView("android.widget.Space") { Space(it) }
 
-                "Button" to { Button(it) },
-                "ImageButton" to { ImageButton(it) },
-                "androidx.appcompat.widget.AppCompatButton" to { AppCompatButton(it) },
+            registerView("android.widget.TextView") { TextView(it) }
+            registerView("android.widget.EditText") { EditText(it) }
+            registerView("androidx.appcompat.widget.AppCompatTextView") { AppCompatTextView(it) }
+            registerView("androidx.appcompat.widget.AppCompatEditText") { AppCompatEditText(it) }
 
-                "com.google.android.material.button.MaterialButton" to { MaterialButton(it) },
-                "com.google.android.material.floatingactionbutton.FloatingActionButton" to {
-                    FloatingActionButton(it)
-                },
+            registerView("android.widget.Button") { Button(it) }
+            registerView("android.widget.ImageButton") { ImageButton(it) }
+            registerView("androidx.appcompat.widget.AppCompatButton") { AppCompatButton(it) }
 
-                "LinearLayout" to { LinearLayout(it) },
-                "FrameLayout" to { FrameLayout(it) },
-                "RelativeLayout" to { RelativeLayout(it) },
-                "TableLayout" to { TableLayout(it) },
-                "TableRow" to { TableRow(it) },
-                "GridLayout" to { GridLayout(it) },
-                "androidx.constraintlayout.widget.ConstraintLayout" to { ConstraintLayout(it) },
-                "androidx.coordinatorlayout.widget.CoordinatorLayout" to { CoordinatorLayout(it) },
+            registerView("com.google.android.material.button.MaterialButton") { MaterialButton(it) }
+            registerView("com.google.android.material.floatingactionbutton.FloatingActionButton") {
+                FloatingActionButton(it)
+            }
 
-                "RecyclerView" to { RecyclerView(it) },
-                "ListView" to { ListView(it) },
-                "GridView" to { GridView(it) },
-                "ExpandableListView" to { ExpandableListView(it) },
-                "ScrollView" to { ScrollView(it) },
-                "HorizontalScrollView" to { HorizontalScrollView(it) },
-                "NestedScrollView" to { NestedScrollView(it) },
+            registerView("android.widget.LinearLayout") { LinearLayout(it) }
+            registerView("android.widget.FrameLayout") { FrameLayout(it) }
+            registerView("android.widget.RelativeLayout") { RelativeLayout(it) }
+            registerView("android.widget.TableLayout") { TableLayout(it) }
+            registerView("android.widget.TableRow") { TableRow(it) }
+            registerView("android.widget.GridLayout") { GridLayout(it) }
+            registerView("androidx.constraintlayout.widget.ConstraintLayout") { ConstraintLayout(it) }
+            registerView("androidx.coordinatorlayout.widget.CoordinatorLayout") {
+                CoordinatorLayout(
+                    it
+                )
+            }
 
-                "ImageView" to { ImageView(it) },
-                "androidx.appcompat.widget.AppCompatImageView" to { AppCompatImageView(it) },
-                "com.google.android.material.imageview.ShapeableImageView" to {
-                    ShapeableImageView(it)
-                },
-                "VideoView" to { VideoView(it) },
-                "SurfaceView" to { SurfaceView(it) },
-                "TextureView" to { TextureView(it) },
+            registerView("androidx.recyclerview.widget.RecyclerView") { RecyclerView(it) }
+            registerView("android.widget.ListView") { ListView(it) }
+            registerView("android.widget.GridView") { GridView(it) }
+            registerView("android.widget.ExpandableListView") { ExpandableListView(it) }
+            registerView("android.widget.ScrollView") { ScrollView(it) }
+            registerView("android.widget.HorizontalScrollView") { HorizontalScrollView(it) }
+            registerView("androidx.core.widget.NestedScrollView") { NestedScrollView(it) }
 
-                "androidx.cardview.widget.CardView" to { CardView(it) },
-                "com.google.android.material.card.MaterialCardView" to { MaterialCardView(it) },
+            registerView("android.widget.ImageView") { ImageView(it) }
+            registerView("androidx.appcompat.widget.AppCompatImageView") { AppCompatImageView(it) }
+            registerView("com.google.android.material.imageview.ShapeableImageView") {
+                ShapeableImageView(
+                    it
+                )
+            }
 
-                "ProgressBar" to { ProgressBar(it) },
-                "com.google.android.material.progressindicator.CircularProgressIndicator" to {
-                    CircularProgressIndicator(it)
-                },
-                "com.google.android.material.progressindicator.LinearProgressIndicator" to {
-                    LinearProgressIndicator(it)
-                },
+            registerView("android.widget.VideoView") { VideoView(it) }
+            registerView("android.view.SurfaceView") { SurfaceView(it) }
+            registerView("android.view.TextureView") { TextureView(it) }
 
-                "Switch" to { Switch(it) },
-                "androidx.appcompat.widget.SwitchCompat" to { SwitchCompat(it) },
-                "CheckBox" to { CheckBox(it) },
-                "androidx.appcompat.widget.AppCompatCheckBox" to { AppCompatCheckBox(it) },
-                "RadioButton" to { RadioButton(it) },
-                "androidx.appcompat.widget.AppCompatRadioButton" to { AppCompatRadioButton(it) },
+            registerView("androidx.cardview.widget.CardView") { CardView(it) }
+            registerView("com.google.android.material.card.MaterialCardView") { MaterialCardView(it) }
 
-                "com.google.android.material.switchmaterial.SwitchMaterial" to { SwitchMaterial(it) },
-                "com.google.android.material.checkbox.MaterialCheckBox" to { MaterialCheckBox(it) },
-                "com.google.android.material.radiobutton.MaterialRadioButton" to {
-                    MaterialRadioButton(it)
-                },
+            registerView("android.widget.ProgressBar") { ProgressBar(it) }
+            registerView("com.google.android.material.progressindicator.CircularProgressIndicator") {
+                CircularProgressIndicator(it)
+            }
+            registerView("com.google.android.material.progressindicator.LinearProgressIndicator") {
+                LinearProgressIndicator(it)
+            }
 
-                "Spinner" to { Spinner(it) },
-                "AutoCompleteTextView" to { AutoCompleteTextView(it) },
-                "MultiAutoCompleteTextView" to { MultiAutoCompleteTextView(it) },
-                "androidx.appcompat.widget.AppCompatAutoCompleteTextView" to {
-                    AppCompatAutoCompleteTextView(it)
-                },
+            registerView("android.widget.Switch") { Switch(it) }
+            registerView("androidx.appcompat.widget.SwitchCompat") { SwitchCompat(it) }
+            registerView("android.widget.CheckBox") { CheckBox(it) }
+            registerView("androidx.appcompat.widget.AppCompatCheckBox") { AppCompatCheckBox(it) }
+            registerView("android.widget.RadioButton") { RadioButton(it) }
+            registerView("androidx.appcompat.widget.AppCompatRadioButton") { AppCompatRadioButton(it) }
 
-                "SeekBar" to { SeekBar(it) },
-                "androidx.appcompat.widget.AppCompatSeekBar" to { AppCompatSeekBar(it) },
-                "com.google.android.material.slider.Slider" to { Slider(it) },
-                "RatingBar" to { RatingBar(it) },
+            registerView("com.google.android.material.switchmaterial.SwitchMaterial") {
+                SwitchMaterial(
+                    it
+                )
+            }
+            registerView("com.google.android.material.checkbox.MaterialCheckBox") {
+                MaterialCheckBox(
+                    it
+                )
+            }
+            registerView("com.google.android.material.radiobutton.MaterialRadioButton") {
+                MaterialRadioButton(
+                    it
+                )
+            }
 
-                "com.google.android.material.chip.Chip" to { Chip(it) },
-                "com.google.android.material.chip.ChipGroup" to { ChipGroup(it) },
-                "com.google.android.material.tabs.TabLayout" to { TabLayout(it) },
+            registerView("android.widget.Spinner") { Spinner(it) }
+            registerView("android.widget.AutoCompleteTextView") { AutoCompleteTextView(it) }
+            registerView("android.widget.MultiAutoCompleteTextView") { MultiAutoCompleteTextView(it) }
+            registerView("androidx.appcompat.widget.AppCompatAutoCompleteTextView") {
+                AppCompatAutoCompleteTextView(
+                    it
+                )
+            }
 
-                "Toolbar" to { toolbar(it) },
-                "androidx.appcompat.widget.Toolbar" to { Toolbar(it) },
-                "com.google.android.material.appbar.MaterialToolbar" to { MaterialToolbar(it) },
-                "com.google.android.material.bottomnavigation.BottomNavigationView" to {
-                    BottomNavigationView(it)
-                },
-                "com.google.android.material.navigation.NavigationView" to { NavigationView(it) },
+            registerView("android.widget.SeekBar") { SeekBar(it) }
+            registerView("androidx.appcompat.widget.AppCompatSeekBar") { AppCompatSeekBar(it) }
+            registerView("com.google.android.material.slider.Slider") { Slider(it) }
+            registerView("android.widget.RatingBar") { RatingBar(it) }
 
-                "com.google.android.material.navigationrail.NavigationRailView" to {
-                    NavigationRailView(
-                        it
-                    )
-                },
+            registerView("com.google.android.material.chip.Chip") { Chip(it) }
+            registerView("com.google.android.material.chip.ChipGroup") { ChipGroup(it) }
+            registerView("com.google.android.material.tabs.TabLayout") { TabLayout(it) }
 
-                "com.google.android.material.appbar.AppBarLayout" to { AppBarLayout(it) },
-                "com.google.android.material.appbar.CollapsingToolbarLayout" to {
-                    CollapsingToolbarLayout(it)
-                },
+            registerView("android.widget.Toolbar") { toolbar(it) }
+            registerView("androidx.appcompat.widget.Toolbar") { Toolbar(it) }
+            registerView("com.google.android.material.appbar.MaterialToolbar") { MaterialToolbar(it) }
+            registerView("com.google.android.material.bottomnavigation.BottomNavigationView") {
+                BottomNavigationView(
+                    it
+                )
+            }
+            registerView("com.google.android.material.navigation.NavigationView") {
+                NavigationView(
+                    it
+                )
+            }
 
-                "androidx.viewpager.widget.ViewPager" to { ViewPager(it) },
-                "androidx.viewpager2.widget.ViewPager2" to { ViewPager2(it) },
+            registerView("com.google.android.material.navigationrail.NavigationRailView") {
+                NavigationRailView(
+                    it
+                )
+            }
 
-                "com.google.android.material.textfield.TextInputLayout" to { TextInputLayout(it) },
-                "com.google.android.material.textfield.TextInputEditText" to { TextInputEditText(it) },
+            registerView("com.google.android.material.appbar.AppBarLayout") { AppBarLayout(it) }
+            registerView("com.google.android.material.appbar.CollapsingToolbarLayout") {
+                CollapsingToolbarLayout(
+                    it
+                )
+            }
 
-                "androidx.drawerlayout.widget.DrawerLayout" to { DrawerLayout(it) },
-                "androidx.slidingpanelayout.widget.SlidingPaneLayout" to { SlidingPaneLayout(it) },
+            registerView("androidx.viewpager.widget.ViewPager") { ViewPager(it) }
+            registerView("androidx.viewpager2.widget.ViewPager2") { ViewPager2(it) }
 
-                "com.google.android.material.timepicker.MaterialTimePicker" to {
-                    MaterialTimePicker.Builder().build().requireView()
-                },
+            registerView("com.google.android.material.textfield.TextInputLayout") {
+                TextInputLayout(
+                    it
+                )
+            }
+            registerView("com.google.android.material.textfield.TextInputEditText") {
+                TextInputEditText(
+                    it
+                )
+            }
 
-                "com.google.android.material.snackbar.Snackbar" to {
-                    Snackbar.make(View(it), "", Snackbar.LENGTH_SHORT).view
-                })
+            registerView("androidx.drawerlayout.widget.DrawerLayout") { DrawerLayout(it) }
+            registerView("androidx.slidingpanelayout.widget.SlidingPaneLayout") {
+                SlidingPaneLayout(
+                    it
+                )
+            }
 
+            registerView("com.google.android.material.timepicker.MaterialTimePicker") {
+                MaterialTimePicker.Builder().build().requireView()
+            }
+
+            registerView("com.google.android.material.snackbar.Snackbar") {
+                Snackbar.make(View(it), "", Snackbar.LENGTH_SHORT).view
+            }
+        }
 
         @JvmStatic
-        fun <T> register(clazz: Class<T>, creator: (Context) -> View) {
-            val className = clazz.simpleName
-            viewCreators.add(className to creator)
-        }
-
-        fun isRegistered(className: String): Boolean {
-            return viewCreators.any { it.first == className }
-        }
-
-        fun createViewIfExists(className: String, context: Context): View? {
-            if (isRegistered(className)) return viewCreators.find { it.first == className }?.second?.invoke(context)
-            return null
+        private fun registerView(className: String, creator: (Context) -> View) {
+            viewCreators.put(className.hashCode(), creator)
         }
 
         @JvmStatic
-        fun createView(className: String, context: Context): View? =
-            viewCreators.find{ it.first == className }?.second?.invoke(context)
+        fun registerView(packageName: String, className: String, creator: (Context) -> View) {
+            viewCreators.put("$packageName.$className".hashCode(), creator)
+        }
+
+        @JvmStatic
+        fun isRegistered(packageName: String, className: String): Boolean =
+            viewCreators.indexOfKey("$packageName.$className".hashCode()) >= 0
+
+        internal fun isRegistered(classPath: String): Boolean =
+            viewCreators.indexOfKey(classPath.hashCode()) >= 0
+
+        @JvmStatic
+        fun createView(packageName: String, className: String, context: Context): View? =
+            viewCreators["$packageName.$className".hashCode()]?.invoke(context)
+
+        internal fun createView(classPath: String, context: Context): View? =
+            viewCreators[classPath.hashCode()]?.invoke(context)
     }
 }

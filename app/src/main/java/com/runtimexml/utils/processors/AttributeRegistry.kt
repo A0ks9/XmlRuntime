@@ -9,6 +9,7 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.runtimexml.utils.Attributes
 import com.runtimexml.utils.BaseViewAttributes
 import com.runtimexml.utils.annotations.AutoAttribute
 import com.runtimexml.utils.interfaces.AttributeProcessorRegistry
@@ -260,9 +261,11 @@ open class AttributeRegistry() : SymbolProcessor {
         fun <V : View, T> applyAttributes(targetView: V, attributeValues: Map<String, T?>) {
             require(attributeProcessors.isNotEmpty()) { "No attributes found" }
 
+            applyAttribute(targetView, Attributes.Common.ID, attributeValues[Attributes.Common.ID])
+
             // Apply Non-ConstraintLayout Attributes:
             val nonConstraintAttributes =
-                attributeValues.filter { !it.key.isConstraintLayoutAttribute() }
+                attributeValues.filter { !it.key.isConstraintLayoutAttribute() && !it.key.isIDAttribute() }
             applyAttributesInternal(targetView, nonConstraintAttributes)
 
             // Extract ConstraintLayout Attributes:
@@ -292,8 +295,6 @@ open class AttributeRegistry() : SymbolProcessor {
                 val attributeProcessor = attributeProcessors.find { it.first == attr }?.second
                     ?: throw IllegalArgumentException("Attribute not found: $attr")
 
-                Log.d("AttributeProcessor", "Applying attribute: $attr, value: $value")
-
                 if (value != null) {
                     try {
                         (attributeProcessor as AttributeProcessorRegistry<V, Any>).apply(
@@ -313,31 +314,33 @@ open class AttributeRegistry() : SymbolProcessor {
             }
         }
 
+        private fun String.isIDAttribute(): Boolean =
+            equals(Attributes.Common.ID, ignoreCase = true)
+
         /**
          * Checks if an attribute name belongs to ConstraintLayout.
          *
          * @return true if the attribute is a ConstraintLayout attribute, false otherwise.
          */
-        private fun String.isConstraintLayoutAttribute(): Boolean {
-            return startsWith("layout_constraint")
-        }
+        private fun String.isConstraintLayoutAttribute(): Boolean =
+            startsWith("layout_constraint", ignoreCase = true)
 
         /**
          * Checks if an attribute name is a ConstraintLayout constraint (excluding bias).
          *
          * @return true if the attribute is a ConstraintLayout constraint, false otherwise.
          */
-        private fun String.isConstraint(): Boolean {
-            return isConstraintLayoutAttribute() && !contains("Bias")
-        }
+        private fun String.isConstraint(): Boolean =
+            isConstraintLayoutAttribute() && !contains("bias", ignoreCase = true)
+
 
         /**
          * Checks if an attribute name is a ConstraintLayout bias.
          *
          * @return true if the attribute is a ConstraintLayout bias, false otherwise.
          */
-        private fun String.isBias(): Boolean {
-            return isConstraintLayoutAttribute() && contains("Bias")
-        }
+        private fun String.isBias(): Boolean =
+            isConstraintLayoutAttribute() && contains("bias", ignoreCase = true)
+
     }
 }
