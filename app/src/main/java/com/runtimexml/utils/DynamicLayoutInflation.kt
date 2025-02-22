@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import com.runtimexml.data.models.ViewState
 import com.runtimexml.utils.FileHelper.convertXml
 import com.runtimexml.utils.FileHelper.getFileExtension
 import com.runtimexml.utils.Utils.getGeneratedViewInfo
@@ -42,7 +43,9 @@ object DynamicLayoutInflation {
         //check if the data that inside the file are jsonObject or array and based on that choose the fun that will do it
         when (getFileExtension(context, layoutUri)?.lowercase()) {
             "json" -> context.contentResolver.openInputStream(layoutUri)?.use { inputStream ->
-                createViews(context, JSONObject(inputStream.bufferedReader().readText()), parent, true)
+                createViews(
+                    context, JSONObject(inputStream.bufferedReader().readText()), parent, true
+                )
             }
 
             "xml" -> convertXml(context.contentResolver, layoutUri)?.let {
@@ -139,7 +142,7 @@ object DynamicLayoutInflation {
             layout.getString("type"),
             attrs.toJsonString()
         ) else null
-        applyAttributes(this, attrs, parent)
+        applyAttributes(this, attrs, parent, layout.getString("type"))
         if (this is ViewGroup && (layout.optJSONArray("children")?.length() ?: 0) > 0) {
             //If the view has children then parse these children.
             parseChildren(context, layout.optJSONArray("children"), this)
@@ -161,7 +164,7 @@ object DynamicLayoutInflation {
                 parent?.addView(this)
                 //Apply attributes from JSON to the newly created view
                 val attrs = getAttrsMap(jsonObject.getJSONObject("attributes"))
-                applyAttributes(this, attrs, parent)
+                applyAttributes(this, attrs, parent, jsonObject.getString("type"))
                 val viewState = ViewState(
                     attrs["id"]!!,
                     context.getActivityName(),
@@ -207,7 +210,7 @@ object DynamicLayoutInflation {
                 //Add the view to the parent
                 parent?.addView(this)
                 //Apply attributes from JSON to the newly created view
-                applyAttributes(this, layout.getAttributes(), parent)
+                applyAttributes(this, layout.getAttributes(), parent, layout.type)
                 if (this is ViewGroup) {
                     val viewChildren = layout.retrieveChildren()
                     if (viewChildren != null && viewChildren.length() > 0) {
@@ -274,9 +277,10 @@ object DynamicLayoutInflation {
      * @param view The View to apply attributes to.
      * @param attributes A map of attribute names to their values.
      * @param parent The parent ViewGroup of the view.
+     * @param viewType The type of view being created, used to fetch the correct ViewAttributeParser.
      */
     private fun applyAttributes(
-        view: View, attributes: HashMap<String, String>, parent: ViewGroup?
+        view: View, attributes: HashMap<String, String>, parent: ViewGroup?, viewType: String
     ) {
         //Inside applyAttributes Function
         val params = view.layoutParams ?: if (parent is LinearLayout) LinearLayout.LayoutParams(
@@ -291,7 +295,8 @@ object DynamicLayoutInflation {
             "Before apply attributes, View: ${view.javaClass.simpleName},  width: ${params.width}, height: ${params.height}, parent: ${parent?.javaClass?.simpleName}"
         )
 
-        AttributeRegistry.applyAttributes(view, attributes)
+        AttributeRegistry.applyAttributes(view, attributes) // Fallback to default AttributeRegistry
+
 
         Log.d(
             "DynamicLayoutInflation",

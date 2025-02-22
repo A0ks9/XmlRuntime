@@ -28,20 +28,20 @@
 
 ## Feature Checklist
 
-| Feature                                      | Implemented |
-|----------------------------------------------|:-----------:|
-| Dynamic XML UI Rendering                     |    False     |
-| Active Custom View Handling                  |    False     |
-| Active Custom Attribute Handling             |    False     |
-| Lean Architecture (fewer classes)            |    False     |
-| Concise & Clean Kotlin Code                  |    False     |
-| Efficient Performance                        |    False     |
-| **Reduce Class Count:** Further merge similar functionalities to simplify the codebase. |   False   |
-| **Enhanced Customization:** Streamline registration & processing of custom views/attributes.    |   False   |
-| **Improve Error Handling:** Enhance parsing and runtime error messages for layout inflation.     |   False   |
-| **Add Unit Tests:** Implement comprehensive tests (unit and integration) for stability.          |   False   |
-| **Optimize Performance:** Further optimize layout parsing and view creation pipelines.           |   False   |
-| **Expanded Documentation:** Continue updating documentation to help developers integrate and extend the library. |   False   |
+| Feature                                                                                                          | Implemented |
+|------------------------------------------------------------------------------------------------------------------|:-----------:|
+| Dynamic XML UI Rendering                                                                                         |    False    |
+| Active Custom View Handling                                                                                      |    False    |
+| Active Custom Attribute Handling                                                                                 |    False    |
+| Lean Architecture (fewer classes)                                                                                |    False    |
+| Concise & Clean Kotlin Code                                                                                      |    False    |
+| Efficient Performance                                                                                            |    False    |
+| **Reduce Class Count:** Further merge similar functionalities to simplify the codebase.                          |    False    |
+| **Enhanced Customization:** Streamline registration & processing of custom views/attributes.                     |    False    |
+| **Improve Error Handling:** Enhance parsing and runtime error messages for layout inflation.                     |    False    |
+| **Add Unit Tests:** Implement comprehensive tests (unit and integration) for stability.                          |    False    |
+| **Optimize Performance:** Further optimize layout parsing and view creation pipelines.                           |    False    |
+| **Expanded Documentation:** Continue updating documentation to help developers integrate and extend the library. |    False    |
 
 ---
 
@@ -58,6 +58,63 @@
 
 4. **Lean & Maintainable Code:**  
    With fewer classes and concise Kotlin implementations, the library is both easy to understand and extend, while maintaining excellent performance.
+
+---
+
+# XmlRuntime - Dynamic Android Layout Inflation from XML/JSON
+
+This project demonstrates dynamic Android layout inflation from XML or JSON resources at runtime, using a Kotlin-based library with KSP (Kotlin Symbol Processing) for automated attribute handling. It utilizes the MVVM (Model-View-ViewModel) architecture for a clean and maintainable codebase.
+
+## Project Structure
+
+com.runtimexml (root package)
+├── data (Data Layer - Repositories, Data Sources, Models)
+│ ├── repositories (Handles data retrieval and logic)
+│ │ ├── XmlRepository.kt - Repository for XML file operations.
+│ │ └── ViewStateRepository.kt - Repository for managing ViewState data.
+│ ├── sources (Data sources - Local and Remote)
+│ │ ├── local (Local data sources - Room)
+│ │ │ ├── RoomViewStateDataSource.kt - Data source for Room database operations on ViewState.
+│ │ │ ├── db
+│ │ │ │ ├── AppDatabase.kt - Room database definition.
+│ │ │ │ └── ViewStateDao.kt - DAO (Data Access Object) for ViewState entity.
+│ │ └── remote (For "remote" data - in this case, XML file parsing)
+│ │ └── XmlFileDataSource.kt - Data source for XML file parsing operations.
+│ └── models (Data models/entities)
+│ │ └── ViewState.kt - Data class representing the state of a dynamically created view.
+├── di (Dependency Injection - Koin)
+│ └── AppModule.kt - Koin module for dependency injection setup.
+├── ui (UI Layer - Activities, Fragments, ViewModels, Adapters)
+│ ├── activities (Activities - Views in MVVM)
+│ │ └── MainActivity.kt - Main activity, responsible for UI interactions and observing ViewModel.
+│ ├── components (Custom UI components)
+│ │ └── MyCustomTextView.kt - Example of a custom TextView component with automated attribute handling.
+│ ├── viewModels (ViewModels - Business logic and data for Views)
+│ │ └── MainViewModel.kt - ViewModel for MainActivity, handles UI logic and data preparation.
+├── utils (General Utility - Platform/App level utilities)
+│ ├── annotations (Annotations for KSP processing)
+│ │ ├── AutoAttribute.kt - Annotation to mark attributes for automatic handling.
+│ │ └── AutoViewAttributes.kt - Annotation to mark custom views for automatic attribute parsing.
+│ ├── processors (Attribute processing and view creation logic)
+│ │ ├── AttributeProcessorProvider.kt - KSP Symbol Processor Provider.
+│ │ ├── AttributeRegistry.kt - KSP Symbol Processor for generating attribute mappers and parsers.
+│ │ ├── ViewAttributeParser.kt - Abstract class for defining attribute parsers for custom views.
+│ │ └── ViewProcessor.kt - Handles view creation and registration of ViewAttributeParsers.
+│ ├── DimensionConvertor.kt - Utility for converting dimension strings to pixels.
+│ ├── Extensions.kt - Kotlin extensions functions.
+│ ├── FileHelper.kt - Utility for file operations, including XML to JSON conversion.
+│ ├── ParseHelper.kt - Utility for parsing various attribute values.
+│ ├── ParentViewReference.kt - Utility for managing parent view references.
+│ └── Utils.kt - General utility functions.
+├── generated (Generated code - KSP output)
+│ └── com
+│ └── runtimexml
+│ └── utils
+│ └── processors
+│ └── generated
+│ └── MyCustomTextViewViewAttributeParser.kt (Example - Name will vary) - Generated ViewAttributeParser for MyCustomTextView.
+└── res (Resources - layouts, drawables, etc.)
+└── ... (resources folder)
 
 ---
 

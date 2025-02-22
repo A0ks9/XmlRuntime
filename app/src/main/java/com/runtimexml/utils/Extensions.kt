@@ -6,6 +6,7 @@ import android.content.ContextWrapper
 import android.view.View
 import android.view.ViewGroup
 import com.google.gson.Gson
+import com.runtimexml.data.models.ViewState
 import org.json.JSONArray
 
 internal object Extensions {
@@ -69,13 +70,7 @@ internal fun View.getViewID(id: String): Int {
     return -1 // ID not found
 }
 
-internal fun View.setParentView(parent: ViewGroup?) {
-    ParentViewReference.storeParentView(this, parent)
-}
-
-internal fun View.getParentView(): ViewGroup? {
-    return if (parent == null) ParentViewReference.getParentView(this) else parent as? ViewGroup
-}
+internal fun View.getParentView(): ViewGroup? = parent as? ViewGroup
 
 /**
  * Tries to find a view from root View based on String ID
@@ -92,7 +87,10 @@ fun <V> ArrayList<V>.toJsonString(): String = JSONArray(Gson().toJson(this)).toS
 
 fun <V, T> HashMap<V, T>.toJsonString(): String = Gson().toJson(this)
 
-internal fun MutableList<ViewState>.updateViewStates(activityName: String, newData: List<ViewState>) {
+internal fun MutableList<ViewState>.updateViewStates(
+    activityName: String,
+    newData: List<ViewState>
+) {
     removeAll { it.activityName == activityName }
     addAll(newData)
 }

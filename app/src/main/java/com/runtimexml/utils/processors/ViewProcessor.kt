@@ -2,6 +2,7 @@ package com.runtimexml.utils.processors
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
 import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
@@ -82,8 +83,16 @@ class ViewProcessor {
     @SuppressLint("ShowToast")
     companion object {
         private val viewCreators = SparseArrayCompat<(Context) -> View>()
+        private val viewAttributeParsers = mutableMapOf<String, ViewAttributeParser>() // Store parsers
 
         init {
+            registerDefaultViews() // Register default Android views
+
+            // Example of registering ViewAttributeParsers (can be moved to a separate initialization if needed)
+            // registerViewAttributeParser("com.example.MyCustomViewAttributeParser")
+        }
+
+        private fun registerDefaultViews() {
             registerView("android.widget.View") { View(it) }
             registerView("android.widget.Space") { Space(it) }
 
@@ -243,6 +252,7 @@ class ViewProcessor {
             }
         }
 
+
         @JvmStatic
         private fun registerView(className: String, creator: (Context) -> View) {
             viewCreators.put(className.hashCode(), creator)
@@ -266,5 +276,28 @@ class ViewProcessor {
 
         internal fun createView(classPath: String, context: Context): View? =
             viewCreators[classPath.hashCode()]?.invoke(context)
+
+
+        @JvmStatic
+        fun registerViewAttributeParser(parserClassName: String) {
+            try {
+                val parserClass = Class.forName(parserClassName).kotlin
+                val parserInstance = (parserClass.objectInstance ?: parserClass.constructors.first().call()) as ViewAttributeParser // Handle object or class instantiation
+                viewAttributeParsers[parserInstance.getViewType()] = parserInstance
+            } catch (e: ClassNotFoundException) {
+                Log.e("ViewProcessor", "ViewAttributeParser class not found: $parserClassName")
+                e.printStackTrace()
+            } catch (e: InstantiationException) {
+                Log.e("ViewProcessor", "Error instantiating ViewAttributeParser: $parserClassName", e)
+                e.printStackTrace()
+            } catch (e: IllegalAccessException) {
+                Log.e("ViewProcessor", "Illegal access instantiating ViewAttributeParser: $parserClassName", e)
+                e.printStackTrace()
+            }
+        }
+
+        internal fun getViewAttributeParser(viewType: String): ViewAttributeParser? {
+            return viewAttributeParsers[viewType]
+        }
     }
 }

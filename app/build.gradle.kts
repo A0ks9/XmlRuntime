@@ -41,12 +41,19 @@ android {
         enable = true
     }
 
-    kotlinOptions {
-        jvmTarget = "21"
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+        }
     }
 }
 
 dependencies {
+    implementation(project(":viewcore"))
+    ksp(project(":viewcore"))
+    implementation(project.dependencies.platform(libs.koin.bom))
+    implementation(libs.koin.android)
+    implementation(kotlin("reflect"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlin.coroutines)
     implementation(libs.kotlin.coroutines.core)
@@ -63,7 +70,6 @@ dependencies {
     ksp(libs.room.compiler)
     implementation(libs.rx.java)
     implementation(libs.rx.android)
-    implementation(libs.symbol.processing.api)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

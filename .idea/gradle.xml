@@ -11,7 +11,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/proteus-core" />
+            <option value="$PROJECT_DIR$/viewcore" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />

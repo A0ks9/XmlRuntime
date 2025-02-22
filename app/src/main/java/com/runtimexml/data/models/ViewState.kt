@@ -1,4 +1,4 @@
-package com.runtimexml.utils
+package com.runtimexml.data.models
 
 import android.os.Parcel
 import android.os.Parcelable
@@ -12,10 +12,11 @@ import org.json.JSONArray
 
 @Entity(
     tableName = "view_states",
+    primaryKeys = ["activityName", "id"],
     indices = [Index(value = ["id"], unique = true), Index(value = ["activityName"])]
 )
-internal data class ViewState(
-    @PrimaryKey val id: String, val activityName: String, // Store the activity name
+data class ViewState(
+    val id: String, val activityName: String, // Store the activity name
     val type: String, val attributesJson: String, // Store attributes as JSON string
     var children: String? = null // Store children as JSON string
 ) : Parcelable {

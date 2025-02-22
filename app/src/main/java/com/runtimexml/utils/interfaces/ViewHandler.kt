@@ -3,25 +3,26 @@ package com.runtimexml.utils.interfaces
 import android.content.Context
 import android.os.Bundle
 import android.view.ViewGroup
+import androidx.databinding.ViewDataBinding
+import androidx.viewbinding.ViewBinding
 import com.runtimexml.utils.JsonCast
 import com.runtimexml.utils.ViewHelper
 
-//create a json file for the views and its instances and how it handled with the instance parameters to save the data across app close
-
 interface ViewHandler {
     fun getContainerLayout(): ViewGroup?
-    fun getJsonConfiguration(): JsonCast? = null
+    fun getJsonConfiguration(): JsonCast?
     fun onViewCreated(parentView: ViewGroup?) {}
 
     companion object {
         @JvmStatic
-        fun init(
+        fun <T> initialize(
+            binding: T,
             viewHandler: ViewHandler,
             context: Context,
             extras: Bundle?,
-            callback: (ViewGroup?) -> Unit
-        ) {
-            ViewHelper.init(viewHandler, context, extras, callback)
+            callback: (T?) -> Unit
+        ) where T : ViewDataBinding, T : ViewBinding {
+            ViewHelper.init(binding, viewHandler, context, extras, callback)
         }
 
         @JvmStatic

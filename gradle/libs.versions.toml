@@ -17,6 +17,9 @@ ksp = "2.1.10-1.0.29"
 slidingPaneLayout = "1.2.0"
 glide = "4.16.0"
 room = "2.6.1"
+koin = "4.1.0-Beta5"
+autoservice = "1.1.1"
+jetbrainsKotlinJvm = "2.1.10"
 
 
 [libraries]
@@ -40,10 +43,14 @@ glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "gl
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
+koin-android = { module = "io.insert-koin:koin-android" }
+google-autoservice = { group = "com.google.auto.service", name = "auto-service", version.ref = "autoservice" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 google-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
 

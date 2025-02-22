@@ -1,11 +1,11 @@
-package com.runtimexml.utils.interfaces
+package com.runtimexml.data.sources.local.db
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.runtimexml.utils.ViewState
+import com.runtimexml.data.models.ViewState
 
 @Dao
 internal interface ViewStateDao {

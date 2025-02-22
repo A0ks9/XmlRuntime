@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "XmlRuntime"
 include(":app")
-include(":proteus-core")
+include(":viewcore")
