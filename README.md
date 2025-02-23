@@ -1,6 +1,6 @@
 # DynamicInflate: The Ultimate Android Library for Dynamic Layout Inflation
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Kotlin Version](https://img.shields.io/badge/Kotlin-1.8.20-blueviolet.svg)](https://kotlinlang.org/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Kotlin Version](https://img.shields.io/badge/Kotlin-2.1.10-blueviolet.svg)](https://kotlinlang.org/)
 
 **Dynamically inflate and manage Android UI layouts from JSON or XML, empowering flexible and
 adaptable applications.**
@@ -315,8 +315,6 @@ Build and run your Android application. DynamicInflate will inflate the layout d
 
 ## Advanced Usage
 
-[This section will be expanded as adding more features.]
-
 * **Data Binding Examples:** Show how to bind data to views using the data binding features (once
   implemented).
 * **Custom View Registration:** Demonstrate how to register and use custom view classes.
@@ -368,5 +366,3 @@ guidelines.
 DynamicInflate is released under
 the [Apache 2.0 License](https://opensource.org/licenses/Apache-2.0). See the `LICENSE` file for the
 full license text.
-
----
