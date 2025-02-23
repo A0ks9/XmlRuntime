@@ -6,7 +6,7 @@
 
         <variable
             name="viewModel"
-            type="com.runtimexml.ui.viewModels.MainViewModel" />
+            type="com.dynamic.ui.viewModels.MainViewModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout

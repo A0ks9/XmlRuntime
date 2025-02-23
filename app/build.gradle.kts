@@ -6,17 +6,19 @@ plugins {
 }
 
 android {
-    namespace = "com.runtimexml"
+    namespace = "com.dynamic"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.runtimexml"
+        applicationId = "com.dynamic"
         minSdk = 21
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0-Beta1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        proguardFiles()
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -40,6 +42,11 @@ android {
     dataBinding {
         enable = true
     }
+    dependenciesInfo {
+        includeInApk = true
+        includeInBundle = true
+    }
+    buildToolsVersion = "36.0.0 rc5"
 
     kotlin {
         compilerOptions {

@@ -21,10 +21,10 @@
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.XmlRuntime"
+        android:theme="@style/Theme.Voyager"
         tools:targetApi="35">
         <activity
-            android:name=".ui.activities.MainActivity"
+            android:name="com.dynamic.ui.activities.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

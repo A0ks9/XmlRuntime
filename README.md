@@ -341,6 +341,7 @@ Build and run your Android application. DynamicInflate will inflate the layout d
 * Improve Error Handling and provide fallback mechanisms.
 * Optimize Performance with layout caching, view pooling, and asynchronous inflation.
 * Enhance Asset Handling with support for resource qualifiers.
+* Handle Colors and drawables from assets and save new colors
 
 **Contributions:**
 
