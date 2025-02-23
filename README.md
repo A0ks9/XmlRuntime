@@ -1,4 +1,3 @@
-```markdown
 # DynamicInflate: The Ultimate Android Library for Dynamic Layout Inflation
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Kotlin Version](https://img.shields.io/badge/Kotlin-1.8.20-blueviolet.svg)](https://kotlinlang.org/)
