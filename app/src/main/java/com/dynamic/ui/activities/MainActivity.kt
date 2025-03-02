@@ -1,6 +1,8 @@
 package com.dynamic.ui.activities
 
 import android.Manifest
+import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.view.ViewGroup
@@ -10,10 +12,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.dynamic.R
+import com.dynamic.databinding.ActivityMainBinding
 import com.dynamic.ui.viewModels.MainViewModel
 import com.dynamic.utils.DynamicLayoutInflation
-import com.dynamic.utils.JsonCast
-import com.dynamic.databinding.ActivityMainBinding
+import com.dynamic.utils.DynamicLayoutInflation.inflate
 import com.dynamic.utils.interfaces.ViewHandler
 import com.dynamic.utils.interfaces.ViewHandler.Companion.initialize
 import com.dynamic.utils.interfaces.ViewHandler.Companion.saveDataWithRoom
@@ -32,7 +35,7 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
-        initialize(binding, this, this, savedInstanceState) { newBinding ->
+        initialize(binding, this, this, R.style.Theme_Voyager, savedInstanceState) { newBinding ->
             val b = newBinding ?: binding
             setContentView(b.root)
         }
@@ -90,7 +93,7 @@ class MainActivity : AppCompatActivity(), ViewHandler {
             if (mainViewModel.isFileSelected.value == false) {
                 openDocumentLauncher.launch(arrayOf("application/xml", "text/xml"))
             } else if (mainViewModel.isFileCreated.value == false) {
-                mainViewModel.convertXmlToJson(contentResolver) // Trigger XML conversion in ViewModel
+                mainViewModel.convertXmlToJson(this@MainActivity) // Trigger XML conversion in ViewModel
             }
         }
 
@@ -101,10 +104,9 @@ class MainActivity : AppCompatActivity(), ViewHandler {
 
     private fun inflateAndShowJsonView() {
         val createdFileUri = mainViewModel.createdFileUri.value ?: return
-        val view = DynamicLayoutInflation.inflateJson(this, createdFileUri, binding.parentLayout)
-        view?.let {
-            DynamicLayoutInflation.setDelegate(it, applicationContext)
-            it.post { Log.d("MainActivity", "Inflated view: $it") }
+        inflate(this, R.style.Theme_Voyager, createdFileUri, binding.parentLayout) { view ->
+            DynamicLayoutInflation.setDelegate(view, applicationContext)
+            view?.post { Log.d("MainActivity", "Inflated view: $view") }
         }
     }
 
@@ -118,6 +120,12 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         saveDataWithRoom(this) // Or delegate to ViewModel if you want ViewModel to control this logic
     }
 
+    fun isDarkTheme(context: Context): Boolean {
+        val uiMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return uiMode == Configuration.UI_MODE_NIGHT_YES
+    }
+
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         saveInstanceState(this, outState) // Or delegate to ViewModel
@@ -127,7 +135,7 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         return binding.parentLayout
     }
 
-    override fun getJsonConfiguration(): JsonCast? {
+    override fun getJsonConfiguration(): String? {
         return null // Or return your JsonCast configuration if needed
     }
 

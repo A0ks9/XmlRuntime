@@ -5,12 +5,11 @@ import android.view.ViewGroup
 import androidx.core.bundle.Bundle
 import androidx.databinding.ViewDataBinding
 import androidx.viewbinding.ViewBinding
-import com.dynamic.utils.JsonCast
 import com.dynamic.utils.ViewHelper
 
 interface ViewHandler {
     fun getContainerLayout(): ViewGroup?
-    fun getJsonConfiguration(): JsonCast?
+    fun getJsonConfiguration(): String?
     fun onViewCreated(parentView: ViewGroup?) {}
 
     companion object {
@@ -19,15 +18,16 @@ interface ViewHandler {
             binding: T,
             viewHandler: ViewHandler,
             context: Context,
+            theme: Int,
             extras: Bundle?,
             callback: (T?) -> Unit
         ) where T : ViewDataBinding, T : ViewBinding {
-            ViewHelper.init(binding, viewHandler, context, extras, callback)
+            ViewHelper.init(binding, viewHandler, context, theme, extras, callback)
         }
 
         @JvmStatic
         fun saveInstanceState(context: Context, outState: Bundle) {
-            ViewHelper.saveInstanceState(context, outState)
+            ViewHelper.saveInstanceState(outState)
         }
 
         @JvmStatic
@@ -36,7 +36,7 @@ interface ViewHandler {
         }
 
         @JvmStatic
-        fun setJsonConfiguration(json: JsonCast) {
+        fun setJsonConfiguration(json: String) {
             ViewHelper.setJsonConfiguration(json)
         }
     }

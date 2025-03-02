@@ -33,6 +33,7 @@ import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.VideoView
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatCheckBox
@@ -44,7 +45,6 @@ import androidx.appcompat.widget.AppCompatTextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.cardview.widget.CardView
-import androidx.collection.SparseArrayCompat
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.widget.NestedScrollView
@@ -76,20 +76,17 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.timepicker.MaterialTimePicker
+import java.util.concurrent.ConcurrentHashMap
 import android.widget.Toolbar as toolbar
 
 class ViewProcessor {
 
     @SuppressLint("ShowToast")
     companion object {
-        private val viewCreators = SparseArrayCompat<(Context) -> View>()
-        private val viewAttributeParsers = mutableMapOf<String, ViewAttributeParser>() // Store parsers
+        private val viewCreators = ConcurrentHashMap<String, (ContextThemeWrapper) -> View>()
 
         init {
             registerDefaultViews() // Register default Android views
-
-            // Example of registering ViewAttributeParsers (can be moved to a separate initialization if needed)
-            // registerViewAttributeParser("com.example.MyCustomViewAttributeParser")
         }
 
         private fun registerDefaultViews() {
@@ -254,50 +251,62 @@ class ViewProcessor {
 
 
         @JvmStatic
-        private fun registerView(className: String, creator: (Context) -> View) {
-            viewCreators.put(className.hashCode(), creator)
+        private fun registerView(className: String, creator: (ContextThemeWrapper) -> View) {
+            viewCreators.put(className, creator)
         }
 
         @JvmStatic
-        fun registerView(packageName: String, className: String, creator: (Context) -> View) {
-            viewCreators.put("$packageName.$className".hashCode(), creator)
+        fun registerView(
+            packageName: String, className: String, creator: (ContextThemeWrapper) -> View
+        ) {
+            viewCreators.put("$packageName.$className", creator)
         }
 
         @JvmStatic
         fun isRegistered(packageName: String, className: String): Boolean =
-            viewCreators.indexOfKey("$packageName.$className".hashCode()) >= 0
+            viewCreators.containsKey("$packageName.$className")
 
         internal fun isRegistered(classPath: String): Boolean =
-            viewCreators.indexOfKey(classPath.hashCode()) >= 0
+            viewCreators.containsKey(getFullQualifiedType(classPath))
 
         @JvmStatic
-        fun createView(packageName: String, className: String, context: Context): View? =
-            viewCreators["$packageName.$className".hashCode()]?.invoke(context)
+        fun createView(
+            packageName: String, className: String, context: ContextThemeWrapper
+        ): View? = viewCreators["$packageName.$className"]?.let { it(context) }
 
-        internal fun createView(classPath: String, context: Context): View? =
-            viewCreators[classPath.hashCode()]?.invoke(context)
+        internal fun createView(classPath: String, context: ContextThemeWrapper): View? =
+            viewCreators[getFullQualifiedType(classPath)]?.let { it(context) }
 
+        internal fun createViewByType(context: ContextThemeWrapper, type: String): View {
+            val fullyQualifiedName = getFullQualifiedType(type)
 
-        @JvmStatic
-        fun registerViewAttributeParser(parserClassName: String) {
-            try {
-                val parserClass = Class.forName(parserClassName).kotlin
-                val parserInstance = (parserClass.objectInstance ?: parserClass.constructors.first().call()) as ViewAttributeParser // Handle object or class instantiation
-                viewAttributeParsers[parserInstance.getViewType()] = parserInstance
-            } catch (e: ClassNotFoundException) {
-                Log.e("ViewProcessor", "ViewAttributeParser class not found: $parserClassName")
-                e.printStackTrace()
-            } catch (e: InstantiationException) {
-                Log.e("ViewProcessor", "Error instantiating ViewAttributeParser: $parserClassName", e)
-                e.printStackTrace()
-            } catch (e: IllegalAccessException) {
-                Log.e("ViewProcessor", "Illegal access instantiating ViewAttributeParser: $parserClassName", e)
-                e.printStackTrace()
+            viewCreators[fullyQualifiedName]?.let { constructor ->
+                return constructor(context)
+            }
+
+            return try {
+                val kClass = Class.forName(fullyQualifiedName).kotlin
+
+                val ctor = kClass.constructors.firstOrNull { constructor ->
+                    constructor.parameters.size == 1 && constructor.parameters[0].type.classifier == Context::class
+                }
+                    ?: throw IllegalArgumentException("No constructor with Context found for $fullyQualifiedName")
+
+                val viewConstructor: (Context) -> View = { ctx ->
+                    requireNotNull(ctor.call(ctx) as? View) { "View creation failed for type $fullyQualifiedName" }
+                }
+
+                registerView(fullyQualifiedName, viewConstructor)
+                viewConstructor(context)
+            } catch (e: Exception) {
+                Log.e("ViewFactory", "Error creating view for type: $fullyQualifiedName", e)
+                throw IllegalArgumentException(
+                    "Error creating view for type: $fullyQualifiedName", e
+                )
             }
         }
 
-        internal fun getViewAttributeParser(viewType: String): ViewAttributeParser? {
-            return viewAttributeParsers[viewType]
-        }
+        private fun getFullQualifiedType(type: String): String =
+            if (type.contains(".")) type else "android.widget.$type"
     }
 }

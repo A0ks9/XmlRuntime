@@ -86,9 +86,13 @@ open class AttributeRegistry {
                 ?: throw IllegalArgumentException("Attribute not found: $attributeName")
 
             try {
-                (attributeProcessor as AttributeProcessorRegistry<V, Any>).apply(
-                    targetView, attributeValue as Any
-                )
+                if (attributeValue != null) {
+                    (attributeProcessor as AttributeProcessorRegistry<V, Any>).apply(
+                        targetView, attributeValue as Any
+                    )
+                } else {
+                    return
+                }
             } catch (e: ClassCastException) {
                 Log.e(
                     "AttributeProcessor",
@@ -109,7 +113,9 @@ open class AttributeRegistry {
         fun <V : View, T> applyAttributes(targetView: V, attributeValues: Map<String, T?>) {
             require(attributeProcessors.isNotEmpty()) { "No attributes found" }
 
-            applyAttribute(targetView, Attributes.Common.ID, attributeValues[Attributes.Common.ID])
+            applyAttribute(
+                targetView, Attributes.Common.ID, attributeValues[Attributes.Common.ID]
+            )
 
             // Apply Non-ConstraintLayout Attributes:
             val nonConstraintAttributes =

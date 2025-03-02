@@ -9,76 +9,56 @@ class AttributeProcessor(
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val autoViewAttributeSymbols =
-            resolver.getSymbolsWithAnnotation(AutoViewAttributes::class.qualifiedName!!)
-                .filterIsInstance<KSClassDeclaration>()
-
-        if (autoViewAttributeSymbols.none()) {
-            logger.info("No classes found with @AutoViewAttributes annotation.")
-            return emptyList()
-        }
-
-        autoViewAttributeSymbols.forEach { clazz ->
-            generateViewAttributeParser(clazz)
-        }
-
+        resolver.getSymbolsWithAnnotation(AutoViewAttributes::class.qualifiedName!!)
+            .filterIsInstance<KSClassDeclaration>().forEach { generateViewAttributeParser(it) }
         return emptyList()
     }
 
     private fun generateViewAttributeParser(clazz: KSClassDeclaration) {
         val className = clazz.simpleName.asString()
         val packageName = clazz.packageName.asString()
-        val generatedPackageName = "$packageName.generated"
+        val generatedPackage = "$packageName.generated"
+        val viewClassName = getViewClassName(clazz)
+        val attributeMappings = generateAttributeMappings(clazz)
 
         logger.info("Generating ViewAttributeParser for $className")
 
-        val viewClassNameValue = getViewClassName(clazz)
-        val attributeMappings = generateAttributeMappings(clazz)
-
-        try {
+        runCatching {
             codeGenerator.createNewFile(
-                dependencies = Dependencies.ALL_FILES,
-                packageName = generatedPackageName,
-                fileName = "${className}ViewAttributeParser"
-            ).use { outputStream ->
-                outputStream.bufferedWriter().use { writer ->
-                    val fileContent = buildString {
-                        appendLine("package $generatedPackageName")
-                        appendLine("")
-                        appendLine("import android.view.View")
-                        appendLine("import com.runtimexml.utils.processors.ViewAttributeParser")
-                        appendLine("import com.runtimexml.utils.processors.ViewProcessor")
-                        appendLine("import $packageName.${clazz.simpleName.asString()}")
-                        appendLine("")
-                        appendLine("class ${className}ViewAttributeParser : ViewAttributeParser() {")
-                        appendLine("    ")
-                        appendLine("    override fun getViewType(): String = \"$viewClassNameValue\"")
-                        appendLine("    ")
-                        appendLine("    private val attributeMap = mapOf<String, (View, Any) -> Unit>(")
-                        appendLine("        $attributeMappings")
-                        appendLine("    )")
-                        appendLine("    ")
-                        appendLine("    override fun addAttributes() {")
-                        appendLine("        attributeMap.forEach { (attrName, setter) ->")
-                        appendLine("            registerAttribute<View, Any>(attrName, setter)")
-                        appendLine("        }")
-                        appendLine("    }")
-                        appendLine("    ")
-                        appendLine("    init {")
-                        appendLine("        ViewProcessor.registerViewAttributeParser(")
-                        appendLine("            \"$generatedPackageName.${className}ViewAttributeParser\"")
-                        appendLine("        )")
-                        appendLine("    }")
-                        appendLine("}")
-                    }
-                    writer.write(fileContent)
-                }
+                Dependencies.ALL_FILES, generatedPackage, "${className}ViewAttributeParser"
+            ).bufferedWriter().use { writer ->
+                writer.write(buildString {
+                    appendLine("package $generatedPackage")
+                    appendLine()
+                    appendLine("import android.view.View")
+                    appendLine("import android.content.Context")
+                    appendLine("import androidx.appcompat.view.ContextThemeWrapper")
+                    appendLine("import $packageName.$className")
+                    appendLine("import com.dynamic.utils.processors.ViewAttributeParser")
+                    appendLine("import com.dynamic.utils.processors.ViewProcessor")
+                    appendLine()
+                    appendLine("class ${className}ViewAttributeParser : ViewAttributeParser() {")
+                    appendLine()
+                    appendLine("    override fun getViewType() = \"$viewClassName\"")
+                    appendLine()
+                    appendLine("    private val attributeMap = mapOf<String, (View, Any) -> Unit>(")
+                    appendLine("        $attributeMappings")
+                    appendLine("    )")
+                    appendLine()
+                    appendLine("    override fun addAttributes() {")
+                    appendLine("        attributeMap.forEach { (attr, setter) -> registerAttribute<View, Any>(attr, setter) }")
+                    appendLine("    }")
+                    appendLine()
+                    appendLine("    override fun createView(context: ContextThemeWrapper): View = $className(context)")
+                    appendLine()
+                    appendLine("    init {")
+                    appendLine("        ViewProcessor.registerView(\"$packageName\", \"$className\") { createView(it) }")
+                    appendLine("        addAttributes()")
+                    appendLine("    }")
+                    appendLine("}")
+                })
             }
-            logger.info("Successfully generated ViewAttributeParser for $className")
-
-        } catch (e: Exception) {
-            logger.error("Error generating ViewAttributeParser for $className: ${e.message}")
-        }
+        }.onFailure { e -> logger.error("Error generating ViewAttributeParser for $className: ${e.message}") }
     }
 
     private fun getViewClassName(clazz: KSClassDeclaration): String {

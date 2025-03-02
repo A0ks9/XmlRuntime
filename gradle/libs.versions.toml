@@ -1,5 +1,5 @@
 [versions]
-agp = "8.8.1"
+agp = "8.8.2"
 kotlin = "2.1.10"
 coreKtx = "1.15.0"
 junit = "4.13.2"
@@ -7,8 +7,8 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
 material = "1.12.0"
-activity = "1.10.0"
-constraintlayout = "2.2.0"
+activity = "1.10.1"
+constraintlayout = "2.2.1"
 rxjava = "3.1.10"
 rxandroid = "3.0.2"
 kotlinCoroutines = "1.10.1"
@@ -19,6 +19,9 @@ glide = "4.16.0"
 room = "2.6.1"
 koin = "4.1.0-Beta5"
 jetbrainsKotlinJvm = "2.1.10"
+mmkv = "2.1.0"
+kotlinx-serialization = "1.8.0"
+plugin-serliziation = "2.1.0"
 
 
 [libraries]
@@ -42,8 +45,10 @@ glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "gl
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+tencent-mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android" }
+kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -51,4 +56,5 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 google-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
+plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "plugin-serliziation" }
 

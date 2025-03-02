@@ -2,7 +2,7 @@ package com.dynamic.di
 
 import com.dynamic.data.repositories.ViewStateRepository
 import com.dynamic.data.repositories.XmlRepository
-import com.dynamic.data.sources.local.RoomViewStateDataSource
+import com.dynamic.data.sources.local.RoomViewNodeDataSource
 import com.dynamic.data.sources.remote.XmlFileDataSource
 import com.dynamic.ui.viewModels.MainViewModel
 import org.koin.android.ext.koin.androidContext
@@ -11,7 +11,7 @@ import org.koin.dsl.module
 
 val appModule = module {
     // Data Sources
-    single { RoomViewStateDataSource(androidContext()) }
+    single { RoomViewNodeDataSource(androidContext()) }
     single { XmlFileDataSource() }
 
     // Repositories

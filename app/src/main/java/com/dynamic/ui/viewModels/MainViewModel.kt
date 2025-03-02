@@ -1,19 +1,19 @@
 package com.dynamic.ui.viewModels
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dynamic.data.repositories.XmlRepository
 import com.dynamic.data.repositories.ViewStateRepository
+import com.dynamic.data.repositories.XmlRepository
+import com.dynamic.utils.FileHelper.getPath
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 class MainViewModel(
-    private val xmlRepository: XmlRepository,
-    private val viewStateRepository: ViewStateRepository
+    private val xmlRepository: XmlRepository, private val viewStateRepository: ViewStateRepository
 ) : ViewModel() {
 
     private val _buttonText = MutableLiveData("Choose File")
@@ -28,8 +28,8 @@ class MainViewModel(
     private val _selectedFile = MutableLiveData<Uri>()
     val selectedFile: LiveData<Uri> = _selectedFile
 
-    private val _parsedJson = MutableLiveData<JSONObject?>()
-    val parsedJson: LiveData<JSONObject?> = _parsedJson
+    private val _parsedJson = MutableLiveData<String?>()
+    val parsedJson: LiveData<String?> = _parsedJson
 
     private val _createdFileUri = MutableLiveData<Uri?>()
     val createdFileUri: LiveData<Uri?> = _createdFileUri
@@ -58,14 +58,19 @@ class MainViewModel(
         _isFileSelected.value = true
     }
 
-    fun convertXmlToJson(contentResolver: ContentResolver) {
+    fun convertXmlToJson(context: Context) {
         viewModelScope.launch {
             val uri = _selectedFile.value ?: return@launch
-            val jsonResult = xmlRepository.convertXmlToJson(contentResolver, uri)
-            _parsedJson.value = jsonResult
-            val fileName = xmlRepository.getFileNameFromUri(uri, contentResolver)
-            // Handle file creation logic here or in a Use Case if more complex
-            createDocument(fileName?.replace(".xml", ".json") ?: "output.json") // Pass filename for creation
+            val path = getPath(context, uri) ?: return@launch
+            xmlRepository.convertXmlToJson(path) { jsonResult ->
+                _parsedJson.value = jsonResult
+                xmlRepository.getFileNameFromUri(context.contentResolver, uri) { fileName ->
+                    // Handle file creation logic here or in a Use Case if more complex
+                    createDocument(
+                        fileName.replace(".xml", ".json")
+                    ) // Pass filename for creation
+                }
+            }
         }
     }
 
@@ -80,7 +85,7 @@ class MainViewModel(
 
     fun writeToFile(uri: Uri, contentResolver: ContentResolver) {
         viewModelScope.launch {
-            val jsonContent = _parsedJson.value?.toString(4) ?: return@launch
+            val jsonContent = _parsedJson.value ?: return@launch
             try {
                 contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.write(jsonContent.toByteArray())

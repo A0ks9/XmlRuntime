@@ -3,15 +3,21 @@ package com.dynamic.data.sources.remote
 import android.content.ContentResolver
 import android.net.Uri
 import com.dynamic.utils.FileHelper
-import org.json.JSONObject
+import com.dynamic.utils.FileHelper.parseXML
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class XmlFileDataSource {
 
-    fun convertXml(contentResolver: ContentResolver, uri: Uri): JSONObject? {
-        return FileHelper.convertXml(contentResolver, uri)
+    fun convertXml(xmlPath: String, callback: (String?) -> Unit) {
+        CoroutineScope(Dispatchers.Main).launch {
+            val node = parseXML(xmlPath)
+            callback(node)
+        }
     }
 
-    fun getFileNameFromUri(uri: Uri, contentResolver: ContentResolver): String? {
-        return FileHelper.getFileNameFromUri(uri, contentResolver)
+    fun getFileNameFromUri(contentResolver: ContentResolver, uri: Uri, callback: (String) -> Unit) {
+        FileHelper.getFileName(contentResolver, uri, callback)
     }
 }

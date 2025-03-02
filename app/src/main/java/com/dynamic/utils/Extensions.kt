@@ -5,8 +5,9 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.view.View
 import android.view.ViewGroup
+import androidx.collection.ArrayMap
+import com.dynamic.data.models.ViewNode
 import com.google.gson.Gson
-import com.dynamic.data.models.ViewState
 import org.json.JSONArray
 
 internal object Extensions {
@@ -84,12 +85,13 @@ fun View.findViewByIdString(id: String): View? {
 }
 
 fun <V> ArrayList<V>.toJsonString(): String = JSONArray(Gson().toJson(this)).toString(4)
-
+fun <V> MutableList<V>.toJsonString(): String = JSONArray(Gson().toJson(this)).toString(4)
 fun <V, T> HashMap<V, T>.toJsonString(): String = Gson().toJson(this)
+fun <V, T> ArrayMap<V, T>.toJsonString(): String = Gson().toJson(this)
 
-internal fun MutableList<ViewState>.updateViewStates(
+internal fun MutableList<ViewNode>.updateViewNodes(
     activityName: String,
-    newData: List<ViewState>
+    newData: List<ViewNode>
 ) {
     removeAll { it.activityName == activityName }
     addAll(newData)

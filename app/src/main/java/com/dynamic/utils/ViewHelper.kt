@@ -6,13 +6,16 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
 import android.view.ViewGroup
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.databinding.ViewDataBinding
 import androidx.viewbinding.ViewBinding
-import com.dynamic.data.models.ViewState
-import com.dynamic.data.sources.local.RoomViewStateDataSource
+import com.dynamic.data.models.ViewNode
+import com.dynamic.data.models.ViewNodeParser.fromJson
+import com.dynamic.data.sources.local.RoomViewNodeDataSource
 import com.dynamic.data.sources.local.db.AppDatabase
 import com.dynamic.data.sources.local.db.DatabaseProvider
-import com.dynamic.data.sources.local.db.ViewStateDao
+import com.dynamic.data.sources.local.db.ViewNodeDao
+import com.dynamic.utils.DynamicLayoutInflation.inflate
 import com.dynamic.utils.interfaces.ViewHandler
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
@@ -23,9 +26,9 @@ import kotlinx.coroutines.Dispatchers.Main
  */
 internal object ViewHelper {
 
-    private var jsonConfiguration: JsonCast? = null
+    private var jsonConfiguration: String? = null
     private lateinit var database: AppDatabase
-    private lateinit var viewStateDao: ViewStateDao
+    private lateinit var viewStateDao: ViewNodeDao
 
     /**
      * Initializes and restores dynamic views.
@@ -40,6 +43,7 @@ internal object ViewHelper {
         binding: T,
         viewHandler: ViewHandler,
         context: Context,
+        theme: Int,
         extras: Bundle?,
         callback: (T?) -> Unit
     ) where T : ViewDataBinding, T : ViewBinding {
@@ -48,25 +52,31 @@ internal object ViewHelper {
 
         val containerView = viewHandler.getContainerLayout()
         database = DatabaseProvider.getInstance(context)
-        viewStateDao = database.ViewStateDao()
+        viewStateDao = database.ViewNodeDao()
+        val contextThemeWrapper = ContextThemeWrapper(context, theme)
 
         CoroutineScope(Main).launch {
             try {
                 when {
-                    extras != null -> restoreViewsFromState(context, extras, containerView)
+                    extras != null -> restoreViewsFromState(
+                        contextThemeWrapper, extras, containerView
+                    )
 
-                    !RoomViewStateDataSource(context).hasViewStates() -> {
+                    !RoomViewNodeDataSource(context).hasViewNode() -> {
                         if (effectiveJson == null) return@launch
+                        val node = fromJson(effectiveJson)
+                        if (node == null) return@launch
                         Log.d("ViewHelper", "Inflating views from JSON")
-                        inflateFromJson(context, effectiveJson, containerView)
+                        inflate(contextThemeWrapper, node, containerView, null)
                     }
 
                     else -> {
                         Log.d("ViewHelper", "Restoring views from Room")
-                        val viewStates = withContext(IO) { restoreViewsFromRoom(context) }
-                        Log.d("ViewHelper", "Restored view states: $viewStates")
-                        DynamicLayoutInflation.inflateViewState(
-                            context, viewStates ?: emptyList(), containerView
+                        val viewNode = withContext(IO) { restoreViewsFromRoom(context) }
+                        if (viewNode == null) return@launch
+                        Log.d("ViewHelper", "Restored view states: $viewNode")
+                        inflate(
+                            contextThemeWrapper, viewNode, containerView, null
                         )
                     }
                 }
@@ -80,33 +90,22 @@ internal object ViewHelper {
         }
     }
 
-    private fun inflateFromJson(context: Context, json: JsonCast, containerView: ViewGroup?) {
-        when (json) {
-            is JsonCast.JsonO -> DynamicLayoutInflation.inflateJson(
-                context, json.jsonObject, containerView
-            )
-
-            is JsonCast.JsonA -> DynamicLayoutInflation.inflateJson(
-                context, json.jsonArray, containerView
-            )
-
-            else -> throw IllegalArgumentException("Invalid JsonCast type")
-        }
+    private fun restoreViewsFromState(
+        context: ContextThemeWrapper, extras: Bundle, containerView: ViewGroup?
+    ) {
+        val viewNode = extras.getParcelableCompat("viewNode", ViewNode::class.java)
+        if (viewNode == null) return
+        inflate(context, viewNode, containerView)
     }
 
-    private fun restoreViewsFromState(context: Context, extras: Bundle, containerView: ViewGroup?) {
-        val viewState = extras.getParcelableArrayListCompat("viewState", ViewState::class.java)
-        DynamicLayoutInflation.inflateViewState(context, viewState ?: emptyList(), containerView)
+    private suspend fun restoreViewsFromRoom(context: Context): ViewNode? {
+        return viewStateDao.getViewNode(context.getActivityName())
     }
 
-    private suspend fun restoreViewsFromRoom(context: Context): List<ViewState>? {
-        return viewStateDao.getViewState(context.getActivityName())
-    }
-
-    fun saveInstanceState(context: Context, outState: Bundle) {
-        val viewStates = collectViewsState(context.getActivityName())
-        Log.d("ViewHelper", "Saving view states: $viewStates")
-        outState.putParcelableArrayList("viewState", viewStates)
+    fun saveInstanceState(outState: Bundle) {
+        val viewNode = collectViewsState()
+        Log.d("ViewHelper", "Saving view states: $viewNode")
+        outState.putParcelable("viewState", viewNode)
     }
 
     fun saveDataWithRoom(context: Context) {
@@ -114,34 +113,31 @@ internal object ViewHelper {
 
         CoroutineScope(IO).launch {
             try {
-                val viewStates = collectViewsState(context.getActivityName())
+                val viewNode = collectViewsState() ?: return@launch
                 Log.d(
                     "ViewHelper",
-                    "Saving view states to Room for activity: ${context.getActivityName()}"
+                    "Saving view nodes to Room for activity: ${context.getActivityName()}"
                 )
-                viewStateDao.insertViewsState(viewStates)
+                viewStateDao.insertViewNode(viewNode)
             } catch (e: Exception) {
-                Log.e("ViewHelper", "Error saving view states to Room: ${e.message}", e)
+                Log.e("ViewHelper", "Error saving view nodes to Room: ${e.message}", e)
             }
         }
     }
 
-    private fun collectViewsState(activityName: String): ArrayList<ViewState> {
-        return DynamicLayoutInflation.viewsState.filter { it.activityName == activityName }
-            .toCollection(ArrayList())
-    }
+    private fun collectViewsState(): ViewNode? = DynamicLayoutInflation.viewNode
 
-    fun setJsonConfiguration(json: JsonCast) {
+    fun setJsonConfiguration(json: String) {
         jsonConfiguration = json
     }
 
-    private fun <T : Parcelable> Bundle.getParcelableArrayListCompat(
+    private fun <T : Parcelable> Bundle.getParcelableCompat(
         key: String, clazz: Class<T>
-    ): ArrayList<T>? {
+    ): T? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getParcelableArrayList(key, clazz) // Correct usage for API 33+
+            getParcelable(key, clazz) // Correct usage for API 33+
         } else {
-            @Suppress("DEPRECATION") getParcelableArrayList<T>(key)
+            @Suppress("DEPRECATION") getParcelable<T>(key)
         }
     }
 }

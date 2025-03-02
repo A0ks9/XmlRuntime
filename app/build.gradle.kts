@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.ksp)
+    alias(libs.plugins.plugin.serialization)
     id("kotlin-parcelize")
 }
 
@@ -19,6 +20,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         proguardFiles()
         multiDexEnabled = true
+        externalNativeBuild {
+            cmake {
+                cppFlags(
+                    "-std=c++17 -O3 -fPIC",
+                    "-I${projectDir}/src/main/cpp/pugixml/src",
+                    "-I${projectDir}/src/main/cpp/rapidjson/include"
+                )
+            }
+        }
     }
 
     buildTypes {
@@ -53,6 +63,15 @@ android {
             jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
         }
     }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
+    ndkVersion = "27.0.12077973"
 }
 
 dependencies {
@@ -74,7 +93,9 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation(libs.gson)
+    implementation(libs.kotlinx.serialization)
     ksp(libs.room.compiler)
+    //implementation(libs.tencent.mmkv)
     implementation(libs.rx.java)
     implementation(libs.rx.android)
     testImplementation(libs.junit)

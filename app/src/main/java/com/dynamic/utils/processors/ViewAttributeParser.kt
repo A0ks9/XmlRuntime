@@ -1,6 +1,7 @@
 package com.dynamic.utils.processors
 
 import android.view.View
+import androidx.appcompat.view.ContextThemeWrapper
 import com.dynamic.utils.interfaces.AttributeProcessorRegistry
 
 abstract class ViewAttributeParser : AttributeRegistry() {
@@ -10,6 +11,7 @@ abstract class ViewAttributeParser : AttributeRegistry() {
     }
 
     abstract fun getViewType(): String
+    protected abstract fun createView(context: ContextThemeWrapper): View
     abstract fun addAttributes()
 
     companion object {

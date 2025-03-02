@@ -2,8 +2,13 @@ package com.dynamic.utils
 
 import android.view.View
 import android.view.ViewGroup
+import androidx.collection.ArrayMap
+import com.dynamic.data.models.ViewNode
+import com.google.gson.stream.JsonReader
 import org.json.JSONArray
 import org.json.JSONException
+import java.io.InputStream
+import java.io.InputStreamReader
 import java.lang.reflect.InvocationTargetException
 
 internal object Utils {
@@ -114,5 +119,45 @@ internal object Utils {
     fun View.findViewByIdString(id: String): View? {
         val idNum = getViewID(this, id)
         return if (idNum < 0) null else findViewById(idNum)
+    }
+
+    fun parseJsonToViewNode(inputStream: InputStream, activityName: String): ViewNode? {
+        val jsonReader = JsonReader(InputStreamReader(inputStream))
+        return readViewNode(jsonReader, activityName)
+    }
+
+    private fun readViewNode(reader: JsonReader, activityName: String): ViewNode? {
+        var id: String? = null
+        var type: String? = null
+        var attributes = ArrayMap<String, String>()
+        var children = mutableListOf<ViewNode>()
+
+        reader.beginObject()
+        while (reader.hasNext()) {
+            when (reader.nextName()) {
+                "type" -> type = reader.nextString()
+                "attributes" -> {
+                    reader.beginObject()
+                    while (reader.hasNext()) {
+                        val readerName = reader.nextName()
+                        val readerValue = reader.nextString()
+                        if (readerName == Attributes.Common.ID) id = readerValue
+                        attributes[readerName] = readerValue
+                    }
+                    reader.endObject()
+                }
+
+                "children" -> {
+                    reader.beginArray()
+                    while (reader.hasNext()) {
+                        readViewNode(reader, activityName)?.let { children.add(it) }
+                    }
+                    reader.endArray()
+                }
+            }
+        }
+        reader.endObject()
+
+        return type?.let { ViewNode(id, it, activityName, attributes, children) }
     }
 }
