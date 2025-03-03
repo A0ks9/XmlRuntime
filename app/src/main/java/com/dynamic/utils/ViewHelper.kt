@@ -67,7 +67,7 @@ internal object ViewHelper {
                         val node = fromJson(effectiveJson)
                         if (node == null) return@launch
                         Log.d("ViewHelper", "Inflating views from JSON")
-                        inflate(contextThemeWrapper, node, containerView, null)
+                        inflate(contextThemeWrapper, node, containerView)
                     }
 
                     else -> {
@@ -76,13 +76,13 @@ internal object ViewHelper {
                         if (viewNode == null) return@launch
                         Log.d("ViewHelper", "Restored view states: $viewNode")
                         inflate(
-                            contextThemeWrapper, viewNode, containerView, null
+                            contextThemeWrapper, viewNode, containerView
                         )
                     }
                 }
 
                 viewHandler.onViewCreated(containerView)
-                callback.invoke(binding)
+                callback(binding)
             } catch (e: Exception) {
                 Log.e("ViewHelper", "Initialization failed: ${e.message}", e)
                 callback.invoke(null) // Indicate failure

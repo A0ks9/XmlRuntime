@@ -35,10 +35,9 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
-        initialize(binding, this, this, R.style.Theme_Voyager, savedInstanceState) { newBinding ->
-            val b = newBinding ?: binding
-            setContentView(b.root)
-        }
+        setContentView(binding.root)
+
+        initialize(binding, this, this, R.style.Theme_Voyager, savedInstanceState) {}
 
         binding.viewModel = mainViewModel
         binding.lifecycleOwner = this

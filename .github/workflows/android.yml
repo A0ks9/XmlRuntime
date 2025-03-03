@@ -34,13 +34,33 @@ jobs:
           distribution: 'temurin'
           java-version: 21
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK and NDK
         uses: android-actions/setup-android@v3
         with:
           sdk-version: '35'
+          ndk-version: 'latest'
 
       - name: Change Gradle wrapper permissions
         run: chmod +x ./gradlew
+
+      # --- C++ Build Steps ---
+      - name: Configure CMake
+        run: |
+          mkdir app/.cxx
+          cmake -E chdir app/.cxx cmake \
+            -DANDROID_ABI="armeabi-v7a,arm64-v8a,x86,x86_64" \ # Target all common ABIs
+            -DANDROID_PLATFORM=android-21 \       # Match minSdkVersion (e.g., API 21)
+            -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -S app/src/main/cpp \
+            -B ./
+
+      - name: Build C++ Libraries
+        run: |
+          cmake -E chdir app/.cxx cmake --build ./
+
+      # --- End C++ Build Steps ---
+
 
       - name: Build Debug Apk
         if: ${{ github.ref == 'refs/heads/master' }}

@@ -146,6 +146,7 @@ open class AttributeRegistry {
             targetView: V, attributeValues: Map<String, T?>
         ) {
             attributeValues.forEach { (attr, value) ->
+                if (attr == "android" || attr == "app") return@forEach
                 val attributeProcessor = attributeProcessors.find { it.first == attr }?.second
                     ?: throw IllegalArgumentException("Attribute not found: $attr")
 

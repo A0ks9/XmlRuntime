@@ -19,7 +19,7 @@ using namespace std;
 using namespace rapidjson;
 
 // Global pointer for the JSON writer (accessible by callbacks)
-PrettyWriter<StringBuffer> *g_writer = nullptr;
+PrettyWriter <StringBuffer> *g_writer = nullptr;
 // Global vector to track if each element (by depth) has had its "children" array started
 vector<bool> g_childrenStarted;
 // Global depth counter (current XML nesting level)
@@ -35,12 +35,25 @@ size_t getMemoryUsage() {
     return usage.ru_maxrss;
 }
 
+
+const char *removePrefixBeforeColon(const char *str) {
+    const char *colonPtr = static_cast<const char *>(memchr(str, ':',
+                                                            strlen(str))); // Use strlen to get length
+
+    if (colonPtr != nullptr) {
+        return colonPtr + 1; // Return pointer to character after colon
+    }
+    return str; // Return original pointer if no colon found
+}
+
 /*
  * startElement:
  * Called by Expat when a start element is encountered.
  * If the parent element hasn't yet had its "children" array started, do so now.
  */
-void XMLCALL startElement(void *userData, const char *name, const char **attributes) {
+void XMLCALL
+
+startElement(void *userData, const char *name, const char **attributes) {
     // If this element has a parent and the parent's children array is not started, start it.
     if (g_depth > 0 && !g_childrenStarted[g_depth - 1]) {
         g_writer->Key("children");
@@ -58,7 +71,7 @@ void XMLCALL startElement(void *userData, const char *name, const char **attribu
         g_writer->Key("attributes");
         g_writer->StartObject();
         for (int i = 0; attributes[i]; i += 2) {
-            g_writer->Key(attributes[i]);
+            g_writer->Key(removePrefixBeforeColon(attributes[i]));
             g_writer->String(attributes[i + 1] ? attributes[i + 1] : "");
         }
         g_writer->EndObject();
@@ -74,7 +87,9 @@ void XMLCALL startElement(void *userData, const char *name, const char **attribu
  * Called by Expat when an end element is encountered.
  * Closes any started "children" array and the current JSON object.
  */
-void XMLCALL endElement(void *userData, const char *name) {
+void XMLCALL
+
+endElement(void *userData, const char *name) {
     if (g_childrenStarted[g_depth - 1]) {
         g_writer->EndArray();
     }
@@ -91,7 +106,7 @@ void XMLCALL endElement(void *userData, const char *name) {
 std::string convertXmlToJsonString(const char *xmlFile) {
     // Create a RapidJSON StringBuffer and PrettyWriter that writes into it.
     StringBuffer buffer;
-    PrettyWriter<StringBuffer> writer(buffer);
+    PrettyWriter <StringBuffer> writer(buffer);
     g_writer = &writer;
 
     // Create Expat parser.
@@ -151,8 +166,8 @@ std::string convertXmlToJsonString(const char *xmlFile) {
 // JNI Wrapper: Expose the conversion function to Kotlin
 //
 extern "C" {
-
-JNIEXPORT jstring JNICALL
+JNIEXPORT jstring
+JNICALL
 Java_com_dynamic_utils_FileHelper_parseXML(JNIEnv *env, jobject /* this */, jstring xmlPath) {
     // Convert the jstring to a C-style string.
     const char *path = env->GetStringUTFChars(xmlPath, nullptr);

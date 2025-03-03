@@ -19,7 +19,6 @@ import com.dynamic.utils.processors.ViewProcessor.Companion.createViewByType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Object that handles the dynamic inflation of layouts from JSON or XML resources.
@@ -55,7 +54,7 @@ object DynamicLayoutInflation {
     ) {
         try {
             getFileExtension(context, layoutUri) { extension ->
-                CoroutineScope(Dispatchers.IO).launch {
+                CoroutineScope(Dispatchers.Main).launch {
                     val contextThemeWrapper = ContextThemeWrapper(context, theme)
                     when (extension.lowercase()) {
                         "json" -> {
@@ -67,7 +66,7 @@ object DynamicLayoutInflation {
                                 val view = createView(
                                     contextThemeWrapper, node, parent
                                 )
-                                withContext(Dispatchers.Main) { callback?.invoke(view) }
+                                callback?.invoke(view)
                             }
                         }
 
@@ -81,10 +80,10 @@ object DynamicLayoutInflation {
                             val view = createView(
                                 contextThemeWrapper, node, parent
                             )
-                            withContext(Dispatchers.Main) { callback?.invoke(view) }
+                            callback?.invoke(view)
                         }
 
-                        else -> withContext(Dispatchers.Main) { callback?.invoke(null) }
+                        else -> callback?.invoke(null)
                     }
                 }
             }
@@ -122,11 +121,9 @@ object DynamicLayoutInflation {
         callback: ((View?) -> Unit)? = null
     ) {
         try {
-            CoroutineScope(Dispatchers.IO).launch {
-                viewNode = layout
-                val view = createView(context, layout, parent)
-                withContext(Dispatchers.Main) { callback?.invoke(view) }
-            }
+            viewNode = layout
+            val view = createView(context, layout, parent)
+            callback?.invoke(view)
         } catch (error: Exception) {
             Log.e("DynamicLayoutInflation", "Error inflating JSON", error)
             callback?.invoke(null)
@@ -136,7 +133,7 @@ object DynamicLayoutInflation {
     private fun createView(
         context: ContextThemeWrapper, layout: ViewNode, parent: ViewGroup?, isFirst: Boolean = true
     ): View? = createViewByType(context, layout.type).apply {
-        if (!isFirst) parent?.addView(this)
+        parent?.addView(this)
         applyAttributes(this, layout.attributes, parent)
         if (this is ViewGroup && layout.children.isNotEmpty()) {
             parseChildren(context, layout.children, this)
