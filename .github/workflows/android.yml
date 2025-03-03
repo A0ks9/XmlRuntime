@@ -1,65 +1,64 @@
+name: Android CI Build
+
+# Trigger the workflow on pushes, pull requests, or manually.
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+# Use concurrency to ensure that if a new run is triggered while one is in progress, the previous one is canceled.
+concurrency:
+  group: android-build
+  cancel-in-progress: true
+
 jobs:
-  build_apk:
-    name: Build APK (with C++)
+  build:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the repository code.
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Java (JDK 17) needed for Android builds.
+      - name: Set up Java (Temurin JDK 21)
+        uses: actions/setup-java@v4
         with:
-          fetch-depth: 1  
+          distribution: temurin
+          java-version: '21'
 
-      - name: Download RapidJSON
-        run: |
-          git clone --depth=1 https://github.com/Tencent/rapidjson.git third_party/rapidjson
-          ls third_party/rapidjson/include/rapidjson  # Check if downloaded correctly
-
-      - name: Cache Gradle & C++ Build Files
+      # Step 3: Cache Gradle dependencies to speed up subsequent builds.
+      - name: Cache Gradle Dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-            ~/.android/build-cache
-            .cxx
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 21
-
-      - name: Set up Android SDK
+      # Step 4: Set up Android SDK, Build Tools, and NDK using a community action.
+      #         The 'latest' keyword ensures that the latest versions are used.
+      - name: Set up Android SDK, Build Tools, and NDK
         uses: android-actions/setup-android@v3
         with:
-          sdk-version: '35'
+          sdk-version: latest
+          build-tools: latest
+          ndk-version: latest
 
-      - name: Set up Pre-installed NDK
-        run: |
-          export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
-          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
-          echo "ANDROID_NDK=$ANDROID_NDK_HOME" >> $GITHUB_ENV
-          echo "PATH=$ANDROID_NDK_HOME:$PATH" >> $GITHUB_ENV
+      # Step 5: Build the Android project.
+      #         --parallel flag enables parallel processing for faster builds.
+      - name: Build Android Project
+        run: ./gradlew assembleDebug --parallel
 
-      - name: Grant Execute Permission for Gradle Wrapper
-        run: chmod +x ./gradlew
-
-      - name: Build C++ Code (NDK)
-        run: ./gradlew :app:externalNativeBuildDebug --parallel --no-daemon --build-cache --configuration-cache
-        env:
-          CXXFLAGS: "-O3 -flto=thin -march=native"
-          CC: "clang"
-          CXX: "clang++"
-          CMAKE_GENERATOR: "Ninja"
-
-      - name: Build Debug APK
-        if: ${{ github.ref == 'refs/heads/master' }}
-        run: ./gradlew assembleDebug --parallel --no-daemon --build-cache --configuration-cache
-
-      - name: Upload Debug APK
+      # Step 6: Upload the built APKs as artifacts.
+      #         retention-days is set to 10 so that the artifacts are removed after 10 days.
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: debug-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: APK
+          path: app/build/outputs/apk/
           retention-days: 10
