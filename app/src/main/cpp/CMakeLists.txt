@@ -8,6 +8,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+add_library(xmlParser
+        SHARED
+        ${CMAKE_CURRENT_SOURCE_DIR}/xmlParser.cpp
+)
+
+target_include_directories(xmlParser
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/rapidjson/include
+)
+
 FetchContent_Declare(
         expat
         GIT_REPOSITORY https://github.com/libexpat/libexpat.git
@@ -18,23 +28,11 @@ FetchContent_Declare(
 # Download and configure Expat.
 FetchContent_MakeAvailable(expat)
 
-FetchContent_Declare(
-        rapidjson
-        GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
-        GIT_TAG v1.1.0
-        SOURCE_SUBDIR include/
-)
-
-FetchContent_MakeAvailable(rapidjson)
-
-
-
 find_library(log-lib log)
 
 target_link_libraries(xmlParser
         PUBLIC
         expat
-        rapidjson
         android
         ${log-lib}
 )
