@@ -23,16 +23,15 @@ FetchContent_Declare(
 # Download and configure Expat.
 FetchContent_MakeAvailable(expat)
 
-set(RAPIDJSON_BUILD_EXAMPLES OFF)
-
 FetchContent_Declare(
         rapidjson
         GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
         GIT_TAG master
+        SOURCE_SUBDIR include
 )
 FetchContent_MakeAvailable(rapidjson)
 
-target_include_directories(xmlParser PRIVATE ${rapidjson_SOURCE_DIR}/include)
+target_include_directories(xmlParser PRIVATE ${rapidjson_SOURCE_DIR})
 
 find_library(log-lib log)
 
