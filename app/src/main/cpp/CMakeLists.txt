@@ -8,6 +8,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+add_library(xmlParser
+        SHARED
+        ${CMAKE_CURRENT_SOURCE_DIR}/xmlParser.cpp
+)
+
 FetchContent_Declare(
         expat
         GIT_REPOSITORY https://github.com/libexpat/libexpat.git
