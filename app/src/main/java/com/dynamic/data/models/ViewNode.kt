@@ -5,6 +5,7 @@ import android.os.Parcelable
 import androidx.collection.ArrayMap
 import androidx.room.Entity
 import androidx.room.Index
+import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
 import com.dynamic.data.database.ViewNodeConverters
 import com.dynamic.utils.ArrayMapSerializer
@@ -33,16 +34,14 @@ import kotlinx.serialization.Serializable
  * @see ViewNodeConverters
  */
 @Entity(
-    tableName = "view_nodes",
-    primaryKeys = ["activityName"],
-    indices = [Index(value = ["activityName"], unique = true)]
+    tableName = "view_nodes", indices = [Index(value = ["activityName"], unique = true)]
 )
 @TypeConverters(ViewNodeConverters::class)
 @Serializable
 data class ViewNode(
     var id: String? = null,
     val type: String,
-    var activityName: String,
+    @PrimaryKey var activityName: String,
     @Serializable(with = ArrayMapSerializer::class) val attributes: ArrayMap<String, String> = ArrayMap(),
     var children: List<ViewNode> = emptyList()
 ) : Parcelable {

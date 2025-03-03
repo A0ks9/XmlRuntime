@@ -9,29 +9,20 @@ import kotlinx.coroutines.*
 
 class RoomViewNodeDataSource(context: Context) {
 
-    private val viewNodeDao: ViewNodeDao
-    private val activityName: String
+    private val viewNodeDao: ViewNodeDao = DatabaseProvider.getInstance(context).ViewNodeDao()
+    private val activityName: String =
+        context.getActivityName()  // Retrieve activity name once (reduces function calls)
     private var cachedViewNodes: ViewNode? = null  // Caching to speed up repeated access
 
-    init {
-        val appContext = context.applicationContext
-        viewNodeDao = DatabaseProvider.getInstance(appContext).ViewNodeDao()
-        activityName =
-            appContext.getActivityName()  // Retrieve activity name once (reduces function calls)
-    }
-
     suspend fun hasViewNode(): Boolean = withContext(Dispatchers.IO) {
+        cachedViewNodes = viewNodeDao.getViewNode(activityName)
         return@withContext cachedViewNodes != null
-        val viewNode = viewNodeDao.getViewNode(activityName)
-        cachedViewNodes = viewNode  // Cache result
-        return@withContext viewNode != null
     }
 
     suspend fun getViewNode(): ViewNode? = withContext(Dispatchers.IO) {
         cachedViewNodes?.let { return@withContext it }
-        val viewNode = viewNodeDao.getViewNode(activityName)
-        cachedViewNodes = viewNode  // Cache result
-        return@withContext viewNode
+        cachedViewNodes = viewNodeDao.getViewNode(activityName)
+        return@withContext cachedViewNodes
     }
 
     suspend fun insertViewNode(viewNode: ViewNode) = withContext(Dispatchers.IO) {

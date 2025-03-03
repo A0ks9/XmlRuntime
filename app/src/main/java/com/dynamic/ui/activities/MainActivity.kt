@@ -35,9 +35,9 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        initialize(binding, this, this, R.style.Theme_Voyager, savedInstanceState) {}
+        initialize(binding, this, this, R.style.Theme_Voyager, savedInstanceState) {
+            setContentView(it?.root ?: binding.root)
+        }
 
         binding.viewModel = mainViewModel
         binding.lifecycleOwner = this
@@ -119,16 +119,11 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         saveDataWithRoom(this) // Or delegate to ViewModel if you want ViewModel to control this logic
     }
 
-    fun isDarkTheme(context: Context): Boolean {
-        val uiMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return uiMode == Configuration.UI_MODE_NIGHT_YES
-    }
 
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        saveInstanceState(this, outState) // Or delegate to ViewModel
-    }
+//    override fun onSaveInstanceState(outState: Bundle) {
+//        super.onSaveInstanceState(outState)
+//        saveInstanceState(this, outState) // Or delegate to ViewModel
+//    }
 
     override fun getContainerLayout(): ViewGroup {
         return binding.parentLayout

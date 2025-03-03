@@ -10,7 +10,7 @@ internal object DatabaseProvider {
     fun getInstance(context: Context): AppDatabase {
         return INSTANCE ?: synchronized(this) {
             val instance = Room.databaseBuilder(
-                context.applicationContext, AppDatabase::class.java, "view_nodes"
+                context.applicationContext, AppDatabase::class.java, "view_nodes_database"
             ).build()
             INSTANCE = instance
             instance

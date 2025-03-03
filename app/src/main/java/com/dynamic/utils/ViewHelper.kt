@@ -58,14 +58,17 @@ internal object ViewHelper {
         CoroutineScope(Main).launch {
             try {
                 when {
-                    extras != null -> restoreViewsFromState(
-                        contextThemeWrapper, extras, containerView
-                    )
+                    extras != null -> {
+                        Log.d("ViewHelper", "Restoring view states from Bundle")
+                        restoreViewsFromState(
+                            contextThemeWrapper, extras, containerView
+                        )
+                    }
 
                     !RoomViewNodeDataSource(context).hasViewNode() -> {
+                        Log.d("ViewHelper", "No view nodes found in Room")
                         if (effectiveJson == null) return@launch
-                        val node = fromJson(effectiveJson)
-                        if (node == null) return@launch
+                        val node = fromJson(effectiveJson) ?: return@launch
                         Log.d("ViewHelper", "Inflating views from JSON")
                         inflate(contextThemeWrapper, node, containerView)
                     }
@@ -73,8 +76,8 @@ internal object ViewHelper {
                     else -> {
                         Log.d("ViewHelper", "Restoring views from Room")
                         val viewNode = withContext(IO) { restoreViewsFromRoom(context) }
-                        if (viewNode == null) return@launch
                         Log.d("ViewHelper", "Restored view states: $viewNode")
+                        if (viewNode == null) return@launch
                         inflate(
                             contextThemeWrapper, viewNode, containerView
                         )
@@ -93,8 +96,7 @@ internal object ViewHelper {
     private fun restoreViewsFromState(
         context: ContextThemeWrapper, extras: Bundle, containerView: ViewGroup?
     ) {
-        val viewNode = extras.getParcelableCompat("viewNode", ViewNode::class.java)
-        if (viewNode == null) return
+        val viewNode = extras.getParcelableCompat("viewNode", ViewNode::class.java) ?: return
         inflate(context, viewNode, containerView)
     }
 
@@ -103,8 +105,8 @@ internal object ViewHelper {
     }
 
     fun saveInstanceState(outState: Bundle) {
-        val viewNode = collectViewsState()
-        Log.d("ViewHelper", "Saving view states: $viewNode")
+        val viewNode = collectViewsNode() ?: return
+        Log.d("ViewHelper", "Saving view nodes: $viewNode")
         outState.putParcelable("viewState", viewNode)
     }
 
@@ -113,7 +115,7 @@ internal object ViewHelper {
 
         CoroutineScope(IO).launch {
             try {
-                val viewNode = collectViewsState() ?: return@launch
+                val viewNode = collectViewsNode() ?: return@launch
                 Log.d(
                     "ViewHelper",
                     "Saving view nodes to Room for activity: ${context.getActivityName()}"
@@ -125,7 +127,7 @@ internal object ViewHelper {
         }
     }
 
-    private fun collectViewsState(): ViewNode? = DynamicLayoutInflation.viewNode
+    private fun collectViewsNode(): ViewNode? = DynamicLayoutInflation.viewNode
 
     fun setJsonConfiguration(json: String) {
         jsonConfiguration = json
