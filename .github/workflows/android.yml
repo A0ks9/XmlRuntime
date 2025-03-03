@@ -10,63 +10,66 @@ on:
 
 jobs:
   build_apk:
-    name: Build Apk
+    name: Build APK (Optimized)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository (Shallow Clone)
         uses: actions/checkout@v4
         with:
-          token: ${{ github.token }}
+          fetch-depth: 1  # Speed up Git checkout by only fetching the latest commit
 
-      - uses: actions/cache@v4
+      - name: Cache Gradle & Native Builds
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
             ~/.android/build-cache
             ~/.m2/repository
-          key: ${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}-${{ hashFiles('**/buildSrc/**/*.kt') }}
+            .cxx  # Cache native C++ build files
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
-      - name: Set up JDK 21
+      - name: Set up JDK 21 (Latest)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: 21
 
-      - name: Set up Android SDK and NDK
+      - name: Set up Android SDK (Latest)
         uses: android-actions/setup-android@v3
         with:
-          sdk-version: '35'
-          ndk-version: 'latest'
+          sdk-version: '35'  # Always use the latest API level
 
-      - name: Change Gradle wrapper permissions
+      - name: Set up Android NDK (Pre-installed)
+        run: |
+          echo "Using pre-installed NDK for speed"
+          export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+          echo "ANDROID_NDK=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_NDK_HOME:$PATH" >> $GITHUB_ENV
+
+      - name: Grant Execute Permission for Gradle Wrapper
         run: chmod +x ./gradlew
 
-      # --- C++ Build Steps ---
-      - name: Configure CMake
+      - name: Use RAM Disk for Faster Builds
         run: |
-          mkdir app/.cxx
-          cmake -E chdir app/.cxx cmake \
-            -DANDROID_ABI="armeabi-v7a,arm64-v8a,x86,x86_64" \ # Target all common ABIs
-            -DANDROID_PLATFORM=android-21 \       # Match minSdkVersion (e.g., API 21)
-            -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -S app/src/main/cpp \
-            -B ./
+          echo "Moving temporary Gradle and build files to RAM disk"
+          sudo mount -t tmpfs -o size=4G tmpfs /home/runner/work/android-build
+          mv .gradle /home/runner/work/android-build/gradle
 
-      - name: Build C++ Libraries
-        run: |
-          cmake -E chdir app/.cxx cmake --build ./
+      - name: Build Native C++ Code (Extreme Optimization)
+        run: ./gradlew :app:externalNativeBuildDebug --parallel --no-daemon --build-cache --max-workers=2 --configuration-cache
+        env:
+          CXXFLAGS: "-O3 -flto=thin -march=native"  # Enable max optimizations & thin LTO
+          CC: "clang"
+          CXX: "clang++"
 
-      # --- End C++ Build Steps ---
-
-
-      - name: Build Debug Apk
+      - name: Build Debug APK (Fast Mode)
         if: ${{ github.ref == 'refs/heads/master' }}
-        run: ./gradlew assembleDebug -Dorg.gradle.parallel=true -Dorg.gradle.daemon=true
+        run: ./gradlew assembleDebug --parallel --no-daemon --build-cache --configuration-cache --max-workers=2
 
-      - name: Upload Debug
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: debug-${{ github.run_number }}
