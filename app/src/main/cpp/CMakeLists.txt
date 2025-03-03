@@ -23,6 +23,8 @@ FetchContent_Declare(
 # Download and configure Expat.
 FetchContent_MakeAvailable(expat)
 
+set(RAPIDJSON_BUILD_EXAMPLES OFF)
+
 FetchContent_Declare(
         rapidjson
         GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
