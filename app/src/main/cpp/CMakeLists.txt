@@ -23,15 +23,14 @@ FetchContent_Declare(
 # Download and configure Expat.
 FetchContent_MakeAvailable(expat)
 
+set(RAPIDJSON_BUILD_EXAMPLES OFF CACHE BOOL "Disable RapidJSON examples" FORCE)
+
 FetchContent_Declare(
         rapidjson
         GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
         GIT_TAG master
 )
 FetchContent_MakeAvailable(rapidjson)
-
-message(STATUS "RapidJSON include directory: ${rapidjson_SOURCE_DIR}")
-
 
 target_include_directories(xmlParser PRIVATE ${rapidjson_SOURCE_DIR}/include)
 
