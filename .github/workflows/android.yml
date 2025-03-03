@@ -1,32 +1,27 @@
-name: Android CI
-
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-
 jobs:
   build_apk:
-    name: Build APK (Fastest)
+    name: Build APK (with C++)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # Speeds up checkout
+          fetch-depth: 1  
 
-      - name: Cache Gradle & Build Files
+      - name: Download RapidJSON
+        run: |
+          git clone --depth=1 https://github.com/Tencent/rapidjson.git third_party/rapidjson
+          ls third_party/rapidjson/include/rapidjson  # Check if downloaded correctly
+
+      - name: Cache Gradle & C++ Build Files
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
             ~/.android/build-cache
-            .cxx  # C++ build cache
+            .cxx
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
       - name: Set up JDK 21
@@ -40,7 +35,7 @@ jobs:
         with:
           sdk-version: '35'
 
-      - name: Set up Pre-installed NDK (Fastest Method)
+      - name: Set up Pre-installed NDK
         run: |
           export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
