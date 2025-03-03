@@ -27,11 +27,13 @@ FetchContent_Declare(
         rapidjson
         GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
         GIT_TAG master
-        SOURCE_SUBDIR include
 )
 FetchContent_MakeAvailable(rapidjson)
 
-target_include_directories(xmlParser PRIVATE ${rapidjson_SOURCE_DIR})
+message(STATUS "RapidJSON include directory: ${rapidjson_SOURCE_DIR}")
+
+
+target_include_directories(xmlParser PRIVATE ${rapidjson_SOURCE_DIR}/include)
 
 find_library(log-lib log)
 
