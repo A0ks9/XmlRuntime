@@ -10,16 +10,16 @@ on:
 
 jobs:
   build_apk:
-    name: Build APK (Optimized)
+    name: Build APK (Fastest)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository (Shallow Clone)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # Speed up Git checkout by only fetching the latest commit
+          fetch-depth: 1  # Faster Git checkout
 
-      - name: Cache Gradle & Native Builds
+      - name: Cache Gradle, C++ & Build Files
         uses: actions/cache@v4
         with:
           path: |
@@ -27,7 +27,7 @@ jobs:
             ~/.gradle/wrapper
             ~/.android/build-cache
             ~/.m2/repository
-            .cxx  # Cache native C++ build files
+            .cxx  # C++ build cache
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
       - name: Set up JDK 21 (Latest)
@@ -39,33 +39,37 @@ jobs:
       - name: Set up Android SDK (Latest)
         uses: android-actions/setup-android@v3
         with:
-          sdk-version: '35'  # Always use the latest API level
+          sdk-version: '35'
 
-      - name: Set up Android NDK (Pre-installed)
+      - name: Set up Pre-installed NDK (No Download)
         run: |
-          echo "Using pre-installed NDK for speed"
           export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
           echo "ANDROID_NDK=$ANDROID_NDK_HOME" >> $GITHUB_ENV
           echo "PATH=$ANDROID_NDK_HOME:$PATH" >> $GITHUB_ENV
 
+      - name: Move Gradle & Build Files to RAM Disk (Faster Builds)
+        run: |
+          echo "Moving Gradle cache and build files to RAM disk (/dev/shm/)"
+          mkdir -p /dev/shm/gradle-cache
+          mkdir -p /dev/shm/build-cache
+          mv ~/.gradle /dev/shm/gradle-cache
+          mv .cxx /dev/shm/build-cache
+          ln -s /dev/shm/gradle-cache ~/.gradle
+          ln -s /dev/shm/build-cache .cxx
+
       - name: Grant Execute Permission for Gradle Wrapper
         run: chmod +x ./gradlew
 
-      - name: Use RAM Disk for Faster Builds
-        run: |
-          echo "Moving temporary Gradle and build files to RAM disk"
-          sudo mount -t tmpfs -o size=4G tmpfs /home/runner/work/android-build
-          mv .gradle /home/runner/work/android-build/gradle
-
-      - name: Build Native C++ Code (Extreme Optimization)
+      - name: Build Native C++ Code (Optimized with Ninja)
         run: ./gradlew :app:externalNativeBuildDebug --parallel --no-daemon --build-cache --max-workers=2 --configuration-cache
         env:
-          CXXFLAGS: "-O3 -flto=thin -march=native"  # Enable max optimizations & thin LTO
+          CXXFLAGS: "-O3 -flto=thin -march=native"
           CC: "clang"
           CXX: "clang++"
+          CMAKE_GENERATOR: "Ninja"
 
-      - name: Build Debug APK (Fast Mode)
+      - name: Build Debug APK (Extreme Speed)
         if: ${{ github.ref == 'refs/heads/master' }}
         run: ./gradlew assembleDebug --parallel --no-daemon --build-cache --configuration-cache --max-workers=2
 
