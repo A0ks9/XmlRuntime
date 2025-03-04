@@ -87,7 +87,7 @@ class MainViewModel(
 
     fun writeToFile(uri: Uri, contentResolver: ContentResolver) {
         viewModelScope.launch(Dispatchers.IO) {
-            val jsonContent = _parsedJson.value ?: return@launch
+            val jsonContent = _parsedJson.value ?: throw IllegalStateException("Parsed JSON is null")
             try {
                 contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.write(jsonContent.toByteArray(Charsets.UTF_8))
