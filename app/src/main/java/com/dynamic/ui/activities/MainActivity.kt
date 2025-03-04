@@ -1,13 +1,11 @@
 package com.dynamic.ui.activities
 
 import android.Manifest
-import android.content.ContentResolver
-import android.net.Uri
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.ViewGroup
-import android.content.Intent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -50,7 +48,10 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         // Request necessary permissions
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) { // For Android 10 and below
             requestPermissionLauncher.launch(
-                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )
             )
         }
     }
@@ -59,24 +60,26 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         openDocumentLauncher =
             registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
                 uri?.let {
-                    // Persist URI permissions
-                    /*contentResolver.takePersistableUriPermission(
-                        it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    )*/
                     mainViewModel.setSelectedFileUri(it)
                 }
             }
 
         requestPermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-                val readGranted = permissions[Manifest.permission.READ_EXTERNAL_STORAGE] ?: false
-                val writeGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] ?: false
+                val readGranted = permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
+                val writeGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] == true
                 binding.XmlParserButton.isActivated = readGranted && writeGranted
             }
 
         createDocumentLauncher =
             registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-                uri?.let { mainViewModel.writeToFile(it, contentResolver) }
+                uri?.let {  // Persist URI permissions
+                    contentResolver.takePersistableUriPermission(
+                        it,
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                    mainViewModel.writeToFile(it, contentResolver)
+                }
             }
     }
 
@@ -99,7 +102,12 @@ class MainActivity : AppCompatActivity(), ViewHandler {
 
         binding.XmlParserButton.setOnClickListener {
             when {
-                mainViewModel.isFileSelected.value == false -> openDocumentLauncher.launch(arrayOf("application/xml", "text/xml"))
+                mainViewModel.isFileSelected.value == false -> openDocumentLauncher.launch(
+                    arrayOf(
+                        "application/xml", "text/xml"
+                    )
+                )
+
                 mainViewModel.isFileCreated.value == false -> mainViewModel.convertXmlToJson(this@MainActivity)
             }
         }
