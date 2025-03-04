@@ -11,6 +11,8 @@ import com.dynamic.data.repositories.ViewStateRepository
 import com.dynamic.data.repositories.XmlRepository
 import com.dynamic.utils.FileHelper.getPath
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import java.io.IOException
 
 class MainViewModel(
     private val xmlRepository: XmlRepository, private val viewStateRepository: ViewStateRepository
