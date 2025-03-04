@@ -84,19 +84,19 @@ class MainViewModel(
 
 
     fun writeToFile(uri: Uri, contentResolver: ContentResolver) {
-        viewModelScope.launch {
-            val jsonContent = _parsedJson.value ?: return@launch
-            try {
+    viewModelScope.launch {
+        val jsonContent = _parsedJson.value ?: return@launch
+        try {
+            withContext(Dispatchers.IO) { // Ensure writing happens on the I/O thread
                 contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write(jsonContent.toByteArray())
-                    _createdFileUri.value = uri
-                    _isFileCreated.value = true
-                    _enableShowing.value = true
-                }
-            } catch (e: Exception) {
-                // Handle file writing error (e.g., show error message to user)
-                e.printStackTrace()
-            }
+                    outputStream.write(jsonContent.toByteArray(Charsets.UTF_8)) // UTF-8 encoding
+            _createdFileUri.postValue(uri) // Use postValue() since it's from a background thread
+            _isFileCreated.postValue(true)
+            _enableShowing.postValue(true)
+}}
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
+}
 }
