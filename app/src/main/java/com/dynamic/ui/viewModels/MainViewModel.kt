@@ -64,14 +64,13 @@ class MainViewModel(
         viewModelScope.launch {
             val uri = _selectedFile.value ?: return@launch
             val path = getPath(context, uri) ?: return@launch
-            xmlRepository.convertXmlToJson(path) { jsonResult ->
-                _parsedJson.value = jsonResult
-                xmlRepository.getFileNameFromUri(context.contentResolver, uri) { fileName ->
-                    // Handle file creation logic here or in a Use Case if more complex
-                    createDocument(
-                        fileName.replace(".xml", ".json")
-                    ) // Pass filename for creation
-                }
+            _parsedJson.value = xmlRepository.convertXmlToJson(path).toString()
+            Log.d("Json Parsed", _parsedJson.value.toString())
+            xmlRepository.getFileNameFromUri(context.contentResolver, uri) { fileName ->
+                // Handle file creation logic here or in a Use Case if more complex
+                createDocument(
+                    fileName.replace(".xml", ".json")
+                ) // Pass filename for creation
             }
         }
     }

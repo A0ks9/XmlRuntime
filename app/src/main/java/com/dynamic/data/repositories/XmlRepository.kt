@@ -6,9 +6,7 @@ import com.dynamic.data.sources.remote.XmlFileDataSource
 
 class XmlRepository(private val xmlFileDataSource: XmlFileDataSource) {
 
-    fun convertXmlToJson(xmlPath: String, callback: (String?) -> Unit) {
-        xmlFileDataSource.convertXml(xmlPath, callback)
-    }
+    fun convertXmlToJson(xmlPath: String): String? = xmlFileDataSource.convertXml(xmlPath)
 
     fun getFileNameFromUri(contentResolver: ContentResolver, uri: Uri, callback: (String) -> Unit) {
         xmlFileDataSource.getFileNameFromUri(
