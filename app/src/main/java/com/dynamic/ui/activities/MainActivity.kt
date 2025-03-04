@@ -1,8 +1,9 @@
 package com.dynamic.ui.activities
 
 import android.Manifest
-import android.content.Context
-import android.content.res.Configuration
+import android.content.ContentResolver
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.ViewGroup
@@ -20,7 +21,6 @@ import com.dynamic.utils.DynamicLayoutInflation.inflate
 import com.dynamic.utils.interfaces.ViewHandler
 import com.dynamic.utils.interfaces.ViewHandler.Companion.initialize
 import com.dynamic.utils.interfaces.ViewHandler.Companion.saveDataWithRoom
-import com.dynamic.utils.interfaces.ViewHandler.Companion.saveInstanceState
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : AppCompatActivity(), ViewHandler {
@@ -28,7 +28,7 @@ class MainActivity : AppCompatActivity(), ViewHandler {
     private lateinit var binding: ActivityMainBinding
     private val mainViewModel: MainViewModel by viewModel() // Inject ViewModel using Koin
     private lateinit var openDocumentLauncher: ActivityResultLauncher<Array<String>>
-    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var createDocumentLauncher: ActivityResultLauncher<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,18 +46,31 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         setupObservers()
         setupUI()
 
-        requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+        // Request necessary permissions
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) { // For Android 10 and below
+            requestPermissionLauncher.launch(
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            )
+        }
     }
 
     private fun setupActivityResultLaunchers() {
         openDocumentLauncher =
             registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-                uri?.let { mainViewModel.setSelectedFileUri(it) }
+                uri?.let {
+                    // Persist URI permissions
+                    contentResolver.takePersistableUriPermission(
+                        it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    )
+                    mainViewModel.setSelectedFileUri(it)
+                }
             }
 
         requestPermissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-                binding.XmlParserButton.isActivated = granted
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+                val readGranted = permissions[Manifest.permission.READ_EXTERNAL_STORAGE] ?: false
+                val writeGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] ?: false
+                binding.XmlParserButton.isActivated = readGranted && writeGranted
             }
 
         createDocumentLauncher =
@@ -72,14 +85,9 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         }
 
         mainViewModel.isFileCreated.observe(this) { isCreated ->
-            // Update UI based on file creation status if needed
-        }
-
-        mainViewModel.enableShowing.observe(this) { enableShowing ->
-            // Update UI if needed based on showing button enable state
+            if (isCreated) Log.d("MainActivity", "File created successfully!")
         }
     }
-
 
     private fun setupUI() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
@@ -89,10 +97,9 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         }
 
         binding.XmlParserButton.setOnClickListener {
-            if (mainViewModel.isFileSelected.value == false) {
-                openDocumentLauncher.launch(arrayOf("application/xml", "text/xml"))
-            } else if (mainViewModel.isFileCreated.value == false) {
-                mainViewModel.convertXmlToJson(this@MainActivity) // Trigger XML conversion in ViewModel
+            when {
+                mainViewModel.isFileSelected.value == false -> openDocumentLauncher.launch(arrayOf("application/xml", "text/xml"))
+                mainViewModel.isFileCreated.value == false -> mainViewModel.convertXmlToJson(this@MainActivity)
             }
         }
 
@@ -115,23 +122,12 @@ class MainActivity : AppCompatActivity(), ViewHandler {
     }
 
     private fun saveViewData() {
-        // Trigger save view data in ViewModel if needed, or directly call ViewHelper.saveDataWithRoom(this)
-        saveDataWithRoom(this) // Or delegate to ViewModel if you want ViewModel to control this logic
+        saveDataWithRoom(this)
     }
 
+    override fun getContainerLayout(): ViewGroup = binding.parentLayout
 
-//    override fun onSaveInstanceState(outState: Bundle) {
-//        super.onSaveInstanceState(outState)
-//        saveInstanceState(this, outState) // Or delegate to ViewModel
-//    }
-
-    override fun getContainerLayout(): ViewGroup {
-        return binding.parentLayout
-    }
-
-    override fun getJsonConfiguration(): String? {
-        return null // Or return your JsonCast configuration if needed
-    }
+    override fun getJsonConfiguration(): String? = null
 
     override fun onViewCreated(parentView: ViewGroup?) {
         // Optional callback after view inflation
