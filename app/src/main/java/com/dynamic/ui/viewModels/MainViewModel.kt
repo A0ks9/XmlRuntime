@@ -3,6 +3,7 @@ package com.dynamic.ui.viewModels
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -10,9 +11,8 @@ import androidx.lifecycle.viewModelScope
 import com.dynamic.data.repositories.ViewStateRepository
 import com.dynamic.data.repositories.XmlRepository
 import com.dynamic.utils.FileHelper.getPath
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
-import java.io.IOException
+import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val xmlRepository: XmlRepository, private val viewStateRepository: ViewStateRepository
@@ -87,16 +87,13 @@ class MainViewModel(
 
     fun writeToFile(uri: Uri, contentResolver: ContentResolver) {
         viewModelScope.launch(Dispatchers.IO) {
-            val jsonContent = _parsedJson.value ?: throw IllegalStateException("Parsed JSON is null")
-            try {
-                contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    outputStream.write(jsonContent.toByteArray(Charsets.UTF_8))
-                    _createdFileUri.postValue(uri)
-                    _isFileCreated.postValue(true)
-                     _enableShowing.postValue(true)
+            val jsonContent =
+                _parsedJson.value ?: throw IllegalStateException("Parsed JSON is null")
+            Log.d("JSON_CONTENT", jsonContent)
+            contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.bufferedWriter(Charsets.UTF_8).use { writer ->
+                    writer.write(jsonContent)
                 }
-            } catch (e: IOException) {
-                e.printStackTrace()
             }
         }
     }
