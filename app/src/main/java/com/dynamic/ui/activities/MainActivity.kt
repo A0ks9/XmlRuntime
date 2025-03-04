@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.ViewGroup
+import android.content.Intent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -59,9 +60,9 @@ class MainActivity : AppCompatActivity(), ViewHandler {
             registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
                 uri?.let {
                     // Persist URI permissions
-                    contentResolver.takePersistableUriPermission(
+                    /*contentResolver.takePersistableUriPermission(
                         it, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    )
+                    )*/
                     mainViewModel.setSelectedFileUri(it)
                 }
             }
