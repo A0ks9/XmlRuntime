@@ -50,7 +50,7 @@ object DynamicLayoutInflation {
         theme: Int,
         layoutUri: Uri,
         parent: ViewGroup?,
-        callback: ((View?) -> Unit)? = null
+        callback: ((View?) -> Unit)? = null,
     ) {
         try {
             getFileExtension(context, layoutUri) { extension ->
@@ -73,7 +73,7 @@ object DynamicLayoutInflation {
                         "xml" -> {
                             val node = fromJson(
                                 parseXML(
-                                    getPath(context, layoutUri)!!
+                                    context.contentResolver.openInputStream(layoutUri)!!
                                 )
                             ) ?: return@launch
                             viewNode = node
@@ -118,7 +118,7 @@ object DynamicLayoutInflation {
         context: ContextThemeWrapper,
         layout: ViewNode,
         parent: ViewGroup?,
-        callback: ((View?) -> Unit)? = null
+        callback: ((View?) -> Unit)? = null,
     ) {
         try {
             viewNode = layout
@@ -131,7 +131,7 @@ object DynamicLayoutInflation {
     }
 
     private fun createView(
-        context: ContextThemeWrapper, layout: ViewNode, parent: ViewGroup?, isFirst: Boolean = true
+        context: ContextThemeWrapper, layout: ViewNode, parent: ViewGroup?, isFirst: Boolean = true,
     ): View? = createViewByType(context, layout.type).apply {
         parent?.addView(this)
         applyAttributes(this, layout.attributes, parent)
@@ -147,7 +147,7 @@ object DynamicLayoutInflation {
      * @param parent The parent view where the children should be added.
      */
     private fun parseChildren(
-        context: ContextThemeWrapper, children: List<ViewNode>, parent: ViewGroup
+        context: ContextThemeWrapper, children: List<ViewNode>, parent: ViewGroup,
     ) {
         children.let {
             for (index in 0 until it.size) {
@@ -164,7 +164,7 @@ object DynamicLayoutInflation {
      * @param parent The parent ViewGroup of the view.
      */
     private fun applyAttributes(
-        view: View, attributes: ArrayMap<String, String>, parent: ViewGroup?
+        view: View, attributes: ArrayMap<String, String>, parent: ViewGroup?,
     ) {
         Log.d(
             "DynamicLayoutInflation",
