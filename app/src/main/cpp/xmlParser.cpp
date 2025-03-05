@@ -1,72 +1,47 @@
-#include <cstdio>               // Standard I/O functions
-#include <cstdlib>              // Standard library functions
-#include <cstring>              // For string operations
-#include <chrono>               // For high resolution timing
-#include <sys/resource.h>       // For getrusage (memory usage)
-#include <expat.h>              // Expat XML parser header
-#include <fcntl.h>              // For open()
-#include <sys/mman.h>           // For mmap()
-#include <sys/stat.h>           // For fstat()
-#include <unistd.h>             // For close()
-#include <iostream>             // For std::cout and std::cerr
-#include <string>               // For std::string
-#include <vector>               // For std::vector
-#include <rapidjson/prettywriter.h>  // For PrettyWriter (formatted JSON output)
-#include <rapidjson/stringbuffer.h>  // For StringBuffer (in-memory output)
-#include <jni.h>                // For JNI integration
+#include <jni.h>
+#include <string>
+#include <vector>
+#include <iostream>
+#include <cstring>
+#include <expat.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/stringbuffer.h>
 
-using namespace std;
+// Use namespaces for convenience.
 using namespace rapidjson;
+using namespace std;
 
-// Global pointer for the JSON writer (accessible by callbacks)
-PrettyWriter <StringBuffer> *g_writer = nullptr;
-// Global vector to track if each element (by depth) has had its "children" array started
+// Global pointer to the JSON writer (used in XML callbacks)
+PrettyWriter<StringBuffer>* g_writer = nullptr;
+// Global vector tracking if a "children" JSON array was started at each XML depth
 vector<bool> g_childrenStarted;
-// Global depth counter (current XML nesting level)
+// Global depth counter for current XML nesting level
 int g_depth = 0;
 
 /*
- * getMemoryUsage:
- * Returns the current maximum resident set size (memory usage) in kilobytes.
+ * removePrefixBeforeColon:
+ * Removes any namespace prefix by returning the substring after a colon.
  */
-size_t getMemoryUsage() {
-    struct rusage usage{};
-    getrusage(RUSAGE_SELF, &usage);
-    return usage.ru_maxrss;
-}
-
-
-const char *removePrefixBeforeColon(const char *str) {
-    const char *colonPtr = static_cast<const char *>(memchr(str, ':',
-                                                            strlen(str))); // Use strlen to get length
-
-    if (colonPtr != nullptr) {
-        return colonPtr + 1; // Return pointer to character after colon
-    }
-    return str; // Return original pointer if no colon found
+const char* removePrefixBeforeColon(const char* str) {
+    const char* colonPtr = static_cast<const char*>(memchr(str, ':', strlen(str)));
+    return (colonPtr != nullptr) ? (colonPtr + 1) : str;
 }
 
 /*
  * startElement:
- * Called by Expat when a start element is encountered.
- * If the parent element hasn't yet had its "children" array started, do so now.
+ * Callback called by Expat when an XML start element is encountered.
+ * It writes the element and its attributes into the JSON writer.
  */
-void XMLCALL
-
-startElement(void *userData, const char *name, const char **attributes) {
-    // If this element has a parent and the parent's children array is not started, start it.
+void XMLCALL startElement(void* userData, const char* name, const char** attributes) {
     if (g_depth > 0 && !g_childrenStarted[g_depth - 1]) {
         g_writer->Key("children");
         g_writer->StartArray();
         g_childrenStarted[g_depth - 1] = true;
     }
-
-    // Begin a new JSON object for this element.
     g_writer->StartObject();
     g_writer->Key("type");
     g_writer->String(name);
 
-    // Write attributes (if any) in an "attrs" object.
     if (attributes && attributes[0]) {
         g_writer->Key("attributes");
         g_writer->StartObject();
@@ -76,20 +51,16 @@ startElement(void *userData, const char *name, const char **attributes) {
         }
         g_writer->EndObject();
     }
-
-    // Record that no children have been processed yet for this element.
     g_childrenStarted.push_back(false);
     ++g_depth;
 }
 
 /*
  * endElement:
- * Called by Expat when an end element is encountered.
- * Closes any started "children" array and the current JSON object.
+ * Callback called by Expat when an XML end element is encountered.
+ * It closes any started arrays and the JSON object.
  */
-void XMLCALL
-
-endElement(void *userData, const char *name) {
+void XMLCALL endElement(void* userData, const char* name) {
     if (g_childrenStarted[g_depth - 1]) {
         g_writer->EndArray();
     }
@@ -99,87 +70,83 @@ endElement(void *userData, const char *name) {
 }
 
 /*
- * convertXmlToJsonString:
- * Given an XML file path, converts it to JSON and returns the JSON string.
- * Instead of writing to a file, it uses an in-memory StringBuffer.
+ * JNI function optimized to read from an InputStream incrementally.
+ * It reads fixed-size chunks from the Java InputStream, feeds them to Expat,
+ * and converts XML to JSON using RapidJSON.
  */
-std::string convertXmlToJsonString(const char *xmlFile) {
-    // Create a RapidJSON StringBuffer and PrettyWriter that writes into it.
-    StringBuffer buffer;
-    PrettyWriter <StringBuffer> writer(buffer);
-    g_writer = &writer;
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_dynamic_utils_FileHelper_parseXML(JNIEnv* env, jobject /* this */, jobject inputStream) {
+    // Retrieve the InputStream class and its read method.
+    jclass inputStreamClass = env->GetObjectClass(inputStream);
+    jmethodID readMethod = env->GetMethodID(inputStreamClass, "read", "([B)I");
+    if (!readMethod) {
+        std::cerr << "Failed to find InputStream.read method." << std::endl;
+        return env->NewStringUTF("");
+    }
 
-    // Create Expat parser.
+    // Use a larger buffer (e.g., 4096 bytes) to reduce JNI call overhead.
+    const int bufferSize = 4096;
+    jbyteArray byteBuffer = env->NewByteArray(bufferSize);
+    if (!byteBuffer) {
+        std::cerr << "Failed to allocate byte array." << std::endl;
+        return env->NewStringUTF("");
+    }
+
+    // Create the Expat XML parser.
     XML_Parser parser = XML_ParserCreate(nullptr);
     if (!parser) {
-        cerr << "Error creating XML parser.\n";
-        return "";
+        std::cerr << "Error creating XML parser." << std::endl;
+        env->DeleteLocalRef(byteBuffer);
+        return env->NewStringUTF("");
     }
     XML_SetElementHandler(parser, startElement, endElement);
 
-    // Open the XML file.
-    int fd = open(xmlFile, O_RDONLY);
-    if (fd < 0) {
-        cerr << "Error opening XML file for reading.\n";
+    // Set up RapidJSON's StringBuffer and PrettyWriter for JSON output.
+    StringBuffer jsonBuffer;
+    PrettyWriter<StringBuffer> writer(jsonBuffer);
+    g_writer = &writer;  // Make the writer accessible to callbacks.
+
+    // Allocate a native buffer on the stack.
+    char nativeBuffer[bufferSize];
+
+    // Incremental parsing: read and process XML in chunks.
+    bool done = false;
+    while (!done) {
+        // Call read() on the InputStream to fill the Java byte array.
+        jint bytesRead = env->CallIntMethod(inputStream, readMethod, byteBuffer);
+        if (bytesRead < 0) {
+            // Error reading stream.
+            break;
+        }
+        if (bytesRead == 0) {
+            // End of stream.
+            done = true;
+        } else {
+            // Copy bytes from the Java array directly into the native buffer.
+            env->GetByteArrayRegion(byteBuffer, 0, bytesRead, reinterpret_cast<jbyte*>(nativeBuffer));
+            // Parse this chunk. '0' indicates that more data follows.
+            if (XML_Parse(parser, nativeBuffer, bytesRead, 0) == XML_STATUS_ERROR) {
+                std::cerr << "XML Parse error: "
+                          << XML_ErrorString(XML_GetErrorCode(parser)) << std::endl;
+                XML_ParserFree(parser);
+                env->DeleteLocalRef(byteBuffer);
+                return env->NewStringUTF("");
+            }
+        }
+    }
+    // Finalize parsing. An empty chunk with the isFinal flag set to 1.
+    if (XML_Parse(parser, nativeBuffer, 0, 1) == XML_STATUS_ERROR) {
+        std::cerr << "Final XML Parse error: "
+                  << XML_ErrorString(XML_GetErrorCode(parser)) << std::endl;
         XML_ParserFree(parser);
-        return "";
+        env->DeleteLocalRef(byteBuffer);
+        return env->NewStringUTF("");
     }
 
-    // Get file size.
-    struct stat sb{};
-    if (fstat(fd, &sb) < 0) {
-        cerr << "Error getting file size.\n";
-        close(fd);
-        XML_ParserFree(parser);
-        return "";
-    }
-    size_t fileSize = sb.st_size;
-
-    // Memory-map the XML file.
-    char *mapped = (char *) mmap(nullptr, fileSize, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (mapped == MAP_FAILED) {
-        cerr << "Error mapping XML file.\n";
-        close(fd);
-        XML_ParserFree(parser);
-        return "";
-    }
-
-    // Parse the XML file.
-    if (XML_Parse(parser, mapped, fileSize, 1) == XML_STATUS_ERROR) {
-        cerr << "XML Parse error: " << XML_ErrorString(XML_GetErrorCode(parser)) << "\n";
-        munmap(mapped, fileSize);
-        close(fd);
-        XML_ParserFree(parser);
-        return "";
-    }
-
-    // Cleanup resources.
-    munmap(mapped, fileSize);
-    close(fd);
+    // Clean up parser and local references.
     XML_ParserFree(parser);
+    env->DeleteLocalRef(byteBuffer);
 
-    // Return the JSON string from the buffer.
-    return {buffer.GetString(), buffer.GetSize()};
+    // Return the JSON result as a new jstring.
+    return env->NewStringUTF(jsonBuffer.GetString());
 }
-
-//
-// JNI Wrapper: Expose the conversion function to Kotlin
-//
-extern "C" {
-JNIEXPORT jstring
-JNICALL
-Java_com_dynamic_utils_FileHelper_parseXML(JNIEnv *env, jobject /* this */, jstring xmlPath) {
-    // Convert the jstring to a C-style string.
-    const char *path = env->GetStringUTFChars(xmlPath, nullptr);
-
-    // Call the conversion function to get the JSON string.
-    std::string jsonResult = convertXmlToJsonString(path);
-
-    // Release the UTF string.
-    env->ReleaseStringUTFChars(xmlPath, path);
-
-    // Return the JSON string to Kotlin.
-    return env->NewStringUTF(jsonResult.c_str());
-}
-
-} // extern "C"

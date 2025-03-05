@@ -81,6 +81,7 @@ class AttributeProcessor(
             val attrName = function.simpleName.asString().removePrefix("set")
                 .replaceFirstChar { it.lowercase() }
 
+            //what if the type isn't primitive and it needs an import (handle that)
             val paramType =
                 function.parameters.firstOrNull()?.type?.resolve()?.declaration?.simpleName?.asString()
 

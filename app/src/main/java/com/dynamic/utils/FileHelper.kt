@@ -3,7 +3,6 @@ package com.dynamic.utils
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
-import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -16,8 +15,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 
 object FileHelper {
@@ -26,137 +28,142 @@ object FileHelper {
         System.loadLibrary("xmlParser")
     }
 
-    external fun parseXML(xmlPath: String): String?
+    external fun parseXML(inputStream: InputStream): String?
 
-    private const val FALLBACK_FOLDER = "upload_part"
+    // Cache to store resolved file paths for URIs (avoids re-copying or re-querying)
+    private val pathCache = ConcurrentHashMap<Uri, String>()
 
     /**
      * Attempts to resolve the file system path for the given URI.
-     * If the URI doesn't directly map to a file, it falls back
-     * to copying the file into internal storage and returns that path.
+     * Uses a fallback copy if the file cannot be directly resolved.
      */
     @JvmStatic
     fun getPath(context: Context, uri: Uri): String? {
-        return when {
-            DocumentsContract.isDocumentUri(context, uri) -> when {
-                isExternalStorage(uri) -> {
-                    val docId = DocumentsContract.getDocumentId(uri)
-                    val split = docId.split(":")
-                    val fullPath = if (split[0].equals(
-                            "primary",
-                            ignoreCase = true
-                        )
-                    ) "${Environment.getExternalStorageDirectory()}${File.separator}${split[1]}"
-                    else "${System.getenv("EXTERNAL_STORAGE")}${File.separator}${split[1]}"
-                    if (File(fullPath).exists()) fullPath else copyToInternal(context, uri)
-                }
+        // Return from cache if available
+        pathCache[uri]?.let { return it }
 
-                isDownloads(uri) -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        query(context, uri, MediaStore.MediaColumns.DISPLAY_NAME)?.let { name ->
-                            val path = "${Environment.getExternalStorageDirectory()}/Download/$name"
-                            if (path.isNotEmpty()) path else null
-                        } ?: run {
-                            val id = DocumentsContract.getDocumentId(uri)
-                            if (id.startsWith("raw:")) id.removePrefix("raw:")
-                            else getDataColumn(
-                                context,
-                                Uri.parse("content://downloads/public_downloads"),
-                                "_id=?",
-                                arrayOf(id)
-                            )
-                        }
-                    } else {
-                        val id = DocumentsContract.getDocumentId(uri)
-                        if (id.startsWith("raw:")) id.removePrefix("raw:")
-                        else {
-                            val contentUri = ContentUris.withAppendedId(
-                                Uri.parse("content://downloads/public_downloads"),
-                                id.toLongOrNull() ?: 0
-                            )
-                            getDataColumn(context, contentUri, null, null)
-                        }
-                    }
-                }
-
-                isMedia(uri) -> {
-                    val docId = DocumentsContract.getDocumentId(uri)
-                    val split = docId.split(":")
-                    val contentUri = when (split.firstOrNull()) {
-                        "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                        "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-                        "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-                        else -> null
-                    }
-                    contentUri?.let { getDataColumn(context, it, "_id=?", arrayOf(split[1])) }
-                }
-
-                isGoogleDrive(uri) -> getDrivePath(context, uri)
-                else -> copyToInternal(context, uri)
-            }
-
-            uri.scheme.equals("content", ignoreCase = true) -> when {
-                isGooglePhotos(uri) -> uri.lastPathSegment
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> copyToInternal(context, uri)
-                else -> getDataColumn(context, uri, null, null)
-            }
-
-            uri.scheme.equals("file", ignoreCase = true) -> uri.path
+        val resolvedPath = when {
+            DocumentsContract.isDocumentUri(context, uri) -> handleDocumentUri(context, uri)
+            "content".equals(uri.scheme, ignoreCase = true) -> handleContentUri(context, uri)
+            "file".equals(uri.scheme, ignoreCase = true) -> uri.path
             else -> copyToInternal(context, uri)
         }
+        resolvedPath?.also { pathCache[uri] = it }
+        return resolvedPath
     }
 
-    // Extension function: safely gets a column's string value.
-    private fun Cursor.getSafeString(columnName: String): String? {
-        val index = getColumnIndex(columnName)
-        return if (index >= 0) getString(index) else null
+    // --- Document URI Handlers ---
+
+    private fun handleDocumentUri(context: Context, uri: Uri): String? = when {
+        isExternalStorage(uri) -> handleExternalStorage(context, uri)
+        isDownloads(uri) -> handleDownloads(context, uri)
+        isMedia(uri) -> handleMedia(context, uri)
+        isGoogleDrive(uri) -> copyToInternal(context, uri)
+        else -> copyToInternal(context, uri)
     }
 
-    // Helper: Query for a single column value.
-    private fun query(context: Context, uri: Uri, column: String): String? =
-        context.contentResolver.query(uri, arrayOf(column), null, null, null)
-            ?.use { if (it.moveToFirst()) it.getSafeString(column) else null }
+    private fun handleExternalStorage(context: Context, uri: Uri): String? {
+        // Direct access is not allowed for Android 10+ so use fallback copy
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return copyToInternal(context, uri)
 
-    // Helper: Get data column value ("_data") from the given URI.
+        val docId = DocumentsContract.getDocumentId(uri)
+        val split = docId.split(":")
+        val type = split.getOrNull(0) ?: return null
+        val relativePath = split.getOrNull(1) ?: return null
+
+        val fullPath = if ("primary".equals(type, ignoreCase = true)) {
+            "${Environment.getExternalStorageDirectory().absolutePath}${File.separator}$relativePath"
+        } else {
+            "${System.getenv("EXTERNAL_STORAGE")}${File.separator}$relativePath"
+        }
+        return if (File(fullPath).exists()) fullPath else copyToInternal(context, uri)
+    }
+
+    private fun handleDownloads(context: Context, uri: Uri): String? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return copyToInternal(context, uri)
+
+        val id = DocumentsContract.getDocumentId(uri)
+        return if (id.startsWith("raw:")) {
+            val rawPath = id.removePrefix("raw:")
+            if (File(rawPath).exists()) rawPath else copyToInternal(context, uri)
+        } else {
+            val contentUri = ContentUris.withAppendedId(
+                Uri.parse("content://downloads/public_downloads"), id.toLongOrNull() ?: 0
+            )
+            getDataColumn(context, contentUri, null, null) ?: copyToInternal(context, uri)
+        }
+    }
+
+    private fun handleMedia(context: Context, uri: Uri): String? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return copyToInternal(context, uri)
+        val docId = DocumentsContract.getDocumentId(uri)
+        val split = docId.split(":")
+        val mediaType = split.getOrNull(0) ?: return null
+        val id = split.getOrNull(1) ?: return null
+        val contentUri: Uri? = when (mediaType) {
+            "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            else -> null
+        }
+        return contentUri?.let { getDataColumn(context, it, "_id=?", arrayOf(id)) }
+            ?: copyToInternal(context, uri)
+    }
+
+    private fun handleContentUri(context: Context, uri: Uri): String? {
+        return when {
+            isGooglePhotos(uri) -> uri.lastPathSegment
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> copyToInternal(context, uri)
+            else -> getDataColumn(context, uri, null, null) ?: copyToInternal(context, uri)
+        }
+    }
+
+    // --- Low-Level Helpers ---
+
     private fun getDataColumn(
-        context: Context, uri: Uri, selection: String?, selectionArgs: Array<String>?
+        context: Context, uri: Uri, selection: String?, selectionArgs: Array<String>?,
     ): String? =
         context.contentResolver.query(uri, arrayOf("_data"), selection, selectionArgs, null)
-            ?.use { if (it.moveToFirst()) it.getSafeString("_data") else null }
+            ?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
 
-    // Helper: Get file path for Google Drive URIs by copying them to cache.
-    private fun getDrivePath(context: Context, uri: Uri): String? =
-        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-            val name = cursor.getSafeString(OpenableColumns.DISPLAY_NAME)
-            name?.let {
-                val file = File(context.cacheDir, it)
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    FileOutputStream(file).use { output -> input.copyTo(output) }
+    /**
+     * Fallback: Copies the file pointed to by the URI into internal storage using FileChannels.
+     * This approach minimizes memory overhead by transferring bytes directly between channels.
+     */
+    private fun copyToInternal(context: Context, uri: Uri): String? {
+        val displayName = context.contentResolver.query(
+            uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+            else null
+        } ?: return null
+
+        val destFile = File(
+            context.filesDir, "$FALLBACK_FOLDER/${UUID.randomUUID()}/$displayName"
+        ).apply { parentFile?.mkdirs() }
+
+        // Try opening a file descriptor for efficient copying using channels.
+        context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+            FileInputStream(pfd.fileDescriptor).use { input ->
+                FileOutputStream(destFile).use { output ->
+                    input.channel.transferTo(0, input.channel.size(), output.channel)
                 }
-                file.path
+            }
+        } ?: run {
+            // Fallback to stream copying if openFileDescriptor fails.
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(destFile).use { output ->
+                    input.copyTo(output)
+                }
             }
         }
+        return destFile.absolutePath
+    }
 
-    // Fallback: Copy the file to internal storage and return the new path.
-    private fun copyToInternal(context: Context, uri: Uri): String? =
-        context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val name = cursor.getSafeString(OpenableColumns.DISPLAY_NAME)
-                    name?.let {
-                        val file = File(
-                            context.filesDir,
-                            "$FALLBACK_FOLDER/${UUID.randomUUID()}/$it"
-                        ).apply { parentFile?.mkdirs() }
-                        context.contentResolver.openInputStream(uri)?.use { input ->
-                            FileOutputStream(file).use { output -> input.copyTo(output) }
-                        }
-                        file.path
-                    }
-                } else null
-            }
+    // --- URI Type Checkers ---
 
-    // URI type checkers.
     private fun isExternalStorage(uri: Uri): Boolean =
         "com.android.externalstorage.documents" == uri.authority
 
@@ -170,11 +177,9 @@ object FileHelper {
         "com.google.android.apps.photos.content" == uri.authority
 
     private fun isGoogleDrive(uri: Uri): Boolean = uri.authority in listOf(
-        "com.google.android.apps.docs.storage",
-        "com.google.android.apps.docs.storage.legacy"
+        "com.google.android.apps.docs.storage", "com.google.android.apps.docs.storage.legacy"
     )
 
-    @JvmStatic
     fun getFileName(contentResolver: ContentResolver, uri: Uri, callback: (String) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             val fileName = when (uri.scheme) {
@@ -193,22 +198,23 @@ object FileHelper {
                 ContentResolver.SCHEME_FILE -> uri.path?.substringAfterLast('.', "") ?: ""
                 else -> ""
             }
-            callback(extension)
+            withContext(Dispatchers.Main) { callback(extension) }
         }
     }
 
     private fun queryFileName(contentResolver: ContentResolver, uri: Uri): String {
-        contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        return contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
             ?.use { cursor ->
-                return if (cursor.moveToFirst()) cursor.getString(0) else "unknown_file"
-            }
-        return "unknown_file"
+                if (cursor.moveToFirst()) cursor.getString(0) else "unknown_file"
+            } ?: "unknown_file"
     }
 
     private fun getMimeTypeExtension(context: Context, uri: Uri): String? {
         return context.contentResolver.getType(uri)
             ?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
     }
+
+    private const val FALLBACK_FOLDER = "fallback_files"
 }
 
 //    suspend fun parseXML(inputStream: InputStream?, context: Context): ViewNode? =

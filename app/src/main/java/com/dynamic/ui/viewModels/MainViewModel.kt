@@ -63,14 +63,20 @@ class MainViewModel(
     fun convertXmlToJson(context: Context) {
         viewModelScope.launch {
             val uri = _selectedFile.value ?: return@launch
-            val path = getPath(context, uri) ?: return@launch
-            _parsedJson.value = xmlRepository.convertXmlToJson(path).toString()
-            Log.d("Json Parsed", _parsedJson.value.toString())
-            xmlRepository.getFileNameFromUri(context.contentResolver, uri) { fileName ->
-                // Handle file creation logic here or in a Use Case if more complex
-                createDocument(
-                    fileName.replace(".xml", ".json")
-                ) // Pass filename for creation
+            try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream -> // Get InputStream
+                    _parsedJson.value = xmlRepository.convertXmlToJson(inputStream).toString() // Pass InputStream
+                    Log.d("Json Parsed", _parsedJson.value.toString())
+                    xmlRepository.getFileNameFromUri(context.contentResolver, uri) { fileName ->
+                        createDocument(fileName.replace(".xml", ".json"))
+                    }
+                } ?: run {
+                    Log.e("ConvertXml", "Failed to open input stream for URI: $uri")
+                    _parsedJson.value = null // Or handle error appropriately
+                }
+            } catch (e: Exception) {
+                Log.e("ConvertXml", "Error converting XML to JSON: ${e.message}", e)
+                _parsedJson.value = null // Handle error
             }
         }
     }
