@@ -10,12 +10,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dynamic.data.repositories.ViewStateRepository
 import com.dynamic.data.repositories.XmlRepository
-import com.dynamic.utils.FileHelper.getPath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainViewModel(
-    private val xmlRepository: XmlRepository, private val viewStateRepository: ViewStateRepository
+    private val xmlRepository: XmlRepository, private val viewStateRepository: ViewStateRepository,
 ) : ViewModel() {
 
     private val _buttonText = MutableLiveData("Choose File")
@@ -64,13 +63,15 @@ class MainViewModel(
         viewModelScope.launch {
             val uri = _selectedFile.value ?: return@launch
             try {
-                context.contentResolver.openInputStream(uri)?.use { inputStream -> // Get InputStream
-                    _parsedJson.value = xmlRepository.convertXmlToJson(inputStream).toString() // Pass InputStream
-                    Log.d("Json Parsed", _parsedJson.value.toString())
-                    xmlRepository.getFileNameFromUri(context.contentResolver, uri) { fileName ->
-                        createDocument(fileName.replace(".xml", ".json"))
-                    }
-                } ?: run {
+                context.contentResolver.openInputStream(uri)
+                    ?.use { inputStream -> // Get InputStream
+                        _parsedJson.value = xmlRepository.convertXmlToJson(inputStream)
+                            .toString() // Pass InputStream
+                        Log.d("Json Parsed", _parsedJson.value.toString())
+                        xmlRepository.getFileNameFromUri(context.contentResolver, uri) { fileName ->
+                            createDocument(fileName.replace(".xml", ".json"))
+                        }
+                    } ?: run {
                     Log.e("ConvertXml", "Failed to open input stream for URI: $uri")
                     _parsedJson.value = null // Or handle error appropriately
                 }
@@ -98,6 +99,9 @@ class MainViewModel(
             contentResolver.openOutputStream(uri)?.use { outputStream ->
                 outputStream.bufferedWriter(Charsets.UTF_8).use { writer ->
                     writer.write(jsonContent)
+                    _createdFileUri.postValue(uri)
+                    _isFileCreated.postValue(true)
+                    _enableShowing.postValue(true)
                 }
             }
         }

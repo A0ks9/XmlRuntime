@@ -9,8 +9,8 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.collection.ArrayMap
 import com.dynamic.data.models.ViewNode
 import com.dynamic.data.models.ViewNodeParser.fromJson
+import com.dynamic.utils.DynamicLayoutInflation.createView
 import com.dynamic.utils.FileHelper.getFileExtension
-import com.dynamic.utils.FileHelper.getPath
 import com.dynamic.utils.FileHelper.parseXML
 import com.dynamic.utils.Utils.getGeneratedViewInfo
 import com.dynamic.utils.Utils.parseJsonToViewNode
