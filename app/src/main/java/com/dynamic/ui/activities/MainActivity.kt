@@ -81,6 +81,7 @@ class MainActivity : AppCompatActivity(), ViewHandler {
                     mainViewModel.writeToFile(it, contentResolver)
                 }
             }
+
     }
 
     private fun setupObservers() {

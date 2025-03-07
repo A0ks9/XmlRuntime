@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.google.ksp)
     alias(libs.plugins.plugin.serialization)
     id("kotlin-parcelize")
+    id("com.dynamic.plugin")
 }
 
 android {
@@ -74,9 +75,17 @@ android {
     ndkVersion = "27.0.12077973"
 }
 
+resources {
+    resFiles.from(
+        fileTree("src/main/res") {
+            include("**/strings.xml", "**/colors.xml", "**/themes.xml", "**/styles.xml")
+        }
+    )
+}
+
 dependencies {
-    implementation(project(":viewcore"))
-    ksp(project(":viewcore"))
+    implementation(project(":viewcore-ksp"))
+    ksp(project(":viewcore-ksp"))
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(kotlin("reflect"))

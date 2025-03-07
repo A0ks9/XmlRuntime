@@ -3,6 +3,8 @@
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
       <module name="XmlRuntime.proteus-core" target="21" />
+      <module name="XmlRuntime.viewcore.main" target="21" />
+      <module name="XmlRuntime.viewcore.test" target="21" />
     </bytecodeTargetLevel>
   </component>
 </project>

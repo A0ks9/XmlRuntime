@@ -13,7 +13,7 @@ rxjava = "3.1.10"
 rxandroid = "3.0.2"
 kotlinCoroutines = "1.10.1"
 gson = "2.12.1"
-ksp = "2.1.10-1.0.30"
+ksp = "2.1.10-1.0.31"
 slidingPaneLayout = "1.2.0"
 glide = "4.16.0"
 room = "2.6.1"
@@ -22,7 +22,7 @@ jetbrainsKotlinJvm = "2.1.10"
 mmkv = "2.1.0"
 kotlinx-serialization = "1.8.0"
 plugin-serliziation = "2.1.0"
-
+android-build = "8.9.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -49,6 +49,7 @@ tencent-mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android" }
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+android-build-tools = { group = "com.android.tools.build", name = "gradle", version.ref = "android-build" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -57,4 +58,3 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 google-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
 plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "plugin-serliziation" }
-

@@ -9,6 +9,7 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        mavenLocal()
     }
 }
 dependencyResolutionManagement {
@@ -21,4 +22,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "XmlRuntime"
 include(":app")
-include(":viewcore")
+include(":viewcore-ksp")
+include(":voyager-plugin")
