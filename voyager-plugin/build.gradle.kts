@@ -1,6 +1,6 @@
 plugins {
-    id("java-gradle-plugin")
     alias(libs.plugins.jetbrains.kotlin.jvm)
+    id("java-gradle-plugin")
     id("maven-publish")
 }
 
@@ -29,5 +29,6 @@ kotlin {
 dependencies {
     implementation(gradleApi())
     implementation(kotlin("stdlib"))
+    implementation(kotlin("gradle-plugin"))
     compileOnly(libs.android.build.tools)
 }

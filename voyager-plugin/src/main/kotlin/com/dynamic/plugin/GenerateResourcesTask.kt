@@ -13,15 +13,17 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.Incremental
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Files
 import java.security.DigestInputStream
 import java.security.MessageDigest
-import java.util.EnumSet
+import java.util.EnumMap
 import java.util.regex.Pattern
+import javax.inject.Inject
 
 @CacheableTask
-abstract class GenerateResourcesTask : DefaultTask() {
+abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
 
     @get:PathSensitive(PathSensitivity.RELATIVE)
     @get:IgnoreEmptyDirectories
@@ -40,50 +42,56 @@ abstract class GenerateResourcesTask : DefaultTask() {
             .get().asFile
     }
 
-    companion object {
-        private val RESOURCE_TYPES =
-            EnumSet.of(ResourceType.COLOR, ResourceType.STRING, ResourceType.STYLE)
-        private val COLOR_PATTERN = Pattern.compile("""<color name="(.*?)">""")
-        private val STRING_PATTERN = Pattern.compile("""<string name="(.*?)">""")
-        private val STYLE_PATTERN = Pattern.compile("""<style name="(.*?)">""")
-        private const val HEX_FORMAT = "%02x"
-        private const val EMPTY_STRING = ""
+    private enum class ResourceType(val tag: String) {
+        COLOR("color"), STRING("string"), STYLE("style"), DIMEN("dimen"), ATTR("attr")
     }
 
-    private enum class ResourceType {
-        COLOR, STRING, STYLE
+    companion object {
+        private val PATTERNS = enumValues<ResourceType>().associateWith {
+            Pattern.compile("""<${it.tag}[^>]*?name\s*=\s*["']([^"']+)["']""", Pattern.DOTALL)
+        }
+        private const val HEX_FORMAT = "%02x"
+        private val logger = LoggerFactory.getLogger(GenerateResourcesTask::class.java)
     }
 
     @TaskAction
     fun generateBridge() {
         if (valuesFiles.files.isEmpty()) {
-            println("No resource files specified.")
+            logger.info("No values files found. Skipping ResourcesBridge generation.")
             return
         }
 
         if (isUpToDate()) {
-            println("ResourcesBridge is up-to-date.")
+            logger.info("ResourcesBridge is up-to-date. Skipping generation.")
             return
         }
 
+        logger.info("Generating ResourcesBridge...")
         val resources = extractAllResources()
         generateKotlinCode(resources)
-        println("ResourcesBridge generated.")
+        logger.info("ResourcesBridge generated successfully.")
     }
 
     private fun isUpToDate(): Boolean {
-        if (!outputFile.get().asFile.exists() || !hashFile.exists()) return false
-        return hashFile.readText() == calculateHash()
+        if (!outputFile.get().asFile.exists() || !hashFile.exists()) {
+            return false
+        }
+        if (!valuesFiles.files.all { it.exists() }) {
+            return false
+        }
+
+        val currentHash = calculateHash()
+        val previousHash = hashFile.readText()
+
+        return previousHash == currentHash
     }
 
     private fun calculateHash(): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val buffer = ByteArray(8192)
         valuesFiles.files.filter(File::exists).forEach { file ->
-            Files.newInputStream(file.toPath()).use { fis ->
-                DigestInputStream(fis, digest).use { dis ->
-                    while (dis.read(buffer) != -1) { /* DigestInputStream updates digest */
-                    }
+            DigestInputStream(file.inputStream().buffered(), digest).use { stream ->
+                while (stream.read(buffer) != -1) { /* Reading for digest calculation */
                 }
             }
         }
@@ -91,76 +99,87 @@ abstract class GenerateResourcesTask : DefaultTask() {
     }
 
     private fun extractAllResources(): Map<ResourceType, Set<String>> {
-        val resourcesMap = mutableMapOf<ResourceType, MutableSet<String>>()
-        RESOURCE_TYPES.forEach { resourcesMap[it] = HashSet() }
+        val resourcesMap = EnumMap<ResourceType, MutableSet<String>>(ResourceType::class.java)
+        ResourceType.entries.forEach { resourcesMap[it] = LinkedHashSet() }
 
-        val colorSet = resourcesMap[ResourceType.COLOR]!!
-        val stringSet = resourcesMap[ResourceType.STRING]!!
-        val styleSet = resourcesMap[ResourceType.STYLE]!!
-
-        val matcherColor = COLOR_PATTERN.matcher(EMPTY_STRING)
-        val matcherString = STRING_PATTERN.matcher(EMPTY_STRING)
-        val matcherStyle = STYLE_PATTERN.matcher(EMPTY_STRING)
-
-        valuesFiles.files.forEach { file ->
-            if (!file.exists()) return@forEach
-            val content = Files.readString(file.toPath())
-
-            matcherColor.reset(content)
-            matcherColor.results().forEach { colorSet.add(it.group(1)) }
-
-            matcherString.reset(content)
-            matcherString.results().forEach { stringSet.add(it.group(1)) }
-
-            matcherStyle.reset(content)
-            matcherStyle.results().forEach { styleSet.add(it.group(1)) }
+        valuesFiles.files.filter(File::exists).forEach { file ->
+            try {
+                file.useLines { lines ->
+                    lines.forEach { line ->
+                        PATTERNS.forEach { (type, pattern) ->
+                            val matcher = pattern.matcher(line)
+                            if (matcher.find()) {
+                                val name = matcher.group(1)
+                                val cleanName =
+                                    if (type == ResourceType.STYLE) name.replace('.', '_') else name
+                                resourcesMap[type]?.add(cleanName)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                logger.error("Error processing file: ${file.path}", e)
+                // Consider throwing exception or handling it based on your error handling policy
+            }
         }
         return resourcesMap
     }
 
     private fun generateKotlinCode(resources: Map<ResourceType, Set<String>>) {
-        val colors = resources[ResourceType.COLOR] ?: emptySet()
-        val strings = resources[ResourceType.STRING] ?: emptySet()
-        val styles = resources[ResourceType.STYLE] ?: emptySet()
-
-        val kotlinCode =
-            buildString(500 + colors.size * 50 + strings.size * 50 + styles.size * 50) {
+        val output = outputFile.get().asFile.apply { parentFile?.mkdirs() }
+        try {
+            Files.writeString(output.toPath(), buildString {
+                appendLine("// This file is generated by GenerateResourcesTask. Do not edit manually.")
                 appendLine("@file:JvmName(\"ResourcesBridge\")")
-                appendLine("package com.dynamic.resources")
-                appendLine()
+                appendLine("package com.dynamic.resources\n")
                 appendLine("import android.content.Context")
                 appendLine("import androidx.core.content.ContextCompat")
-                appendLine("import ${packageName.get()}.R")
-                appendLine()
-                appendLine("fun getColor(context: Context, name: String): Int = when (name) {")
-                colors.optimizedForEach { name -> appendLine("    \"$name\" -> ContextCompat.getColor(context, R.color.$name)") }
-                appendLine("    else -> 0")
-                appendLine("}")
-                appendLine()
-                appendLine("fun getString(context: Context, name: String): String = when (name) {")
-                strings.optimizedForEach { name -> appendLine("    \"$name\" -> context.getString(context, R.string.$name)") }
-                appendLine("    else -> \"\"")
-                appendLine("}")
-                appendLine()
-                appendLine("fun getStyle(name: String): Int = when (name) {")
-                styles.optimizedForEach { name -> appendLine("    \"$name\" -> R.style.$name") }
-                appendLine("    else -> 0")
-                appendLine("}")
-            }
+                appendLine("import ${packageName.get()}.R\n")
 
-        outputFile.get().asFile.parentFile?.mkdirs()
-        Files.writeString(outputFile.get().asFile.toPath(), kotlinCode)
-        Files.writeString(hashFile.toPath(), calculateHash())
-    }
+                ResourceType.entries.forEach { type ->
+                    val returnType = when (type) {
+                        ResourceType.COLOR, ResourceType.STYLE, ResourceType.ATTR -> "Int" // Resource IDs are Int
+                        ResourceType.STRING -> "String"
+                        ResourceType.DIMEN -> "Float"
+                    }
+                    val defaultValue = when (returnType) {
+                        "String" -> "\"\""
+                        "Float" -> "0f"
+                        else -> "0"
+                    }
 
-    private inline fun <T> Set<T>.optimizedForEach(action: (T) -> Unit) {
-        if (this is HashSet) {
-            val iterator = this.iterator()
-            while (iterator.hasNext()) {
-                action(iterator.next())
-            }
-        } else {
-            forEach(action)
+                    append("fun get").append(
+                        type.name.lowercase().replaceFirstChar { it.uppercase() })
+                        .append("(context: Context, name: String): ").append(returnType)
+                        .append(" = when (name) {").appendLine()
+
+                    resources[type]?.forEach { name ->
+                        append("    \"").append(name).append("\" -> ")
+                        when (type) {
+                            ResourceType.COLOR -> append("ContextCompat.getColor(context, R.color.").append(
+                                name
+                            ).append(")")
+
+                            ResourceType.STRING -> append("context.getString(R.string.").append(name)
+                                .append(")")
+
+                            ResourceType.STYLE -> append("R.style.").append(name)
+                            ResourceType.DIMEN -> append("context.resources.getDimension(R.dimen.").append(
+                                name
+                            ).append(")")
+
+                            ResourceType.ATTR -> append("R.attr.").append(name)
+                        }
+                        appendLine()
+                    }
+                    append("    else -> ").append(defaultValue)
+                    appendLine().append("}")
+                    appendLine()
+                }
+            })
+            Files.writeString(hashFile.toPath(), calculateHash())
+        } catch (e: Exception) {
+            logger.error("Error writing generated Kotlin code to file: ${output.path}", e)
         }
     }
 }
