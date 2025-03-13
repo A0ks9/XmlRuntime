@@ -2,9 +2,17 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
+      <module name="XmlRuntime.mylibrary" target="21" />
       <module name="XmlRuntime.proteus-core" target="21" />
+      <module name="XmlRuntime.viewcore-ksp.main" target="21" />
+      <module name="XmlRuntime.viewcore-ksp.test" target="21" />
       <module name="XmlRuntime.viewcore.main" target="21" />
       <module name="XmlRuntime.viewcore.test" target="21" />
+      <module name="XmlRuntime.voyager-kotlin.main" target="21" />
+      <module name="XmlRuntime.voyager-kotlin.test" target="21" />
+      <module name="XmlRuntime.Voyager-kt" target="21" />
+      <module name="XmlRuntime.Voyager-kt.main" target="21" />
+      <module name="XmlRuntime.Voyager-kt.test" target="21" />
     </bytecodeTargetLevel>
   </component>
 </project>

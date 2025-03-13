@@ -1,0 +1,551 @@
+package com.voyager.utils
+
+import android.util.DisplayMetrics
+import android.util.Log
+import android.util.TypedValue
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.RelativeLayout
+import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
+import com.bumptech.glide.Glide
+import com.voyager.utils.ParseHelper.getColor
+import com.voyager.utils.ParseHelper.getDrawable
+import com.voyager.utils.ParseHelper.parseEllipsize
+import com.voyager.utils.ParseHelper.parseFloat
+import com.voyager.utils.ParseHelper.parseGravity
+import com.voyager.utils.ParseHelper.parseInputType
+import com.voyager.utils.ParseHelper.parseRelativeLayoutBoolean
+import com.voyager.utils.ParseHelper.parseScaleType
+import com.voyager.utils.ParseHelper.parseTextAlignment
+import com.voyager.utils.ParseHelper.parseTextStyle
+import com.voyager.utils.ParseHelper.parseVisibility
+import com.voyager.utils.Utils.getClickListener
+import com.voyager.utils.Utils.getGeneratedViewInfo
+import com.voyager.utils.interfaces.AttributeProcessorRegistry
+import com.voyager.utils.processors.AttributeRegistry
+import com.voyager.utils.processors.AttributeRegistry.Companion.configureProcessor
+import com.voyager.utils.processors.AttributeRegistry.Companion.registerAttribute
+
+internal object BaseViewAttributes {
+
+    val AttributeProcessors = LinkedHashSet<Pair<String, AttributeProcessorRegistry<*, Any>>>()
+    private const val wrapContent = ViewGroup.LayoutParams.WRAP_CONTENT
+
+    fun initializeAttributes() {
+        if (attributeRegistryContainsId()) return
+
+        configureProcessor {
+            commonAttributes()
+            linearLayoutAttributes()
+            relativeLayoutAttributes()
+            constraintLayoutAttributes()
+            imageViewAttributes()
+            textViewAttributes()
+            viewAttributes()
+        }
+    }
+
+    private fun AttributeRegistry.commonAttributes() {
+        registerAttribute<View, String>(Attributes.Common.ID) { targetView, attributeValue ->
+            targetView.getParentView()?.getGeneratedViewInfo()?.let { info ->
+                Log.d(
+                    "ViewAttributes",
+                    "Setting ID: $attributeValue and viewID: ${attributeValue.extractViewId()}"
+                )
+                targetView.id =
+                    View.generateViewId().also { info.viewID[attributeValue.extractViewId()] = it }
+            }
+        }
+
+        widthAndHeightAttributes()
+
+        registerAttribute<View, String>(Attributes.Common.GRAVITY) { targetView, attributeValue ->
+            val alignment = parseGravity(attributeValue)
+            when (targetView.getParentView()) {
+                is LinearLayout -> (targetView.layoutParams as LinearLayout.LayoutParams).gravity =
+                    alignment
+
+                is FrameLayout -> (targetView.layoutParams as FrameLayout.LayoutParams).gravity =
+                    alignment
+
+                else -> {
+                    // Attempt to set gravity for other view types if possible
+                    try {
+                        if (targetView is TextView) {
+                            targetView.gravity = alignment
+                        }
+                    } catch (_: Exception) {
+                        // Log error if gravity is not applicable for view
+                    }
+                }
+            }
+        }
+
+        marginAndPaddingAttributes()
+
+        registerAttribute<View, String>(Attributes.Common.VISIBILITY) { targetView, attributeValue ->
+            targetView.visibility = parseVisibility(attributeValue)
+        }
+
+        registerAttribute<View, String>(Attributes.Common.CLICKABLE) { targetView, attributeValue ->
+            targetView.isClickable = attributeValue.asBoolean() == true
+        }
+
+        registerAttribute<View, String>(Attributes.Common.LONG_CLICKABLE) { targetView, attributeValue ->
+            targetView.isLongClickable = attributeValue.asBoolean() == true
+        }
+
+        registerAttribute<View, String>(Attributes.Common.TAG) { targetView, attributeValue ->
+            if (targetView.tag == null) targetView.tag = attributeValue
+        }
+
+        registerAttribute<View, String>(Attributes.Common.ENABLED) { targetView, attributeValue ->
+            targetView.isEnabled = attributeValue.asBoolean() == true
+        }
+    }
+
+    private fun AttributeRegistry.widthAndHeightAttributes() {
+        // Handles width, height dynamically
+        listOf(Attributes.Common.WIDTH, Attributes.Common.LAYOUT_WIDTH).forEach { attribute ->
+            registerAttribute<View, String>(attribute) { targetView, attributeValue ->
+                setSize(targetView, attributeValue, isWidth = true)
+            }
+        }
+        listOf(Attributes.Common.HEIGHT, Attributes.Common.LAYOUT_HEIGHT).forEach { attribute ->
+            registerAttribute<View, String>(attribute) { targetView, attributeValue ->
+                setSize(targetView, attributeValue, isWidth = false)
+            }
+        }
+    }
+
+    private fun AttributeRegistry.linearLayoutAttributes() {
+        registerAttribute<LinearLayout, String>(Attributes.LinearLayout.LINEARLAYOUT_ORIENTATION) { targetView, attributeValue ->
+            targetView.orientation = if (attributeValue.equals(
+                    "horizontal", ignoreCase = true
+                )
+            ) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+        }
+
+        registerAttribute<LinearLayout, String>(Attributes.Common.WEIGHT) { targetView, attributeValue ->
+            (targetView.layoutParams as? LinearLayout.LayoutParams)?.apply {
+                weight = parseFloat(attributeValue)
+            }
+        }
+    }
+
+    private fun AttributeRegistry.relativeLayoutAttributes() {
+        val relativeLayoutRules = mapOf(
+            Attributes.View.VIEW_ABOVE to RelativeLayout.ABOVE,
+            Attributes.View.VIEW_BELOW to RelativeLayout.BELOW,
+            Attributes.View.VIEW_TO_LEFT_OF to RelativeLayout.LEFT_OF,
+            Attributes.View.VIEW_TO_RIGHT_OF to RelativeLayout.RIGHT_OF,
+            Attributes.View.VIEW_ALIGN_TOP to RelativeLayout.ALIGN_TOP,
+            Attributes.View.VIEW_ALIGN_BOTTOM to RelativeLayout.ALIGN_BOTTOM,
+            Attributes.View.VIEW_ALIGN_PARENT_TOP to RelativeLayout.ALIGN_PARENT_TOP,
+            Attributes.View.VIEW_ALIGN_PARENT_BOTTOM to RelativeLayout.ALIGN_PARENT_BOTTOM,
+            Attributes.View.VIEW_ALIGN_START to RelativeLayout.ALIGN_START,
+            Attributes.View.VIEW_ALIGN_END to RelativeLayout.ALIGN_END,
+            Attributes.View.VIEW_ALIGN_PARENT_START to RelativeLayout.ALIGN_PARENT_START,
+            Attributes.View.VIEW_ALIGN_PARENT_END to RelativeLayout.ALIGN_PARENT_END
+        )
+        relativeLayoutRules.forEach { (attr, rule) ->
+            registerAttribute<View, String>(attr) { targetView, attributeValue ->
+                addRelativeLayoutRule(targetView, attributeValue, rule)
+            }
+        }
+    }
+
+    /**
+     * Configures and adds attribute processors for ConstraintLayout specific attributes.
+     *
+     * This function handles the parsing and application of various ConstraintLayout attributes,
+     * including:
+     *  - Constraint rules (e.g., `layout_constraintLeft_toLeftOf`, `layout_constraintTop_toBottomOf`).
+     *  - Chain styles (e.g., `layout_constraintHorizontal_chainStyle`, `layout_constraintVertical_chainStyle`).
+     *  - Dimension ratio (`layout_constraintDimensionRatio`).
+     *  - Bias (e.g., `layout_constraintVertical_bias`, `layout_constraintHorizontal_bias`).
+     *
+     * It iterates through a predefined map of constraint rules, associating each XML attribute
+     * with the corresponding ConstraintSet side (LEFT, RIGHT, TOP, BOTTOM, START, END, BASELINE).
+     * For each attribute, it registers an attribute processor that parses the attribute value,
+     * identifies the target view's parent as a ConstraintLayout, and applies the constraint
+     * using the `addConstraintRule` helper function.
+     *
+     * It also registers attribute processors for chain styles, dimension ratios, and biases,
+     * using corresponding helper functions (`setChainStyle`, `setDimensionRatio`, and `setConstraintLayoutBias`).
+     *
+     * All the attributes handled by this function are expected to be applied to views that are
+     * direct children of a ConstraintLayout.
+     *
+     * @receiver AttributeRegistry The `AttributeRegistry` instance to which the attribute handlers are added.
+     * @see addConstraintRule
+     * @see setChainStyle
+     * @see setDimensionRatio
+     * @see setConstraintLayoutBias
+     * @see ConstraintSet
+     * @see ConstraintLayout
+     * @see Attributes.ConstraintLayout
+     */
+    private fun AttributeRegistry.constraintLayoutAttributes() {
+        // ConstraintLayout attributes
+        val constraintLayoutRules = mapOf(
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_LEFT_TO_LEFT_OF to (ConstraintSet.LEFT to ConstraintSet.LEFT),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_LEFT_TO_RIGHT_OF to (ConstraintSet.LEFT to ConstraintSet.RIGHT),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_RIGHT_TO_LEFT_OF to (ConstraintSet.RIGHT to ConstraintSet.LEFT),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_RIGHT_TO_RIGHT_OF to (ConstraintSet.RIGHT to ConstraintSet.RIGHT),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_TOP_TO_TOP_OF to (ConstraintSet.TOP to ConstraintSet.TOP),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_TOP_TO_BOTTOM_OF to (ConstraintSet.TOP to ConstraintSet.BOTTOM),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_BOTTOM_TO_TOP_OF to (ConstraintSet.BOTTOM to ConstraintSet.TOP),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_BOTTOM_TO_BOTTOM_OF to (ConstraintSet.BOTTOM to ConstraintSet.BOTTOM),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_START_TO_START_OF to (ConstraintSet.START to ConstraintSet.START),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_START_TO_END_OF to (ConstraintSet.START to ConstraintSet.END),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_END_TO_START_OF to (ConstraintSet.END to ConstraintSet.START),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_END_TO_END_OF to (ConstraintSet.END to ConstraintSet.END),
+            Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_BASELINE_TO_BASELINE_OF to (ConstraintSet.BASELINE to ConstraintSet.BASELINE)
+        )
+
+        constraintLayoutRules.forEach { (attr, side) ->
+            registerAttribute<View, String>(attr) { targetView, attributeValue ->
+                Log.d(
+                    "AttributeRegistry",
+                    "Processing attribute: $attr, value: $attributeValue, side: $side"
+                )
+                addConstraintRule(
+                    targetView.getParentView() as? ConstraintLayout,
+                    targetView,
+                    attributeValue,
+                    side
+                )
+            }
+        }
+
+        // Chain Style
+        registerAttribute<View, String>(Attributes.ConstraintLayout.CONSTRAINTLAYOUT_CHAIN_HORIZONTAL_STYLE) { targetView, attributeValue ->
+            setChainStyle(
+                targetView.getParentView() as? ConstraintLayout,
+                targetView,
+                ConstraintSet.HORIZONTAL,
+                attributeValue
+            )
+        }
+
+        registerAttribute<View, String>(Attributes.ConstraintLayout.CONSTRAINTLAYOUT_CHAIN_VERTICAL_STYLE) { targetView, attributeValue ->
+            setChainStyle(
+                targetView.getParentView() as? ConstraintLayout,
+                targetView,
+                ConstraintSet.VERTICAL,
+                attributeValue
+            )
+        }
+
+        // Dimension Ratio
+        registerAttribute<View, String>(Attributes.ConstraintLayout.CONSTRAINTLAYOUT_DIMENSION_RATIO) { targetView, attributeValue ->
+            setDimensionRatio(
+                targetView.getParentView() as? ConstraintLayout, targetView, attributeValue
+            )
+        }
+
+        registerAttribute<View, String>(Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_VERTICAL_BIAS) { targetView, attributeValue ->
+            setConstraintLayoutBias(
+                targetView.getParentView() as? ConstraintLayout,
+                targetView,
+                true,
+                parseFloat(attributeValue)
+            )
+        }
+
+        registerAttribute<View, String>(Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_HORIZONTAL_BIAS) { targetView, biasValue ->
+            setConstraintLayoutBias(
+                targetView.getParentView() as? ConstraintLayout,
+                targetView,
+                false,
+                parseFloat(biasValue)
+            )
+        }
+    }
+
+    private fun AttributeRegistry.imageViewAttributes() {
+        registerAttribute<ImageView, String>(Attributes.ImageView.IMAGEVIEW_SCALE_TYPE) { targetView, attributeValue ->
+            parseScaleType(attributeValue)?.let {
+                targetView.scaleType = it
+            }
+        }
+
+        registerAttribute<ImageView, String>(Attributes.ImageView.IMAGEVIEW_SRC) { targetView, attributeValue ->
+            setImageSource(targetView, attributeValue)
+        }
+    }
+
+    private fun AttributeRegistry.textViewAttributes() {
+        registerAttribute<TextView, String>(Attributes.Common.TEXT) { targetView, attributeValue ->
+            targetView.text = attributeValue
+        }
+
+        registerAttribute<TextView, String>(Attributes.TextView.TEXTVIEW_TEXT_SIZE) { targetView, attributeValue ->
+            targetView.setTextSize(
+                TypedValue.COMPLEX_UNIT_PX,
+                attributeValue.toPixels(targetView.resources.displayMetrics) as Float
+            )
+        }
+
+        registerAttribute<TextView, String>(Attributes.TextView.TEXTVIEW_TEXT_COLOR) { targetView, attributeValue ->
+            targetView.setTextColor(getColor(attributeValue, targetView.context))
+        }
+
+        registerAttribute<TextView, String>(Attributes.TextView.TEXTVIEW_TEXT_STYLE) { targetView, attributeValue ->
+            targetView.setTypeface(null, parseTextStyle(attributeValue.lowercase()))
+        }
+
+        registerAttribute<TextView, String>(Attributes.View.VIEW_TEXT_ALIGNMENT) { targetView, attributeValue ->
+            targetView.textAlignment = parseTextAlignment(attributeValue)!!
+        }
+
+        registerAttribute<TextView, String>(Attributes.TextView.TEXTVIEW_ELLIPSIZE) { targetView, attributeValue ->
+            targetView.ellipsize = parseEllipsize(attributeValue.lowercase())
+        }
+
+        registerAttribute<TextView, String>(Attributes.TextView.TEXTVIEW_SINGLE_LINE) { targetView, attributeValue ->
+            targetView.isSingleLine = attributeValue.asBoolean() == true
+        }
+
+        registerAttribute<TextView, String>(Attributes.TextView.TEXTVIEW_HINT) { targetView, attributeValue ->
+            targetView.hint = attributeValue
+        }
+
+        registerAttribute<TextView, String>(Attributes.TextView.TEXTVIEW_INPUT_TYPE) { targetView, attributeValue ->
+            parseInputType(attributeValue).let {
+                if (0 or it > 0) targetView.inputType = 0 or it
+            }
+        }
+    }
+
+    private fun AttributeRegistry.viewAttributes() {
+        registerAttribute<View, String>(Attributes.View.VIEW_ON_CLICK) { targetView, attributeValue ->
+            targetView.setOnClickListener(
+                getClickListener(
+                    targetView.getParentView(), attributeValue
+                )
+            )
+        }
+    }
+
+    private fun AttributeRegistry.marginAndPaddingAttributes() {
+        // Handle margins and paddings
+        listOf(
+            // Margins (need parent for calculation)
+            Attributes.Common.LAYOUT_MARGIN to ::setMargin,
+            Attributes.Common.LAYOUT_MARGIN_LEFT to ::setMarginLeft,
+            Attributes.Common.LAYOUT_MARGIN_RIGHT to ::setMarginRight,
+            Attributes.Common.LAYOUT_MARGIN_START to ::setMarginLeft,
+            Attributes.Common.LAYOUT_MARGIN_END to ::setMarginRight,
+            Attributes.Common.LAYOUT_MARGIN_TOP to ::setMarginTop,
+            Attributes.Common.LAYOUT_MARGIN_BOTTOM to ::setMarginBottom,
+
+            // Paddings (only use displayMetrics)
+            Attributes.Common.PADDING to ::setPadding,
+            Attributes.Common.PADDING_LEFT to ::setPaddingLeft,
+            Attributes.Common.PADDING_RIGHT to ::setPaddingRight,
+            Attributes.Common.PADDING_START to ::setPaddingLeft,
+            Attributes.Common.PADDING_END to ::setPaddingRight,
+            Attributes.Common.PADDING_TOP to ::setPaddingTop,
+            Attributes.Common.PADDING_BOTTOM to ::setPaddingBottom
+        ).forEach { (attr, func) ->
+            registerAttribute<View, String>(attr) { targetView, attributeValue ->
+                val isMargin = attr.contains("margin")
+                val pixels = if (isMargin) {
+                    val isHorizontal = attr in listOf(
+                        Attributes.Common.LAYOUT_MARGIN_LEFT,
+                        Attributes.Common.LAYOUT_MARGIN_START,
+                        Attributes.Common.LAYOUT_MARGIN_RIGHT,
+                        Attributes.Common.LAYOUT_MARGIN_END
+                    )
+
+                    attributeValue.toPixels(
+                        targetView.resources.displayMetrics,
+                        targetView.getParentView(), // Use parent for margins
+                        isHorizontal,
+                        true
+                    )
+                } else {
+                    attributeValue.toPixels(
+                        targetView.resources.displayMetrics, asInt = true
+                    ) // Paddings don't need parent
+                }
+
+                func(targetView, pixels as Int)
+            }
+        }
+    }
+
+    private fun attributeRegistryContainsId() =
+        AttributeProcessors.any { it.first == Attributes.Common.ID }
+
+    private fun setImageSource(targetView: ImageView, attributeValue: String) {
+        var imageReference = attributeValue
+        if (imageReference.startsWith("//")) imageReference = "http:$imageReference"
+        if (imageReference.startsWith("http:")) {
+            Glide.with(targetView.context).load(imageReference).into(targetView)
+        } else if (imageReference.startsWith("@drawable/")) {
+            val resDrawable = getDrawable(targetView, attributeValue.removePrefix("@drawable/"))
+            if (resDrawable != null) {
+                targetView.setImageDrawable(resDrawable)
+            } else {
+                // Handle case where resource is not found (optional)
+                targetView.setImageResource(android.R.drawable.ic_menu_report_image)
+            }
+        }
+    }
+
+    /** Sets width or height dynamically */
+    private fun setSize(targetView: View, attributeValue: String, isWidth: Boolean) {
+        val params = (targetView.layoutParams ?: ViewGroup.LayoutParams(wrapContent, wrapContent))
+        val size = attributeValue.toLayoutParam(
+            targetView.resources.displayMetrics, targetView.getParentView(), isWidth
+        )
+        if (isWidth) params.width = size else params.height = size
+        targetView.layoutParams = params
+    }
+
+    /** Converts layout string values to proper size */
+    private fun String.toLayoutParam(
+        displayMetrics: DisplayMetrics, parentView: ViewGroup?, isHorizontal: Boolean
+    ) = when (this) {
+        "fill_parent", "match_parent" -> ViewGroup.LayoutParams.MATCH_PARENT
+        "wrap_content" -> ViewGroup.LayoutParams.WRAP_CONTENT
+        else -> this.toPixels(displayMetrics, parentView, isHorizontal, true) as Int
+    }
+
+    /** Helper functions for margins & paddings */
+    private fun setMargin(targetView: View, attributeValue: Int) =
+        (targetView.layoutParams as? ViewGroup.MarginLayoutParams)?.setMargins(
+            attributeValue, attributeValue, attributeValue, attributeValue
+        )
+
+    private fun setMarginLeft(targetView: View, attributeValue: Int) =
+        (targetView.layoutParams as? ViewGroup.MarginLayoutParams)?.setMargins(
+            attributeValue, 0, 0, 0
+        )
+
+    private fun setMarginRight(targetView: View, attributeValue: Int) =
+        (targetView.layoutParams as? ViewGroup.MarginLayoutParams)?.setMargins(
+            0, 0, attributeValue, 0
+        )
+
+    private fun setMarginTop(targetView: View, attributeValue: Int) =
+        (targetView.layoutParams as? ViewGroup.MarginLayoutParams)?.setMargins(
+            0, attributeValue, 0, 0
+        )
+
+    private fun setMarginBottom(targetView: View, attributeValue: Int) =
+        (targetView.layoutParams as? ViewGroup.MarginLayoutParams)?.setMargins(
+            0, 0, 0, attributeValue
+        )
+
+    private fun setPadding(targetView: View, attributeValue: Int) =
+        targetView.setPadding(attributeValue, attributeValue, attributeValue, attributeValue)
+
+    private fun setPaddingLeft(targetView: View, attributeValue: Int) =
+        targetView.setPadding(attributeValue, 0, 0, 0)
+
+    private fun setPaddingRight(targetView: View, attributeValue: Int) =
+        targetView.setPadding(0, 0, attributeValue, 0)
+
+    private fun setPaddingTop(targetView: View, attributeValue: Int) =
+        targetView.setPadding(0, attributeValue, 0, 0)
+
+    private fun setPaddingBottom(targetView: View, attributeValue: Int) =
+        targetView.setPadding(0, 0, 0, attributeValue)
+
+    /** Adds relative layout relativeLayoutRule dynamically */
+    private fun addRelativeLayoutRule(
+        targetView: View, attributeValue: String, relativeLayoutRule: Int
+    ) {
+        (targetView.layoutParams as? RelativeLayout.LayoutParams)?.apply {
+            val anchor = when {
+                attributeValue.isBoolean() -> parseRelativeLayoutBoolean(attributeValue.asBoolean()!!)
+                else -> targetView.getParentView()?.getViewID(attributeValue.extractViewId())!!
+            }
+            ParseHelper.addRelativeLayoutRule(targetView, relativeLayoutRule, anchor)
+        }
+    }
+
+    private fun addConstraintRule(
+        constraint: ConstraintLayout?,
+        targetView: View,
+        attributeValue: String,
+        constraintSides: Pair<Int, Int>
+    ) {
+        // Apply the constraint rule using ConstraintSet
+        val constraintSet = ConstraintSet()
+        constraintSet.clone(constraint)
+
+        val viewId = targetView.id // The ID of the targetView to apply the constraint to
+
+        // ID of the targetView to connect to (either another targetView or the parent)
+        val targetId = if (attributeValue == "parent") {
+            ConstraintSet.PARENT_ID
+        } else {
+            constraint?.getViewID(attributeValue.extractViewId()) ?: ConstraintSet.PARENT_ID
+        }
+        Log.d("ViewAttributes", "targetView: $viewId, targetId: $targetId")
+
+        constraintSet.connect(viewId, constraintSides.first, targetId, constraintSides.second)
+
+        // Apply the constraints
+        constraintSet.applyTo(constraint)
+    }
+
+    private fun setChainStyle(
+        constraint: ConstraintLayout?, targetView: View, orientation: Int, attributeValue: String
+    ) {
+        val chainStyle = when (attributeValue.lowercase()) {
+            "spread" -> ConstraintSet.CHAIN_SPREAD
+            "spread_inside" -> ConstraintSet.CHAIN_SPREAD_INSIDE
+            "packed" -> ConstraintSet.CHAIN_PACKED
+            else -> ConstraintSet.CHAIN_SPREAD // Default attributeValue
+        }
+
+        val constraintSet = ConstraintSet()
+        constraintSet.clone(constraint)
+
+        if (orientation == ConstraintSet.HORIZONTAL) {
+            constraintSet.setHorizontalChainStyle(targetView.id, chainStyle)
+        } else if (orientation == ConstraintSet.VERTICAL) {
+            constraintSet.setVerticalChainStyle(targetView.id, chainStyle)
+        }
+
+        constraintSet.applyTo(constraint)
+    }
+
+    private fun setDimensionRatio(
+        constraint: ConstraintLayout?, targetView: View, attributeValue: String
+    ) {
+        val constraintSet = ConstraintSet()
+        constraintSet.clone(constraint)
+
+        constraintSet.setDimensionRatio(targetView.id, attributeValue)
+
+        constraintSet.applyTo(constraint)
+    }
+
+    private fun setConstraintLayoutBias(
+        constraintLayout: ConstraintLayout?,
+        targetView: View,
+        isVertical: Boolean,
+        attributeValue: Float
+    ) {
+        val constraintSet = ConstraintSet()
+        constraintSet.clone(constraintLayout)
+        if (isVertical) {
+            constraintSet.setVerticalBias(targetView.id, attributeValue)
+        } else {
+            constraintSet.setHorizontalBias(targetView.id, attributeValue)
+        }
+        constraintSet.applyTo(constraintLayout)
+    }
+}

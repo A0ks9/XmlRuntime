@@ -22,5 +22,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "XmlRuntime"
 include(":app")
-include(":viewcore-ksp")
+include(":Voyager")
 include(":voyager-plugin")
+include(":voyager-ksp")

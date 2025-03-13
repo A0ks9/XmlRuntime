@@ -1,5 +1,7 @@
 [versions]
 agp = "8.9.0"
+compileTesting = "0.19"
+junitJupiter = "5.12.0"
 kotlin = "2.1.10"
 coreKtx = "1.15.0"
 junit = "4.13.2"
@@ -23,13 +25,16 @@ mmkv = "2.1.0"
 kotlinx-serialization = "1.8.0"
 plugin-serliziation = "2.1.0"
 android-build = "8.9.0"
+kotlin-poet = "2.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+compile-googletesting = { module = "com.google.testing.compile:compile-testing", version.ref = "compileTesting" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junitJupiter" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
@@ -48,8 +53,10 @@ room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 tencent-mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android" }
+koin-test = { module = "io.insert-koin:koin-test" }
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 android-build-tools = { group = "com.android.tools.build", name = "gradle", version.ref = "android-build" }
+kotlin-poet = { group = "com.squareup", name = "kotlinpoet", version.ref = "kotlin-poet" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
