@@ -257,7 +257,7 @@ class ViewProcessor {
 
         @JvmStatic
         fun registerView(
-            packageName: String, className: String, creator: (ContextThemeWrapper) -> View
+            packageName: String, className: String, creator: (ContextThemeWrapper) -> View,
         ) {
             viewCreators.put("$packageName.$className", creator)
         }
@@ -271,9 +271,11 @@ class ViewProcessor {
 
         @JvmStatic
         fun createView(
-            packageName: String, className: String, context: ContextThemeWrapper
+            packageName: String, className: String, context: ContextThemeWrapper,
         ): View? = viewCreators["$packageName.$className"]?.let { it(context) }
 
+
+        //handle if the classPath is include and fragment and data and requestFocus and binding and databinding and viewModel and tag and checkable and gesture and keyFrame and Preference and transition and view and include-marco
         internal fun createView(classPath: String, context: ContextThemeWrapper): View? =
             viewCreators[getFullQualifiedType(classPath)]?.let { it(context) }
 
@@ -287,13 +289,13 @@ class ViewProcessor {
             return try {
                 val kClass = Class.forName(fullyQualifiedName).kotlin
 
-                val ctor = kClass.constructors.firstOrNull { constructor ->
+                val ktor = kClass.constructors.firstOrNull { constructor ->
                     constructor.parameters.size == 1 && constructor.parameters[0].type.classifier == Context::class
                 }
                     ?: throw IllegalArgumentException("No constructor with Context found for $fullyQualifiedName")
 
                 val viewConstructor: (Context) -> View = { ctx ->
-                    requireNotNull(ctor.call(ctx) as? View) { "View creation failed for type $fullyQualifiedName" }
+                    requireNotNull(ktor.call(ctx) as? View) { "View creation failed for type $fullyQualifiedName" }
                 }
 
                 registerView(fullyQualifiedName, viewConstructor)

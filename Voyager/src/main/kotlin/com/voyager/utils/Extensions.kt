@@ -3,94 +3,60 @@ package com.voyager.utils
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.util.DisplayMetrics
 import android.view.View
 import android.view.ViewGroup
-import androidx.collection.ArrayMap
-import com.google.gson.Gson
-import com.voyager.data.models.ViewNode
-import org.json.JSONArray
+import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentHashMap
 
-internal object Extensions {
-    val trueValues = listOf<String>("true", "1", "yes")
-    val falseValues = listOf<String>("false", "0", "no")
-}
+private val booleanValuesSet =
+    hashSetOf("true", "false", "0", "1", "yes", "no", "t", "f", "on", "off")
+private val viewIdRegex = Regex("^@\\+?(?:android:id/|id/|id\\\\/)?(.+)$")
+private val viewIdCache = ConcurrentHashMap<String, Int>()
+private val activityNameCache = WeakHashMap<Context, String>()
+private const val EMPTY_VIEW_ID_RESULT = -1
 
-internal fun String.isBoolean(): Boolean =
-    equals("true", ignoreCase = true) || equals("false", ignoreCase = true)
+internal fun String.isBoolean(): Boolean = booleanValuesSet.contains(this.lowercase())
 
-internal fun String.asBoolean(): Boolean? = if (isBoolean()) when (lowercase()) {
-    in Extensions.trueValues -> true
-    in Extensions.falseValues -> false
-    else -> null
-} else {
-    null
-}
-
-internal fun String.isInteger(): Boolean = toIntOrNull() != null
-
-internal fun String.isVisibility(): Boolean =
-    if (!isInteger()) lowercase() in setOf("visible", "invisible", "gone") else this in setOf(
-        "0", "4", "8"
-    )
+internal fun String.isColor(): Boolean = startsWith("#") || startsWith("@color/")
 
 internal fun String.extractViewId(): String =
-    Regex("^@\\+?(?:android:id/|id/|id\\\\/)?(.+)$").find(this)?.groupValues?.get(1)!!
+    viewIdRegex.find(this)?.groupValues?.getOrNull(1) ?: ""
 
-/**
- * Traverses the view hierarchy starting from the current [View] using Breadth-First Search (BFS)
- * to find a view ID associated with the given [id] within a [GeneratedView] tag.
- *
- * This function searches for a specific identifier within the `viewID` map of any [GeneratedView]
- * tag attached to a view in the hierarchy. If a view has a [GeneratedView] tag, and that tag's
- * `viewID` map contains the requested [id] as a key, the associated integer value (the view ID)
- * is returned.
- *
- * If no such view is found within the entire hierarchy, -1 is returned.
- *
- * @param id The string identifier to search for within the `viewID` maps of [GeneratedView] tags.
- * @return The integer view ID associated with the provided [id], or -1 if no matching ID is found.
- *
- * @see GeneratedView
- */
 internal fun View.getViewID(id: String): Int {
-    val queue: ArrayDeque<View> = ArrayDeque() // Queue for BFS traversal
-    queue.add(this)
-
-    while (queue.isNotEmpty()) {
-        val currentView = queue.removeFirst()
-
-        // Check if the current view has the required ID inside GeneratedView
-        (currentView.tag as? GeneratedView)?.viewID?.get(id)?.let { return it }
-
-        // If it's a ViewGroup, add its children to the queue
-        if (currentView is ViewGroup) {
-            repeat(currentView.childCount) { queue.add(currentView.getChildAt(it)) }
+    val cacheKey = id + this.hashCode()
+    return viewIdCache.getOrPut(cacheKey) {
+        val queue = ArrayDeque<View>()
+        queue.add(this)
+        while (queue.isNotEmpty()) {
+            val currentView = queue.removeFirst()
+            (currentView.tag as? GeneratedView)?.viewID?.get(id)?.let { return@getOrPut it }
+            if (currentView is ViewGroup) {
+                for (i in 0 until currentView.childCount) queue.add(currentView.getChildAt(i))
+            }
         }
+        EMPTY_VIEW_ID_RESULT
     }
-
-    return -1 // ID not found
 }
 
 internal fun View.getParentView(): ViewGroup? = parent as? ViewGroup
 
-/**
- * Tries to find a view from root View based on String ID
- *
- * @param id String id that should match with the ID of View
- * @return The view which is found with the string id, otherwise null.
- */
-fun View.findViewByIdString(id: String): View? {
-    val idNum = this.getViewID(id)
-    return if (idNum < 0) null else findViewById(idNum)
+internal fun String.toLayoutParam(
+    displayMetrics: DisplayMetrics, parentView: ViewGroup?, isHorizontal: Boolean,
+) = when (this) {
+    "fill_parent", "match_parent" -> ViewGroup.LayoutParams.MATCH_PARENT
+    "wrap_content" -> ViewGroup.LayoutParams.WRAP_CONTENT
+    else -> this.toPixels(displayMetrics, parentView, isHorizontal, true) as Int
 }
 
-fun Context.getActivityName(): String {
-    var currentContext = this
+fun View.findViewByIdString(id: String): View? =
+    getViewID(id).takeIf { it != EMPTY_VIEW_ID_RESULT }?.let(::findViewById)
+
+fun Context.getActivityName(): String = activityNameCache.getOrPut(this) {
+    var currentContext: Context = this
     while (currentContext is ContextWrapper) {
-        if (currentContext is Activity) {
-            return currentContext::class.simpleName ?: "Unknown"
-        }
+        if (currentContext is Activity) return@getOrPut currentContext::class.java.simpleName
         currentContext = currentContext.baseContext
     }
-    return "Unknown"
+    "Unknown"
 }

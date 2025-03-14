@@ -65,7 +65,7 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
         INTEGER("integer"), ARRAY("array"), PLURALS("plurals"), MENU("menu"), TRANSITION("transition"), FONT(
             "font"
         ),
-        RAW("raw"), XML("xml"), INTERPOLATOR("interpolator"), MIPMAP("mipmap")
+        RAW("raw"), XML("xml"), INTERPOLATOR("interpolator"), MIPMAP("mipmap"), ATTR("attr")
     }
 
     companion object {
