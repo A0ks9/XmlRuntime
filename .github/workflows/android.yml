@@ -1,6 +1,5 @@
 name: Android CI Build
 
-# Trigger the workflow on pushes, pull requests, or manually.
 on:
   push:
     branches:
@@ -10,8 +9,6 @@ on:
       - master
   workflow_dispatch:
 
-# Use concurrency to ensure that if a new run is triggered while one is in progress,
-# the previous one is canceled.
 concurrency:
   group: android-build
   cancel-in-progress: true
@@ -23,13 +20,13 @@ jobs:
     steps:
       # Step 1: Checkout the repository code.
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Step 2: Set up Java (Temurin JDK 21) for Android builds.
       - name: Set up Java (Temurin JDK 21)
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '21'
 
       # Step 3: Cache Gradle dependencies to speed up subsequent builds.
@@ -40,24 +37,26 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
-      # Step 4: Set up Android SDK, Build Tools, and NDK using a community action.
-      #         The 'latest' keyword ensures that the latest versions are used.
+      # Step 4: Set up Android SDK, Build Tools, and NDK.
       - name: Set up Android SDK, Build Tools, and NDK
         uses: android-actions/setup-android@v3
         with:
-          sdk-version: latest
-          build-tools: latest
-          ndk-version: latest
+          sdk-version: 'latest'
+          build-tools: 'latest'
+          ndk-version: 'latest'
 
-      # Step 5: Build the Android project with additional flags for faster builds.
-      #         --parallel runs tasks in parallel.
-      #         --build-cache reuses outputs from previous builds.
-      #         --configure-on-demand configures only required projects.
+      # Step 5: Publish Voyager-plugin to Maven Local.
+      - name: Publish Voyager-plugin to Maven Local
+        run: ./gradlew :Voyager-plugin:publishToMavenLocal
+
+      # Step 6: Build the main Android project (app) after publishing Voyager-plugin.
       - name: Build Android Project
-        run: ./gradlew assembleDebug --parallel --build-cache --configure-on-demand
+        run: ./gradlew :app:assembleDebug --parallel --build-cache --configure-on-demand
 
-      # Step 6: Upload the built APKs as artifacts with a retention period of 10 days.
+      # Step 7: Upload the built APKs as artifacts with a retention period of 10 days.
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
