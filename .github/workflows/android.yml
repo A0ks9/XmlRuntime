@@ -49,10 +49,18 @@ jobs:
           build-tools: 'latest'
           ndk-version: 'latest'
 
+      # Step 5: Publish the Custom Gradle Plugin to GitHub Packages.
+      - name: Publish Voyager Plugin
+        env:
+          GITHUB_USER: ${{ secrets.GITHUB_USER }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew :voyager-plugin:publish
 
-
-      # Step 6: Build the main Android project (app) after publishing Voyager-plugin.
+      # Step 6: Build the main Android project (app) using the published plugin.
       - name: Build Android Project
+        env:
+          GITHUB_USER: ${{ secrets.GITHUB_USER }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew :app:assembleDebug --parallel --build-cache --configure-on-demand --no-daemon
 
       # Step 7: Upload the built APKs as artifacts with a retention period of 10 days.
