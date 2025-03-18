@@ -11,13 +11,13 @@ package com.voyager.ksp.annotations
  * Annotations in Kotlin (and Java) are a form of metadata. They don't directly execute any code themselves.
  * Instead, they act as markers that can be read and processed by tools during compilation or runtime.
  *
- * In the context of `@AutoAttribute`, it is likely intended to be used with an **annotation processor**.
- * An annotation processor is a separate program (often part of a compiler plugin or build tool)
+ * In the context of `@AutoAttribute`, it is likely intended to be used with an **annotation processors**.
+ * An annotation processors is a separate program (often part of a compiler plugin or build tool)
  * that scans your code during compilation. It looks for annotations like `@AutoAttribute` and, based on
  * their presence, can generate code, perform checks, or trigger other actions.
  *
  * **Possible Use Cases (Hypothetical - Based on the name "AutoAttribute"):**
- *  - **Automatic Attribute Handling:**  An annotation processor could be written to automatically generate code
+ *  - **Automatic Attribute Handling:**  An annotation processors could be written to automatically generate code
  *    for handling attributes or properties of a class marked with `@AutoAttribute`. This might involve:
  *      - Generating getter and setter methods.
  *      - Creating boilerplate code for data binding or serialization related to attributes.
@@ -28,8 +28,8 @@ package com.voyager.ksp.annotations
  *
  * **Important:**
  *  - **This annotation alone does nothing.**  It's just a marker. To make it actually *do* something,
- *    you need to create an **annotation processor** that is designed to recognize and handle `@AutoAttribute`.
- *  - **Without an accompanying annotation processor, this annotation is purely declarative.** It serves
+ *    you need to create an **annotation processors** that is designed to recognize and handle `@AutoAttribute`.
+ *  - **Without an accompanying annotation processors, this annotation is purely declarative.** It serves
  *    as documentation or a signal for other developers or future tools.
  *
  * **Breakdown of the Annotation Definition:**
@@ -73,7 +73,7 @@ package com.voyager.ksp.annotations
  *
  * **How to Use (Without an Annotation Processor - Just as a Marker):**
  *
- * If you don't have an annotation processor set up, you can still use `@AutoAttribute` as a marker for
+ * If you don't have an annotation processors set up, you can still use `@AutoAttribute` as a marker for
  * your own code or for documentation purposes. For example, you might use it to:
  *
  * 1. **Signal Intent to Other Developers:** Indicate that a class or function is designed to have its
@@ -82,10 +82,10 @@ package com.voyager.ksp.annotations
  * 2. **Documentation:** Use it as a form of structured documentation to highlight classes or functions
  *    that are related to attribute management.
  *
- * 3. **Future Annotation Processing:**  If you plan to build an annotation processor later, you can start
+ * 3. **Future Annotation Processing:**  If you plan to build an annotation processors later, you can start
  *    annotating your code with `@AutoAttribute` now to prepare for that future functionality.
  *
- * **Example Usage (as a marker without processor):**
+ * **Example Usage (as a marker without processors):**
  *
  * ```kotlin
  * package com.example.myapp
@@ -109,7 +109,7 @@ package com.voyager.ksp.annotations
  * ```
  *
  * **In summary, `@AutoAttribute` is a custom annotation that, by itself, doesn't do anything. It's a marker.
- * To make it functional, you need to create an annotation processor that will read this annotation during
+ * To make it functional, you need to create an annotation processors that will read this annotation during
  * compilation and perform actions based on its presence.**
  */
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)

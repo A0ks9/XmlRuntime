@@ -16,6 +16,7 @@ import com.voyager.utils.Utils.getGeneratedViewInfo
 import com.voyager.utils.Utils.parseJsonToViewNode
 import com.voyager.utils.processors.AttributeRegistry
 import com.voyager.utils.processors.ViewProcessor.Companion.createViewByType
+import com.voyager.utils.view.BaseViewAttributes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

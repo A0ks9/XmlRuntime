@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.collection.ArrayMap
 import com.google.gson.stream.JsonReader
 import com.voyager.data.models.ViewNode
+import com.voyager.utils.view.Attributes
 import org.json.JSONArray
 import org.json.JSONException
 import java.io.InputStream
@@ -13,6 +14,7 @@ import java.lang.reflect.InvocationTargetException
 
 internal object Utils {
 
+    enum class DrawablePosition { START, END, TOP, BOTTOM }
 
     /**
      * Get a click listener.
@@ -141,7 +143,7 @@ internal object Utils {
                     while (reader.hasNext()) {
                         val readerName = reader.nextName()
                         val readerValue = reader.nextString()
-                        if (readerName == Attributes.Common.ID) id = readerValue
+                        if (readerName == Attributes.Common.ID.name) id = readerValue
                         attributes[readerName] = readerValue
                     }
                     reader.endObject()

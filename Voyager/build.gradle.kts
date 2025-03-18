@@ -7,6 +7,21 @@ plugins {
     alias(libs.plugins.google.ksp)
     alias(libs.plugins.plugin.serialization)
     id("kotlin-parcelize")
+    id("maven-publish")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            groupId = "com.github.A0ks9"
+            artifactId = "voyager"
+            version = "1.0.0-Beta01"
+
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
 }
 
 android {
@@ -81,6 +96,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.flexbox)
 
     // Kotlin reflection and coroutines for modern asynchronous code
     implementation(kotlin("reflect"))

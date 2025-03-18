@@ -3,9 +3,9 @@ package com.voyager.utils.processors
 
 import android.util.Log
 import android.view.View
-import com.voyager.utils.Attributes
-import com.voyager.utils.BaseViewAttributes
 import com.voyager.utils.interfaces.AttributeProcessorRegistry
+import com.voyager.utils.view.Attributes
+import com.voyager.utils.view.BaseViewAttributes
 
 open class AttributeRegistry {
 
@@ -24,10 +24,10 @@ open class AttributeRegistry {
         }
 
         /**
-         * Adds a single attribute and its associated processor to the registry.
+         * Adds a single attribute and its associated processors to the registry.
          *
          * @param attributeName The name of the attribute.
-         * @param attributeProcessor The processor responsible for applying the attribute.
+         * @param attributeProcessor The processors responsible for applying the attribute.
          * @throws IllegalArgumentException if an attribute with the same name already exists.
          */
         @Suppress("UNCHECKED_CAST")
@@ -55,10 +55,10 @@ open class AttributeRegistry {
         }
 
         /**
-         * Adds multiple attributes with the same processor to the registry.
+         * Adds multiple attributes with the same processors to the registry.
          *
          * @param attributeNames A vararg of attribute names.
-         * @param attributeProcessor The processor responsible for applying the attributes.
+         * @param attributeProcessor The processors responsible for applying the attributes.
          * @throws IllegalArgumentException if any attribute name is already registered.
          */
         @JvmStatic
@@ -114,7 +114,7 @@ open class AttributeRegistry {
             require(attributeProcessors.isNotEmpty()) { "No attributes found" }
 
             applyAttribute(
-                targetView, Attributes.Common.ID, attributeValues[Attributes.Common.ID]
+                targetView, Attributes.Common.ID.name, attributeValues[Attributes.Common.ID.name]
             )
 
             // Apply Non-ConstraintLayout Attributes:
@@ -170,7 +170,7 @@ open class AttributeRegistry {
         }
 
         private fun String.isIDAttribute(): Boolean =
-            equals(Attributes.Common.ID, ignoreCase = true)
+            equals(Attributes.Common.ID.name, ignoreCase = true)
 
         /**
          * Checks if an attribute name belongs to ConstraintLayout.

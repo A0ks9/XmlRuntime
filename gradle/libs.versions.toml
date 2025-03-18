@@ -26,6 +26,7 @@ kotlinx-serialization = "1.8.0"
 plugin-serliziation = "2.1.0"
 android-build = "8.9.0"
 kotlin-poet = "2.1.0"
+flexbox = "3.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -57,6 +58,7 @@ koin-test = { module = "io.insert-koin:koin-test" }
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 android-build-tools = { group = "com.android.tools.build", name = "gradle", version.ref = "android-build" }
 kotlin-poet = { group = "com.squareup", name = "kotlinpoet", version.ref = "kotlin-poet" }
+flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

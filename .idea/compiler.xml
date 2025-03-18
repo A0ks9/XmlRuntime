@@ -3,6 +3,7 @@
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
       <module name="XmlRuntime.mylibrary" target="21" />
+      <module name="XmlRuntime.proteus" target="21" />
       <module name="XmlRuntime.proteus-core" target="21" />
       <module name="XmlRuntime.viewcore-ksp.main" target="21" />
       <module name="XmlRuntime.viewcore-ksp.test" target="21" />

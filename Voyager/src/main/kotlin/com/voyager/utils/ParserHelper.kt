@@ -12,6 +12,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.Gravity
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
@@ -109,6 +110,30 @@ object ParseHelper {
     private const val AUTO = "auto"
     private const val HIGH = "high"
     private const val LOW = "low"
+    private const val ACTION_DONE = "actionDone"
+    private const val ACTION_GO = "actionGo"
+    private const val ACTION_NEXT = "actionNext"
+    private const val ACTION_NONE = "actionNone"
+    private const val ACTION_PREVIOUS = "actionPrevious"
+    private const val ACTION_SEARCH = "actionSearch"
+    private const val ACTION_SEND = "actionSend"
+    private const val ACTION_UNSPECIFIED = "actionUnspecified"
+    private const val FLAG_FORCE_ASCII = "flagForceAscii"
+    private const val FLAG_NAVIGATE_NEXT = "flagNavigateNext"
+    private const val FLAG_NAVIGATE_PREVIOUS = "flagNavigatePrevious"
+    private const val FLAG_NO_ACCESSORY_ACTION = "flagNoAccessoryAction"
+    private const val FLAG_NO_ENTER_ACTION = "flagNoEnterAction"
+    private const val FLAG_NO_EXTRACT_UI = "flagNoExtractUi"
+    private const val FLAG_NO_FULLSCREEN = "flagNoFullscreen"
+    private const val FLAG_NO_PERSONALIZED_LEARNING = "flagNoPersonalizedLearning"
+    private const val NORMAL = "normal"
+    private const val ALWAYS = "always"
+    private const val IF_CONTENT_SCROLLS = "ifContentScrolls"
+    private const val NEVER = "never"
+    private const val YES = "yes"
+    private const val NO = "no"
+    private const val NO_HIDE_DESCENDANTS = "noHideDescendants"
+
 
     private val sVisibilityMap = ConcurrentHashMap<Int, Int>().apply {
         this[View.VISIBLE] = View.VISIBLE
@@ -220,6 +245,50 @@ object ParseHelper {
         this[LOW] = View.DRAWING_CACHE_QUALITY_LOW
     }
 
+    private val sImeOptions = ConcurrentHashMap<String, Int>().apply {
+        this[ACTION_DONE] = EditorInfo.IME_ACTION_DONE
+        this[ACTION_GO] = EditorInfo.IME_ACTION_GO
+        this[ACTION_NEXT] = EditorInfo.IME_ACTION_NEXT
+        this[ACTION_NONE] = EditorInfo.IME_ACTION_NONE
+        this[ACTION_PREVIOUS] = EditorInfo.IME_ACTION_PREVIOUS
+        this[ACTION_SEARCH] = EditorInfo.IME_ACTION_SEARCH
+        this[ACTION_SEND] = EditorInfo.IME_ACTION_SEND
+        this[ACTION_UNSPECIFIED] = EditorInfo.IME_ACTION_UNSPECIFIED
+        this[FLAG_FORCE_ASCII] = EditorInfo.IME_FLAG_FORCE_ASCII
+        this[FLAG_NAVIGATE_NEXT] = EditorInfo.IME_FLAG_NAVIGATE_NEXT
+        this[FLAG_NAVIGATE_PREVIOUS] = EditorInfo.IME_FLAG_NAVIGATE_PREVIOUS
+        this[FLAG_NO_EXTRACT_UI] = EditorInfo.IME_FLAG_NO_EXTRACT_UI
+        this[FLAG_NO_ACCESSORY_ACTION] = EditorInfo.IME_FLAG_NO_ACCESSORY_ACTION
+        this[FLAG_NO_ENTER_ACTION] = EditorInfo.IME_FLAG_NO_ENTER_ACTION
+        this[FLAG_NO_FULLSCREEN] = EditorInfo.IME_FLAG_NO_FULLSCREEN
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) this[FLAG_NO_PERSONALIZED_LEARNING] =
+            EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
+        this[NORMAL] = EditorInfo.IME_NULL
+    }
+
+    private val sOverScrollModes = ConcurrentHashMap<String, Int>().apply {
+        this[ALWAYS] = View.OVER_SCROLL_ALWAYS
+        this[IF_CONTENT_SCROLLS.lowercase()] = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+        this[NEVER] = View.OVER_SCROLL_NEVER
+    }
+
+    private val sImportantAccessibility = ConcurrentHashMap<String, Int>().apply {
+        this[AUTO] = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+        this[YES] = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        this[NO] = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        this[NO_HIDE_DESCENDANTS] = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+    }
+
+    private val sScrollIndicators = ConcurrentHashMap<String, Int>().apply {
+        this[START] = View.SCROLL_INDICATOR_START
+        this[END] = View.SCROLL_INDICATOR_END
+        this[TOP] = View.SCROLL_INDICATOR_TOP
+        this[BOTTOM] = View.SCROLL_INDICATOR_BOTTOM
+        this[NONE] = 0
+        this[RIGHT] = View.SCROLL_INDICATOR_RIGHT
+        this[LEFT] = View.SCROLLBAR_POSITION_LEFT
+    }
+
     fun parseInt(attributeValue: String?): Int =
         attributeValue?.toIntOrNull() ?: run { Log.e(TAG, "$attributeValue is NAN"); 0 }
 
@@ -276,6 +345,14 @@ object ParseHelper {
         )
     }
 
+    fun getString(context: Context, name: String): String? = when {
+        name.startsWith("@string/") -> ContextCompat.getString(
+            context, ConfigManager.config.provider.getResId("string", name.removePrefix("@string/"))
+        )
+
+        else -> name
+    }
+
     fun parseRelativeLayoutBoolean(value: Boolean): Int = if (value) RelativeLayout.TRUE else 0
     fun addRelativeLayoutRule(view: View, verb: Int, anchor: Int) {
         (view.layoutParams as? RelativeLayout.LayoutParams)?.apply {
@@ -317,7 +394,33 @@ object ParseHelper {
 
     @Suppress("DEPRECATION")
     fun parseDrawingCacheQuality(attributeValue: String?): Int =
-        sDrawingCacheQuality[attributeValue.lowercase()] ?: View.DRAWING_CACHE_QUALITY_AUTO
+        sDrawingCacheQuality[attributeValue?.lowercase()] ?: View.DRAWING_CACHE_QUALITY_AUTO
+
+    fun parseImeOption(attributeValue: String?): Int =
+        sImeOptions[attributeValue] ?: EditorInfo.IME_NULL
+
+    fun parseOverScrollMode(attributeValue: String): Int =
+        sOverScrollModes[attributeValue.lowercase()] ?: View.OVER_SCROLL_ALWAYS
+
+    fun parseImportantForAccessibility(attributeValue: String): Int =
+        sImportantAccessibility[attributeValue] ?: View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+
+    fun parseScrollIndicators(attributeValue: String): Int {
+        var flags = 0
+        attributeValue.split("|").forEach {
+            flags = when (it.trim()) {
+                START -> flags or View.SCROLL_INDICATOR_START
+                END -> flags or View.SCROLL_INDICATOR_END
+                TOP -> flags or View.SCROLL_INDICATOR_TOP
+                BOTTOM -> flags or View.SCROLL_INDICATOR_BOTTOM
+                LEFT -> flags or View.SCROLL_INDICATOR_LEFT
+                RIGHT -> flags or View.SCROLL_INDICATOR_RIGHT
+                NONE -> 0
+                else -> flags
+            }
+        }
+        return flags
+    }
 
     data class IntResult(val error: String?, val result: Int = -1)
 }

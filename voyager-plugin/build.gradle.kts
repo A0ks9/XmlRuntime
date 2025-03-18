@@ -20,10 +20,18 @@ gradlePlugin {
 
 publishing {
     repositories {
-        // Publish to the local Maven repository.
-        mavenLocal()
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/A0ks9/XmlRuntime")
+            credentials {
+                username = System.getenv("GITHUB_USER") ?: "A0ks9"
+                password =
+                    System.getenv("GITHUB_TOKEN") ?: "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"
+            }
+        }
     }
 }
+
 
 java {
     // Configure Java toolchain (ensures consistent Java version across environments).
