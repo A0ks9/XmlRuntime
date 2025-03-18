@@ -7,5 +7,4 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.jvm) apply false
     alias(libs.plugins.plugin.serialization) apply false
     id("com.labters.styler.stylerplugin") version "1.0.0"
-    id("com.voyager.plugin") version "1.0.0-Beta01" apply false
 }

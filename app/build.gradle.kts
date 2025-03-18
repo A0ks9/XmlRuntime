@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.ksp)
-    id("com.voyager.plugin")
+    id("com.voyager.plugin") version "1.0.0-Beta01"
 }
 
 android {
