@@ -23,6 +23,6 @@ dependencyResolutionManagement {
 rootProject.name = "XmlRuntime"
 include(":app")
 include(":Voyager")
-includeBuild(":voyager-plugin")
+include(":voyager-plugin")
 include(":voyager-ksp")
 //include(":proteus")
