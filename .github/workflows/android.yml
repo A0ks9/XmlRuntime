@@ -49,9 +49,7 @@ jobs:
           build-tools: 'latest'
           ndk-version: 'latest'
 
-      # Step 5: Publish Voyager-plugin to Maven Local.
-      - name: Publish Voyager-plugin to Maven Local
-        run: ./gradlew :Voyager-plugin:publishToMavenLocal --no-daemon
+
 
       # Step 6: Build the main Android project (app) after publishing Voyager-plugin.
       - name: Build Android Project
