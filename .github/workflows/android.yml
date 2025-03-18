@@ -36,10 +36,9 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-            ~/.m2/repository
-          key: ${{ runner.os }}-gradle-maven-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-maven-
+            ${{ runner.os }}-gradle-
 
       # Step 4: Set up Android SDK, Build Tools, and NDK.
       - name: Set up Android SDK, Build Tools, and NDK
@@ -49,11 +48,11 @@ jobs:
           build-tools: 'latest'
           ndk-version: 'latest'
 
-      # Step 5: Publish Voyager-plugin to Maven Local.
-      - name: Publish Voyager-plugin to Maven Local
-        run: ./gradlew :Voyager-plugin:publishToMavenLocal --no-daemon
+      # Step 5: Build the Voyager-plugin (via composite build).
+      - name: Build Voyager-plugin
+        run: ./gradlew :Voyager-plugin:build --no-daemon
 
-      # Step 6: Build the main Android project (app) after publishing Voyager-plugin.
+      # Step 6: Build the Android project using the Voyager-plugin.
       - name: Build Android Project
         run: ./gradlew :app:assembleDebug --parallel --build-cache --configure-on-demand --no-daemon
 
