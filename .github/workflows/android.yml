@@ -29,16 +29,17 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # Step 3: Cache Gradle dependencies to speed up subsequent builds.
-      - name: Cache Gradle Dependencies
+      # Step 3: Cache Gradle & Maven dependencies to speed up subsequent builds.
+      - name: Cache Gradle & Maven Dependencies
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+            ~/.m2/repository
+          key: ${{ runner.os }}-gradle-maven-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-
+            ${{ runner.os }}-gradle-maven-
 
       # Step 4: Set up Android SDK, Build Tools, and NDK.
       - name: Set up Android SDK, Build Tools, and NDK
@@ -50,11 +51,11 @@ jobs:
 
       # Step 5: Publish Voyager-plugin to Maven Local.
       - name: Publish Voyager-plugin to Maven Local
-        run: ./gradlew :Voyager-plugin:publishToMavenLocal
+        run: ./gradlew :Voyager-plugin:publishToMavenLocal --no-daemon
 
       # Step 6: Build the main Android project (app) after publishing Voyager-plugin.
       - name: Build Android Project
-        run: ./gradlew :app:assembleDebug --parallel --build-cache --configure-on-demand
+        run: ./gradlew :app:assembleDebug --parallel --build-cache --configure-on-demand --no-daemon
 
       # Step 7: Upload the built APKs as artifacts with a retention period of 10 days.
       - name: Upload Build Artifact
