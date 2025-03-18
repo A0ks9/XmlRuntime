@@ -54,7 +54,7 @@ jobs:
         env:
           GITHUB_USER: ${{ secrets.GITHUB_USER }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew :voyager-plugin:publish
+        run: ./gradlew :voyager-plugin:publishToMavenLocal --build-cache --no-daemon
 
       # Step 6: Build the main Android project (app) using the published plugin.
       - name: Build Android Project

@@ -4,35 +4,31 @@ plugins {
 
     // Gradle plugin development and publishing.
     id("java-gradle-plugin")
-    id("maven-publish")
+    id("com.gradle.plugin-publish") version "1.3.1"
 }
 
 group = "com.voyager"
 version = "1.0.0-Beta01"
 
 gradlePlugin {
+    website.set("https://github.com/A0ks9/XmlRuntime")
+    vcsUrl.set("https://github.com/A0ks9/XmlRuntime")
     // Register the plugin with a unique ID and implementation class.
     plugins {
         create("voyager-plugin") {
             id = "com.voyager.plugin"
             implementationClass = "com.voyager.plugin.ResourcesPlugin"
+            displayName = "Voyager Plugin"
+            description = "A plugin for generating kotlin code that works as a bridge between Voyager core lib and the resources"
+            tags.set(listOf("android", "xml", "kotlin", "resources"))
         }
     }
 }
 
 publishing {
     repositories {
-        maven {
-            // Publishing to GitHub Packages.
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/A0ks9/XmlRuntime")
-            credentials {
-                // Use environment variables for security.
-                username = System.getenv("GITHUB_USER") ?: "A0ks9"
-                password = System.getenv("GITHUB_TOKEN") ?: error("Missing GITHUB_TOKEN!")
-            }
-        }
-        gradlePluginPortal()
+        // Publish to the local Maven repository.
+        mavenLocal()
     }
 }
 
