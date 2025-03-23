@@ -1,10 +1,11 @@
-package com.voyager.ksp.processors
+package com.voyager.processors
 
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
+import com.voyager.processors.ksp.AttributeProcessor
 
-class AttributeProcessorProvider : SymbolProcessorProvider {
+class KspProcessorProvider : SymbolProcessorProvider {
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
         return AttributeProcessor(
             environment.codeGenerator,

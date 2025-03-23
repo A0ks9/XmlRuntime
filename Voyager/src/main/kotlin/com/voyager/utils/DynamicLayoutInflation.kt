@@ -14,7 +14,7 @@ import com.voyager.utils.FileHelper.getFileExtension
 import com.voyager.utils.FileHelper.parseXML
 import com.voyager.utils.Utils.getGeneratedViewInfo
 import com.voyager.utils.Utils.parseJsonToViewNode
-import com.voyager.utils.processors.AttributeRegistry
+import com.voyager.utils.processors.AttributeProcessor
 import com.voyager.utils.processors.ViewProcessor.Companion.createViewByType
 import com.voyager.utils.view.BaseViewAttributes
 import kotlinx.coroutines.CoroutineScope
@@ -170,7 +170,7 @@ object DynamicLayoutInflation {
             "Before apply attributes, View: ${view.javaClass.simpleName}, parent: ${parent?.javaClass?.simpleName}"
         )
 
-        AttributeRegistry.applyAttributes(view, attributes) // Fallback to default AttributeRegistry
+        AttributeProcessor.applyAttributes(view, attributes) // Fallback to default AttributeRegistry
 
         Log.d(
             "DynamicLayoutInflation",

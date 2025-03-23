@@ -1,20 +1,21 @@
-package com.voyager.ksp.processors
+package com.voyager.processors.ksp
 
-import com.voyager.ksp.annotations.AutoViewAttributes
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.voyager.annotations.ViewRegister
 
 class AttributeProcessor(
-    private val codeGenerator: CodeGenerator, private val logger: KSPLogger
+    private val codeGenerator: CodeGenerator, private val logger: KSPLogger,
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        resolver.getSymbolsWithAnnotation(AutoViewAttributes::class.qualifiedName!!)
+        resolver.getSymbolsWithAnnotation(ViewRegister::class.qualifiedName!!)
             .filterIsInstance<KSClassDeclaration>().forEach { generateViewAttributeParser(it) }
         return emptyList()
     }
@@ -30,7 +31,7 @@ class AttributeProcessor(
 
         runCatching {
             codeGenerator.createNewFile(
-                Dependencies.Companion.ALL_FILES, generatedPackage, "${className}ViewAttributeParser"
+                Dependencies(false), generatedPackage, "${className}ViewAttributeParser"
             ).bufferedWriter().use { writer ->
                 writer.write(buildString {
                     appendLine("package $generatedPackage")
@@ -46,12 +47,12 @@ class AttributeProcessor(
                     appendLine()
                     appendLine("    override fun getViewType() = \"$viewClassName\"")
                     appendLine()
-                    appendLine("    private val attributeMap = mapOf<String, (View, Any) -> Unit>(")
+                    appendLine("    private val attributeMap = mapOf<String, (View, Any?) -> Unit>(")
                     appendLine("        $attributeMappings")
                     appendLine("    )")
                     appendLine()
                     appendLine("    override fun addAttributes() {")
-                    appendLine("        attributeMap.forEach { (attr, setter) -> registerAttribute<View, Any>(attr, setter) }")
+                    appendLine("        registerAttributes(attributeMap)")
                     appendLine("    }")
                     appendLine()
                     appendLine("    override fun createView(context: ContextThemeWrapper): View = $className(context)")
@@ -67,12 +68,10 @@ class AttributeProcessor(
     }
 
     private fun getViewClassName(clazz: KSClassDeclaration): String {
-        val viewAnnotation =
-            clazz.annotations.find { it.shortName.asString() == "AutoViewAttributes" }
+        val viewAnnotation = clazz.annotations.find { it.shortName.asString() == "ViewRegister" }
 
-        val viewClassNameValue =
-            viewAnnotation?.arguments?.find { it.name?.asString() == "viewClassName" }?.value as? String
-                ?: clazz.qualifiedName?.asString() ?: ""
+        val viewClassNameValue = viewAnnotation?.arguments?.firstOrNull()?.value as? String
+            ?: clazz.qualifiedName?.asString() ?: ""
 
         logger.info("View class name value for ${clazz.simpleName.asString()}: $viewClassNameValue")
         return viewClassNameValue
@@ -80,26 +79,45 @@ class AttributeProcessor(
 
     private fun generateAttributeMappings(clazz: KSClassDeclaration): String {
         val attributeMappings = clazz.getAllFunctions().filter {
-            it.simpleName.asString()
-                .startsWith("set") && it.annotations.any { it.shortName.asString() == "AutoAttribute" }
+            it.annotations.any { it.shortName.asString() == "Attribute" }
         }.mapNotNull { function ->
-            val attrName = function.simpleName.asString().removePrefix("set")
-                .replaceFirstChar { it.lowercase() }
+            val attrName = extractAttrName(function.annotations)
 
-            //what if the type isn't primitive and it needs an import (handle that)
             val paramType =
                 function.parameters.firstOrNull()?.type?.resolve()?.declaration?.simpleName?.asString()
 
-            if (paramType == null) {
-                logger.warn("Parameter type is null for function ${function.simpleName.asString()} in class ${clazz.simpleName.asString()}. Skipping attribute mapping.")
+            if (attrName == null || paramType == null) {
+                logger.warn("Skipping function: ${function.simpleName.asString()} due to missing attribute name or parameter type.")
                 return@mapNotNull null
             }
 
             "\"$attrName\" to { v, value -> (v as ${clazz.simpleName.asString()}).${function.simpleName.asString()}(value as $paramType) }"
-        }.toList() // Convert to list before joining
+        }.toList()
 
-        logger.info("Attribute mappings for ${clazz.simpleName.asString()}: ${attributeMappings.size} attributes found")
+        val propertyMappings = clazz.getAllProperties().filter {
+            it.annotations.any { it.shortName.asString() == "Attribute" }
+        }.mapNotNull { property ->
+            val attrName = extractAttrName(property.annotations)
 
-        return attributeMappings.joinToString(",\n        ")
+            val propertyType = property.type.resolve().declaration.simpleName.asString()
+
+            if (attrName == null) {
+                logger.warn("Skipping property: ${property.simpleName.asString()} due to missing attribute name.")
+                return@mapNotNull null
+            }
+
+            "\"$attrName\" to { v, value -> (v as ${clazz.simpleName.asString()}).${property.simpleName.asString()} = value as $propertyType }"
+        }.toList()
+
+        logger.info("Attribute mappings for ${clazz.simpleName.asString()}: ${attributeMappings.size + propertyMappings.size} attributes found")
+
+        return (attributeMappings + propertyMappings).joinToString(",\n        ")
+    }
+
+    private fun extractAttrName(annotations: Sequence<KSAnnotation>): String? {
+        annotations.find { it.shortName.asString() == "Attribute" }?.arguments?.forEach { arg ->
+            return arg.value.toString()
+        }
+        return null
     }
 }

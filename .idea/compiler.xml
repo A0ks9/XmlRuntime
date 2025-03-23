@@ -9,8 +9,13 @@
       <module name="XmlRuntime.viewcore-ksp.test" target="21" />
       <module name="XmlRuntime.viewcore.main" target="21" />
       <module name="XmlRuntime.viewcore.test" target="21" />
+      <module name="XmlRuntime.voyager-annotations" target="21" />
+      <module name="XmlRuntime.voyager-annotations.main" target="21" />
+      <module name="XmlRuntime.voyager-annotations.test" target="21" />
       <module name="XmlRuntime.voyager-kotlin.main" target="21" />
       <module name="XmlRuntime.voyager-kotlin.test" target="21" />
+      <module name="XmlRuntime.voyager-ksp.main" target="21" />
+      <module name="XmlRuntime.voyager-ksp.test" target="21" />
       <module name="XmlRuntime.Voyager-kt" target="21" />
       <module name="XmlRuntime.Voyager-kt.main" target="21" />
       <module name="XmlRuntime.Voyager-kt.test" target="21" />

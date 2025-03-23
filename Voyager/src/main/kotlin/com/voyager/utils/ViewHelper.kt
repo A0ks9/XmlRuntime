@@ -8,8 +8,10 @@ import android.util.Log
 import android.view.ViewGroup
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.viewbinding.ViewBinding
+import com.voyager.data.models.ConfigManager
 import com.voyager.data.models.ViewNode
 import com.voyager.data.models.ViewNodeParser.fromJson
+import com.voyager.data.models.VoyagerConfig
 import com.voyager.data.sources.local.RoomViewNodeDataSource
 import com.voyager.data.sources.local.db.AppDatabase
 import com.voyager.data.sources.local.db.DatabaseProvider
@@ -41,11 +43,6 @@ class ViewHelper private constructor(
     private var jsonConfiguration: String? = null,
     private val callback: (Any?) -> Unit,
 ) {
-
-    // Database instance for persistent storage
-    private val database: AppDatabase = DatabaseProvider.getInstance(context)
-    private val viewStateDao: ViewNodeDao = database.ViewNodeDao()
-
     init {
         initialize()
     }
@@ -61,20 +58,28 @@ class ViewHelper private constructor(
          */
         private fun getInstance(): ViewHelper? = instance?.get()
 
-        /**
-         * Saves the current view state to the provided [Bundle].
-         *
-         * @param outState The bundle to store the view state
-         */
-        fun saveInstance(outState: Bundle) {
-            getInstance()?.saveCurrentViewState(outState)
+        internal fun saveCurrentViewNode(outState: Bundle) {
+            collectViewsNode()?.let {
+                outState.putParcelable("viewState", it)
+            }
         }
 
-        /**
-         * Persists the current view state into the Room database.
-         */
-        fun saveToRoom() {
-            getInstance()?.saveViewStateToRoom()
+        private fun collectViewsNode() = DynamicLayoutInflation.viewNode
+
+        internal fun saveViewNodeToRoom(context: Context) {
+            // Database instance for persistent storage
+            val database: AppDatabase = DatabaseProvider.getInstance(context)
+            val viewStateDao: ViewNodeDao = database.ViewNodeDao()
+
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    collectViewsNode()?.let {
+                        viewStateDao.insertViewNode(it)
+                    }
+                } catch (e: Exception) {
+                    Log.e("ViewHelper", "Error saving view nodes to Room: ${e.message}", e)
+                }
+            }
         }
 
         /**
@@ -96,11 +101,6 @@ class ViewHelper private constructor(
      */
     private fun initialize() {
         val effectiveJson = jsonConfiguration ?: viewHandler.getJsonConfiguration()
-        if (effectiveJson == null) {
-            callback.invoke(null)
-            return
-        }
-
         val containerView = viewHandler.getContainerLayout()
         val contextThemeWrapper = ContextThemeWrapper(context, theme)
         instance = WeakReference(this)
@@ -113,6 +113,11 @@ class ViewHelper private constructor(
                     }
 
                     !RoomViewNodeDataSource(context).hasViewNode() -> {
+                        if (effectiveJson == null) {
+                            callback.invoke(null)
+                            return@launch
+                        }
+
                         fromJson(effectiveJson)?.let { node ->
                             inflate(contextThemeWrapper, node, containerView)
                         }
@@ -156,40 +161,9 @@ class ViewHelper private constructor(
      * @return The restored [ViewNode] or null if not found
      */
     private suspend fun restoreViewsFromRoom(context: Context): ViewNode? {
+        val database: AppDatabase = DatabaseProvider.getInstance(context)
+        val viewStateDao: ViewNodeDao = database.ViewNodeDao()
         return viewStateDao.getViewNode(context.getActivityName())
-    }
-
-    /**
-     * Collects the current view node for saving.
-     *
-     * @return The current [ViewNode] or null
-     */
-    private fun collectViewsNode(): ViewNode? = DynamicLayoutInflation.viewNode
-
-    /**
-     * Saves the current view state to the provided [Bundle].
-     *
-     * @param outState Bundle to save the view state
-     */
-    private fun saveCurrentViewState(outState: Bundle) {
-        collectViewsNode()?.let {
-            outState.putParcelable("viewState", it)
-        }
-    }
-
-    /**
-     * Saves the current view state to the Room database asynchronously.
-     */
-    private fun saveViewStateToRoom() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                collectViewsNode()?.let {
-                    viewStateDao.insertViewNode(it)
-                }
-            } catch (e: Exception) {
-                Log.e("ViewHelper", "Error saving view nodes to Room: ${e.message}", e)
-            }
-        }
     }
 
     /**
@@ -207,24 +181,30 @@ class ViewHelper private constructor(
     /**
      * Builder class for constructing a [ViewHelper] instance.
      */
-    class Builder<T : ViewBinding>(private val context: Context) {
+    class Builder(private val context: Context) {
         private var theme: Int = 0
         private lateinit var viewHandler: ViewHandler
         private var extras: Bundle? = null
         private var jsonConfiguration: String? = null
-        private lateinit var callback: (T?) -> Unit
+        private lateinit var callback: (ViewGroup?) -> Unit
         private lateinit var resourcesProvider: ResourcesProvider
+        //make a var for isLoggingEnabled
 
         fun setTheme(theme: Int) = apply { this.theme = theme }
         fun setViewHandler(viewHandler: ViewHandler) = apply { this.viewHandler = viewHandler }
         fun setExtras(extras: Bundle?) = apply { this.extras = extras }
-        fun setCallback(callback: (T?) -> Unit) = apply { this.callback = callback }
+        fun setCallback(callback: (ViewGroup?) -> Unit) = apply { this.callback = callback }
         fun setProvider(resourcesProvider: ResourcesProvider) =
             apply { this.resourcesProvider = resourcesProvider }
 
         fun setJsonConfiguration(json: String) = apply { this.jsonConfiguration = json }
 
         fun build(): ViewHelper {
+            ConfigManager.initialize(
+                VoyagerConfig(
+                    provider = resourcesProvider
+                )
+            )
             require(::viewHandler.isInitialized) { "ViewHandler is required" }
             require(::callback.isInitialized) { "Callback is required" }
             @Suppress("UNCHECKED_CAST") val viewHelper = ViewHelper(

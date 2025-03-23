@@ -40,9 +40,9 @@ interface ViewHandler {
             theme: Int,
             extras: Bundle?,
             provider: ResourcesProvider,
-            callback: (T?) -> Unit,
+            callback: (ViewGroup?) -> Unit,
         ) where T : ViewDataBinding, T : ViewBinding {
-            ViewHelper.Builder<T>(context).setViewHandler(viewHandler).setTheme(theme)
+            ViewHelper.Builder(context).setViewHandler(viewHandler).setTheme(theme)
                 .setExtras(extras).setCallback(callback).setProvider(provider).build()
         }
 
@@ -51,7 +51,7 @@ interface ViewHandler {
          */
         @JvmStatic
         fun saveInstanceState(outState: Bundle) {
-            ViewHelper.saveInstance(outState)
+            ViewHelper.saveCurrentViewNode(outState)
 
         }
 
@@ -59,8 +59,8 @@ interface ViewHandler {
          * Persists the current view state to the Room database.
          */
         @JvmStatic
-        fun saveDataWithRoom() {
-            ViewHelper.saveToRoom()
+        fun saveDataWithRoom(context: Context) {
+            ViewHelper.saveViewNodeToRoom(context)
         }
 
         /**

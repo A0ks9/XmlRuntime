@@ -6,16 +6,8 @@ java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
-
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
     }
-}
-
-dependencies {
-    implementation(libs.symbol.processing.api)
-
-    testImplementation(kotlin("test"))
-    testImplementation(libs.junit.jupiter)
 }

@@ -20,10 +20,7 @@ import com.voyager.utils.ParseHelper.parseTextAlignment
 import com.voyager.utils.ParseHelper.parseTextStyle
 import com.voyager.utils.Utils.getClickListener
 import com.voyager.utils.getParentView
-import com.voyager.utils.interfaces.AttributeProcessorRegistry
-import com.voyager.utils.processors.AttributeRegistry
-import com.voyager.utils.processors.AttributeRegistry.Companion.configureProcessor
-import com.voyager.utils.processors.AttributeRegistry.Companion.registerAttribute
+import com.voyager.utils.processors.AttributeProcessor.registerAttribute
 import com.voyager.utils.toPixels
 import com.voyager.utils.view.AttributesHandler.addConstraintRule
 import com.voyager.utils.view.AttributesHandler.addRelativeLayoutRule
@@ -34,25 +31,24 @@ import com.voyager.utils.view.AttributesHandler.setImageSource
 
 internal object BaseViewAttributes {
 
-    val AttributeProcessors = LinkedHashSet<Pair<String, AttributeProcessorRegistry<*, Any>>>()
     private var isAttributesInitialized = false
     private val isLoggingEnabled = ConfigManager.config.isLoggingEnabled
 
     fun initializeAttributes() {
         if (isAttributesInitialized) return
-        configureProcessor {
-            commonAttributes(isLoggingEnabled)
-            linearLayoutAttributes()
-            relativeLayoutAttributes()
-            constraintLayoutAttributes()
-            imageViewAttributes()
-            textViewAttributes()
-            viewAttributes()
-        }
+
+        commonAttributes(isLoggingEnabled)
+        linearLayoutAttributes()
+        relativeLayoutAttributes()
+        constraintLayoutAttributes()
+        imageViewAttributes()
+        textViewAttributes()
+        viewAttributes()
+
         isAttributesInitialized = true
     }
 
-    private fun AttributeRegistry.linearLayoutAttributes() {
+    private fun linearLayoutAttributes() {
         registerAttribute<LinearLayout, String>(Attributes.LinearLayout.LINEARLAYOUT_ORIENTATION.name) { targetView, attributeValue ->
             targetView.orientation = if (attributeValue.equals(
                     "horizontal", true
@@ -67,7 +63,7 @@ internal object BaseViewAttributes {
         }
     }
 
-    private fun AttributeRegistry.relativeLayoutAttributes() {
+    private fun relativeLayoutAttributes() {
         mapOf(
             Attributes.View.VIEW_ABOVE to RelativeLayout.ABOVE,
             Attributes.View.VIEW_BELOW to RelativeLayout.BELOW,
@@ -90,7 +86,7 @@ internal object BaseViewAttributes {
         }
     }
 
-    private fun AttributeRegistry.constraintLayoutAttributes() {
+    private fun constraintLayoutAttributes() {
         mapOf(
             Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_LEFT_TO_LEFT_OF to (ConstraintSet.LEFT to ConstraintSet.LEFT),
             Attributes.ConstraintLayout.CONSTRAINTLAYOUT_LAYOUT_CONSTRAINT_LEFT_TO_RIGHT_OF to (ConstraintSet.LEFT to ConstraintSet.RIGHT),
@@ -162,7 +158,7 @@ internal object BaseViewAttributes {
         }
     }
 
-    private fun AttributeRegistry.imageViewAttributes() {
+    private fun imageViewAttributes() {
         registerAttribute<ImageView, String>(Attributes.ImageView.IMAGEVIEW_SCALE_TYPE.name) { targetView, attributeValue ->
             parseScaleType(attributeValue)?.let { targetView.scaleType = it }
         }
@@ -172,7 +168,7 @@ internal object BaseViewAttributes {
         }
     }
 
-    private fun AttributeRegistry.textViewAttributes() {
+    private fun textViewAttributes() {
         registerAttribute<TextView, String>(Attributes.Common.TEXT.name) { targetView, attributeValue ->
             targetView.text = attributeValue
         }
@@ -213,7 +209,7 @@ internal object BaseViewAttributes {
         }
     }
 
-    private fun AttributeRegistry.viewAttributes() {
+    private fun viewAttributes() {
         registerAttribute<View, String>(Attributes.View.VIEW_ON_CLICK.name) { targetView, attributeValue ->
             targetView.setOnClickListener(
                 getClickListener(

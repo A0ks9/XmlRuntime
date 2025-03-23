@@ -56,9 +56,10 @@ resources {
 }
 
 dependencies {
-    implementation(project(":voyager-ksp"))
-    "ksp"(project(":voyager-ksp"))
+    implementation(project(":voyager-processor"))
+    ksp(project(":voyager-processor"))
     implementation(project(":Voyager"))
+
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.androidx.core.ktx)

@@ -3,26 +3,27 @@ package com.example.ui.components
 import android.content.Context
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatButton
-import com.voyager.ksp.annotations.AutoAttribute
-import com.voyager.ksp.annotations.AutoViewAttributes
+import com.example.R
+import com.voyager.annotations.Attribute
+import com.voyager.annotations.ViewRegister
 
 
-@AutoViewAttributes("CustomButton")
+@ViewRegister("CustomButton")
 class CustomButton @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : AppCompatButton(context, attrs, defStyleAttr) {
 
-    @AutoAttribute
+    @Attribute("customText")
     fun setCustomText(text: String) {
         this.text = text
     }
 
-    @AutoAttribute
+    @Attribute("customTextSize")
     fun setCustomTextSize(size: Float) {
         this.textSize = size
     }
 
-    @AutoAttribute
+    @Attribute("customEnabled")
     fun setCustomEnabled(enabled: Boolean) {
         this.isEnabled = enabled
     }

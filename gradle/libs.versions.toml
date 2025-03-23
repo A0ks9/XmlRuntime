@@ -26,7 +26,10 @@ kotlinx-serialization = "1.8.0"
 plugin-serliziation = "2.1.0"
 android-build = "8.9.0"
 kotlin-poet = "2.1.0"
+java-poet = "0.6.0"
 flexbox = "3.0.0"
+incap = "1.0.0"
+androidx-annotations = "1.9.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,10 +49,12 @@ kotlin-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coro
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 symbol-processing-api = { group = "com.google.devtools.ksp", name = "symbol-processing-api", version.ref = "ksp" }
+symbol-processing = { group = "com.google.devtools.ksp", name = "symbol-processing", version.ref = "ksp" }
 sliding-pane-layout = { group = "androidx.slidingpanelayout", name = "slidingpanelayout", version.ref = "slidingPaneLayout" }
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+room-compiler-processing = { module = "androidx.room:room-compiler-processing", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 tencent-mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
@@ -59,6 +64,10 @@ kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-seria
 android-build-tools = { group = "com.android.tools.build", name = "gradle", version.ref = "android-build" }
 kotlin-poet = { group = "com.squareup", name = "kotlinpoet", version.ref = "kotlin-poet" }
 flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
+incap = { group = "net.ltgt.gradle.incap", name = "incap", version.ref = "incap" }
+incap-processor = { group = "net.ltgt.gradle.incap", name = "incap-processor", version.ref = "incap" }
+javapoet = { group = "com.palantir.javapoet", name = "javapoet", version.ref = "java-poet" }
+androidx-annotations = { group = "androidx.annotation", name = "annotation", version.ref = "androidx-annotations"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

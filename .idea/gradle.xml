@@ -12,8 +12,8 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/Voyager" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/voyager-ksp" />
             <option value="$PROJECT_DIR$/voyager-plugin" />
+            <option value="$PROJECT_DIR$/voyager-processor" />
           </set>
         </option>
       </GradleProjectSettings>

@@ -30,8 +30,7 @@ import com.voyager.utils.Utils.DrawablePosition
 import com.voyager.utils.Utils.getGeneratedViewInfo
 import com.voyager.utils.extractViewId
 import com.voyager.utils.getParentView
-import com.voyager.utils.processors.AttributeRegistry
-import com.voyager.utils.processors.AttributeRegistry.Companion.registerAttribute
+import com.voyager.utils.processors.AttributeProcessor.registerAttribute
 import com.voyager.utils.toPixels
 import com.voyager.utils.view.AttributesHandler.handleBackground
 import com.voyager.utils.view.AttributesHandler.handleDrawablePosition
@@ -45,7 +44,7 @@ import com.voyager.utils.view.AttributesHandler.handleTransformationMethod
 import com.voyager.utils.view.AttributesHandler.loadFontFromAttribute
 import com.voyager.utils.view.AttributesHandler.setSize
 
-internal fun AttributeRegistry.commonAttributes(isLoggingEnabled: Boolean) {
+internal fun commonAttributes(isLoggingEnabled: Boolean) {
     registerAttribute<View, String>(Attributes.Common.ID.name) { targetView, attributeValue ->
         targetView.getParentView()?.getGeneratedViewInfo()?.let { info ->
             if (isLoggingEnabled) Log.d(
@@ -402,7 +401,7 @@ internal fun AttributeRegistry.commonAttributes(isLoggingEnabled: Boolean) {
     }
 }
 
-private fun AttributeRegistry.widthAndHeightAttributes() {
+private fun widthAndHeightAttributes() {
     arrayOf(Attributes.Common.WIDTH, Attributes.Common.LAYOUT_WIDTH).forEach { attribute ->
         registerAttribute<View, String>(attribute.name) { targetView, attributeValue ->
             setSize(
@@ -419,7 +418,7 @@ private fun AttributeRegistry.widthAndHeightAttributes() {
     }
 }
 
-private fun AttributeRegistry.marginAndPaddingAttributes() {
+private fun marginAndPaddingAttributes() {
     arrayOf(
         Attributes.Common.LAYOUT_MARGIN to AttributesHandler::setMargin,
         Attributes.Common.LAYOUT_MARGIN_LEFT to AttributesHandler::setMarginLeft,

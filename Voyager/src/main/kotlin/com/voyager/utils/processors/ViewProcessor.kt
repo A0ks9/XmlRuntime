@@ -2,45 +2,41 @@ package com.voyager.utils.processors
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.drawable.ColorDrawable
 import android.util.Log
+import android.util.TypedValue
 import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
 import android.widget.AutoCompleteTextView
-import android.widget.Button
-import android.widget.CheckBox
-import android.widget.EditText
 import android.widget.ExpandableListView
 import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.GridView
 import android.widget.HorizontalScrollView
-import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.MultiAutoCompleteTextView
 import android.widget.ProgressBar
-import android.widget.RadioButton
 import android.widget.RatingBar
 import android.widget.RelativeLayout
 import android.widget.ScrollView
-import android.widget.SeekBar
 import android.widget.Space
-import android.widget.Spinner
-import android.widget.Switch
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.VideoView
+import androidx.annotation.ColorInt
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.appcompat.widget.AppCompatEditText
+import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatRadioButton
 import androidx.appcompat.widget.AppCompatSeekBar
+import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
@@ -77,7 +73,6 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.timepicker.MaterialTimePicker
 import java.util.concurrent.ConcurrentHashMap
-import android.widget.Toolbar as toolbar
 
 class ViewProcessor {
 
@@ -93,14 +88,15 @@ class ViewProcessor {
             registerView("android.widget.View") { View(it) }
             registerView("android.widget.Space") { Space(it) }
 
-            registerView("android.widget.TextView") { TextView(it) }
-            registerView("android.widget.EditText") { EditText(it) }
+            //handle for creating the views that has a class in the Material and the appCompat and android widgets
+            registerView("android.widget.TextView") { AppCompatTextView(it) }
+            registerView("android.widget.EditText") { AppCompatEditText(it) }
             registerView("androidx.appcompat.widget.AppCompatTextView") { AppCompatTextView(it) }
             registerView("androidx.appcompat.widget.AppCompatEditText") { AppCompatEditText(it) }
-
-            registerView("android.widget.Button") { Button(it) }
-            registerView("android.widget.ImageButton") { ImageButton(it) }
+            registerView("android.widget.Button") { MaterialButton(it) }
+            registerView("android.widget.ImageButton") { AppCompatImageButton(it) }
             registerView("androidx.appcompat.widget.AppCompatButton") { AppCompatButton(it) }
+            registerView("androidx.appcompat.widget.AppCompatImageButton") { AppCompatImageButton(it) }
 
             registerView("com.google.android.material.button.MaterialButton") { MaterialButton(it) }
             registerView("com.google.android.material.floatingactionbutton.FloatingActionButton") {
@@ -128,7 +124,7 @@ class ViewProcessor {
             registerView("android.widget.HorizontalScrollView") { HorizontalScrollView(it) }
             registerView("androidx.core.widget.NestedScrollView") { NestedScrollView(it) }
 
-            registerView("android.widget.ImageView") { ImageView(it) }
+            registerView("android.widget.ImageView") { AppCompatImageView(it) }
             registerView("androidx.appcompat.widget.AppCompatImageView") { AppCompatImageView(it) }
             registerView("com.google.android.material.imageview.ShapeableImageView") {
                 ShapeableImageView(
@@ -151,11 +147,11 @@ class ViewProcessor {
                 LinearProgressIndicator(it)
             }
 
-            registerView("android.widget.Switch") { Switch(it) }
+            registerView("android.widget.Switch") { SwitchCompat(it) }
             registerView("androidx.appcompat.widget.SwitchCompat") { SwitchCompat(it) }
-            registerView("android.widget.CheckBox") { CheckBox(it) }
+            registerView("android.widget.CheckBox") { AppCompatCheckBox(it) }
             registerView("androidx.appcompat.widget.AppCompatCheckBox") { AppCompatCheckBox(it) }
-            registerView("android.widget.RadioButton") { RadioButton(it) }
+            registerView("android.widget.RadioButton") { AppCompatRadioButton(it) }
             registerView("androidx.appcompat.widget.AppCompatRadioButton") { AppCompatRadioButton(it) }
 
             registerView("com.google.android.material.switchmaterial.SwitchMaterial") {
@@ -174,7 +170,8 @@ class ViewProcessor {
                 )
             }
 
-            registerView("android.widget.Spinner") { Spinner(it) }
+            registerView("android.widget.Spinner") { AppCompatSpinner(it) }
+            registerView("androidx.appcompat.widget.AppCompatSpinner") { AppCompatSpinner(it) }
             registerView("android.widget.AutoCompleteTextView") { AutoCompleteTextView(it) }
             registerView("android.widget.MultiAutoCompleteTextView") { MultiAutoCompleteTextView(it) }
             registerView("androidx.appcompat.widget.AppCompatAutoCompleteTextView") {
@@ -183,7 +180,7 @@ class ViewProcessor {
                 )
             }
 
-            registerView("android.widget.SeekBar") { SeekBar(it) }
+            registerView("android.widget.SeekBar") { AppCompatSeekBar(it) }
             registerView("androidx.appcompat.widget.AppCompatSeekBar") { AppCompatSeekBar(it) }
             registerView("com.google.android.material.slider.Slider") { Slider(it) }
             registerView("android.widget.RatingBar") { RatingBar(it) }
@@ -192,7 +189,7 @@ class ViewProcessor {
             registerView("com.google.android.material.chip.ChipGroup") { ChipGroup(it) }
             registerView("com.google.android.material.tabs.TabLayout") { TabLayout(it) }
 
-            registerView("android.widget.Toolbar") { toolbar(it) }
+            registerView("android.widget.Toolbar") { Toolbar(it) }
             registerView("androidx.appcompat.widget.Toolbar") { Toolbar(it) }
             registerView("com.google.android.material.appbar.MaterialToolbar") { MaterialToolbar(it) }
             registerView("com.google.android.material.bottomnavigation.BottomNavigationView") {
@@ -272,19 +269,29 @@ class ViewProcessor {
         @JvmStatic
         fun createView(
             packageName: String, className: String, context: ContextThemeWrapper,
-        ): View? = viewCreators["$packageName.$className"]?.let { it(context) }
+        ): View? {
+            val v = viewCreators["$packageName.$className"]?.let { it(context) }
+            Log.d("ThemeCheck", v?.context?.theme.toString())
+            return v
+        }
 
 
         //handle if the classPath is include and fragment and data and requestFocus and binding and databinding and viewModel and tag and checkable and gesture and keyFrame and Preference and transition and view and include-marco
-        internal fun createView(classPath: String, context: ContextThemeWrapper): View? =
-            viewCreators[getFullQualifiedType(classPath)]?.let { it(context) }
+        internal fun createView(classPath: String, context: ContextThemeWrapper): View? {
+            val v = viewCreators[getFullQualifiedType(classPath)]?.let { it(context) }
+            Log.d("ThemeCheck", v?.context?.theme.toString())
+            return v
+        }
 
         internal fun createViewByType(context: ContextThemeWrapper, type: String): View {
             val fullyQualifiedName = getFullQualifiedType(type)
 
-            viewCreators[fullyQualifiedName]?.let { constructor ->
-                return constructor(context)
+            val vv = viewCreators[fullyQualifiedName]?.let { constructor ->
+                constructor(context)
             }
+            logViewThemeResources(vv)
+            if (vv != null) return vv
+
 
             return try {
                 val kClass = Class.forName(fullyQualifiedName).kotlin
@@ -294,12 +301,14 @@ class ViewProcessor {
                 }
                     ?: throw IllegalArgumentException("No constructor with Context found for $fullyQualifiedName")
 
-                val viewConstructor: (Context) -> View = { ctx ->
+                val viewConstructor: (ContextThemeWrapper) -> View = { ctx ->
                     requireNotNull(ktor.call(ctx) as? View) { "View creation failed for type $fullyQualifiedName" }
                 }
 
                 registerView(fullyQualifiedName, viewConstructor)
-                viewConstructor(context)
+                val v = viewConstructor(context)
+                Log.d("ThemeCheck", v.context.theme.toString())
+                v
             } catch (e: Exception) {
                 Log.e("ViewFactory", "Error creating view for type: $fullyQualifiedName", e)
                 throw IllegalArgumentException(
@@ -310,5 +319,80 @@ class ViewProcessor {
 
         private fun getFullQualifiedType(type: String): String =
             if (type.contains(".")) type else "android.widget.$type"
+
+        @ColorInt
+        fun Context.getColorFromAttr(attr: Int): Int {
+            val typedValue = TypedValue()
+            theme.resolveAttribute(attr, typedValue, true)
+            return typedValue.data
+        }
+
+        // Function to get and log the theme resources of a view
+        fun logViewThemeResources(view: View?) {
+            if (view == null) return
+            val context = view.context
+
+            // Get the theme resource ID
+            val themeResourceId = context.resources.configuration.uiMode
+
+            // Get text color (if the view supports it)
+            val textColor = when (view) {
+                is TextView -> view.currentTextColor
+                else -> null
+            }
+
+            // Get primary color
+            val primaryColor = context.getColorFromAttr(android.R.attr.colorPrimary)
+
+            // Get background color
+            val backgroundColor = (view.background as? ColorDrawable)?.color
+
+            // Create a string to hold the list of all attributes
+            val styleAttributes = StringBuilder()
+
+            // Attributes to check for
+            val attributes = intArrayOf(
+                android.R.attr.textColor,
+                android.R.attr.colorPrimary,
+                android.R.attr.background,
+                android.R.attr.textSize,
+                android.R.attr.fontFamily,
+                android.R.attr.colorAccent,
+                android.R.attr.colorControlNormal,
+                android.R.attr.colorControlActivated,
+                android.R.attr.colorButtonNormal,
+                android.R.attr.buttonStyle,
+                android.R.attr.editTextStyle,
+                android.R.attr.spinnerStyle,
+                android.R.attr.buttonStyleSmall,
+                android.R.attr.colorPrimaryDark,
+                android.R.attr.actionModeBackground,
+                android.R.attr.actionModeCloseDrawable,
+                android.R.attr.alertDialogTheme,
+                android.R.attr.windowBackground
+            )
+
+            // Loop through the attributes and resolve their values
+            for (attr in attributes) {
+                val typedValue = TypedValue()
+                val resolved = context.theme.resolveAttribute(attr, typedValue, true)
+
+                if (resolved) {
+                    // Check the type of the attribute and handle accordingly
+                    when (typedValue.type) {
+                        TypedValue.TYPE_STRING -> styleAttributes.append("Attribute(${attr}): ${typedValue.string}, ")
+                        TypedValue.TYPE_DIMENSION -> styleAttributes.append("Attribute(${attr}): ${typedValue.getDimension(context.resources.displayMetrics)}, ")
+                        TypedValue.TYPE_FLOAT -> styleAttributes.append("Attribute(${attr}): ${typedValue.float}, ")
+                        TypedValue.TYPE_INT_COLOR_ARGB8, TypedValue.TYPE_INT_COLOR_RGB8, TypedValue.TYPE_INT_COLOR_ARGB4, TypedValue.TYPE_INT_COLOR_RGB4 ->
+                            styleAttributes.append("Attribute(${attr}): ${typedValue.data}, ")
+                        else -> styleAttributes.append("Attribute(${attr}): Unknown type, ")
+                    }
+                }
+            }
+
+            // Log all the attributes and the view information
+            Log.d("Theme", "View: ${view::class.java.simpleName}, Text Color: $textColor, Primary Color: $primaryColor, Background Color: $backgroundColor, Theme Resource ID: $themeResourceId, Style Attributes: $styleAttributes")
+            println("View: ${view::class.java.simpleName}, Text Color: $textColor, Primary Color: $primaryColor, Background Color: $backgroundColor, Theme Resource ID: $themeResourceId, Style Attributes: $styleAttributes")
+        }
     }
 }

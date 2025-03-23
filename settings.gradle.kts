@@ -1,12 +1,6 @@
 pluginManagement {
     repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
-        }
+        google()
         mavenCentral()
         gradlePluginPortal()
         mavenLocal()
@@ -24,5 +18,6 @@ rootProject.name = "XmlRuntime"
 include(":app")
 include(":Voyager")
 include(":voyager-plugin")
-include(":voyager-ksp")
+include(":voyager-processor")
 //include(":proteus")
+
