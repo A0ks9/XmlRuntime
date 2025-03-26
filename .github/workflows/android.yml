@@ -68,14 +68,7 @@ jobs:
         env:
           GITHUB_USER: ${{ secrets.GITHUB_USER }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
-        run: |
-          ./gradlew :voyager-plugin:publishToMavenLocal \
-            --build-cache \
-            --no-daemon \
-            --parallel \
-            --configure-on-demand \
-            --max-workers 4
+        run: ./gradlew :voyager-plugin:publishToMavenLocal --build-cache --no-daemon
 
       # Step 6: Optimized project build
       - name: Build Android Project
