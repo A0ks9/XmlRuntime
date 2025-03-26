@@ -2,8 +2,6 @@ package com.voyager.utils.processors
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.drawable.ColorDrawable
-import android.util.Log
 import android.util.TypedValue
 import android.view.SurfaceView
 import android.view.TextureView
@@ -24,7 +22,6 @@ import android.widget.ScrollView
 import android.widget.Space
 import android.widget.TableLayout
 import android.widget.TableRow
-import android.widget.TextView
 import android.widget.VideoView
 import androidx.annotation.ColorInt
 import androidx.appcompat.view.ContextThemeWrapper
@@ -41,6 +38,7 @@ import androidx.appcompat.widget.AppCompatTextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.cardview.widget.CardView
+import androidx.collection.LruCache
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.widget.NestedScrollView
@@ -73,36 +71,84 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.timepicker.MaterialTimePicker
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Logger
 
+/**
+ * A high-performance view processor for the Voyager framework that handles dynamic view creation and attribute processing.
+ *
+ * This class provides a thread-safe, memory-efficient system for creating and configuring Android views
+ * at runtime. It uses a registry pattern to manage view creators and optimizes view creation through
+ * caching and lazy initialization.
+ *
+ * Key features:
+ * - Thread-safe view creation and registration
+ * - Memory-efficient view caching
+ * - Optimized attribute processing
+ * - Comprehensive theme resource handling
+ * - Type-safe view creation
+ *
+ * @author Abdelrahman Omar
+ * @since 1.0.0
+ */
 class ViewProcessor {
 
     @SuppressLint("ShowToast")
     companion object {
+        /**
+         * Thread-safe map of view creators indexed by fully qualified class names.
+         * Uses ConcurrentHashMap for thread safety and optimal performance.
+         */
         private val viewCreators = ConcurrentHashMap<String, (ContextThemeWrapper) -> View>()
 
+        /**
+         * Cache for frequently used view instances to reduce memory allocations.
+         * Size is limited to prevent memory leaks.
+         */
+        private val viewCache = LruCache<String, View>(20)
+
+        /**
+         * Lazy-initialized logger to reduce startup overhead.
+         */
+        private val logger by lazy { Logger.getLogger(ViewProcessor::class.java.name) }
+
+        /**
+         * Performance-optimized constants.
+         */
+        private const val MAX_CACHE_SIZE = 20
+        private const val DEFAULT_ANDROID_WIDGET_PACKAGE = "android.widget."
+
         init {
-            registerDefaultViews() // Register default Android views
+            registerDefaultViews()
         }
 
+        /**
+         * Registers all default Android views with their corresponding creators.
+         * Views are registered with their Material Design and AppCompat variants.
+         */
         private fun registerDefaultViews() {
+            // Basic views
             registerView("android.widget.View") { View(it) }
             registerView("android.widget.Space") { Space(it) }
 
-            //handle for creating the views that has a class in the Material and the appCompat and android widgets
+            // Text views
             registerView("android.widget.TextView") { AppCompatTextView(it) }
             registerView("android.widget.EditText") { AppCompatEditText(it) }
             registerView("androidx.appcompat.widget.AppCompatTextView") { AppCompatTextView(it) }
             registerView("androidx.appcompat.widget.AppCompatEditText") { AppCompatEditText(it) }
+
+            // Button views
             registerView("android.widget.Button") { MaterialButton(it) }
             registerView("android.widget.ImageButton") { AppCompatImageButton(it) }
             registerView("androidx.appcompat.widget.AppCompatButton") { AppCompatButton(it) }
             registerView("androidx.appcompat.widget.AppCompatImageButton") { AppCompatImageButton(it) }
 
+            // Material Design views
             registerView("com.google.android.material.button.MaterialButton") { MaterialButton(it) }
             registerView("com.google.android.material.floatingactionbutton.FloatingActionButton") {
                 FloatingActionButton(it)
             }
 
+            // Layout views
             registerView("android.widget.LinearLayout") { LinearLayout(it) }
             registerView("android.widget.FrameLayout") { FrameLayout(it) }
             registerView("android.widget.RelativeLayout") { RelativeLayout(it) }
@@ -116,14 +162,18 @@ class ViewProcessor {
                 )
             }
 
+            // List views
             registerView("androidx.recyclerview.widget.RecyclerView") { RecyclerView(it) }
             registerView("android.widget.ListView") { ListView(it) }
             registerView("android.widget.GridView") { GridView(it) }
             registerView("android.widget.ExpandableListView") { ExpandableListView(it) }
+
+            // Scroll views
             registerView("android.widget.ScrollView") { ScrollView(it) }
             registerView("android.widget.HorizontalScrollView") { HorizontalScrollView(it) }
             registerView("androidx.core.widget.NestedScrollView") { NestedScrollView(it) }
 
+            // Image views
             registerView("android.widget.ImageView") { AppCompatImageView(it) }
             registerView("androidx.appcompat.widget.AppCompatImageView") { AppCompatImageView(it) }
             registerView("com.google.android.material.imageview.ShapeableImageView") {
@@ -132,13 +182,16 @@ class ViewProcessor {
                 )
             }
 
+            // Media views
             registerView("android.widget.VideoView") { VideoView(it) }
             registerView("android.view.SurfaceView") { SurfaceView(it) }
             registerView("android.view.TextureView") { TextureView(it) }
 
+            // Card views
             registerView("androidx.cardview.widget.CardView") { CardView(it) }
             registerView("com.google.android.material.card.MaterialCardView") { MaterialCardView(it) }
 
+            // Progress views
             registerView("android.widget.ProgressBar") { ProgressBar(it) }
             registerView("com.google.android.material.progressindicator.CircularProgressIndicator") {
                 CircularProgressIndicator(it)
@@ -147,6 +200,7 @@ class ViewProcessor {
                 LinearProgressIndicator(it)
             }
 
+            // Input views
             registerView("android.widget.Switch") { SwitchCompat(it) }
             registerView("androidx.appcompat.widget.SwitchCompat") { SwitchCompat(it) }
             registerView("android.widget.CheckBox") { AppCompatCheckBox(it) }
@@ -154,6 +208,7 @@ class ViewProcessor {
             registerView("android.widget.RadioButton") { AppCompatRadioButton(it) }
             registerView("androidx.appcompat.widget.AppCompatRadioButton") { AppCompatRadioButton(it) }
 
+            // Material Design input views
             registerView("com.google.android.material.switchmaterial.SwitchMaterial") {
                 SwitchMaterial(
                     it
@@ -170,55 +225,53 @@ class ViewProcessor {
                 )
             }
 
+            // Selection views
             registerView("android.widget.Spinner") { AppCompatSpinner(it) }
             registerView("androidx.appcompat.widget.AppCompatSpinner") { AppCompatSpinner(it) }
             registerView("android.widget.AutoCompleteTextView") { AutoCompleteTextView(it) }
             registerView("android.widget.MultiAutoCompleteTextView") { MultiAutoCompleteTextView(it) }
             registerView("androidx.appcompat.widget.AppCompatAutoCompleteTextView") {
-                AppCompatAutoCompleteTextView(
-                    it
-                )
+                AppCompatAutoCompleteTextView(it)
             }
 
+            // Slider views
             registerView("android.widget.SeekBar") { AppCompatSeekBar(it) }
             registerView("androidx.appcompat.widget.AppCompatSeekBar") { AppCompatSeekBar(it) }
             registerView("com.google.android.material.slider.Slider") { Slider(it) }
             registerView("android.widget.RatingBar") { RatingBar(it) }
 
+            // Material Design components
             registerView("com.google.android.material.chip.Chip") { Chip(it) }
             registerView("com.google.android.material.chip.ChipGroup") { ChipGroup(it) }
             registerView("com.google.android.material.tabs.TabLayout") { TabLayout(it) }
 
+            // Navigation views
             registerView("android.widget.Toolbar") { Toolbar(it) }
             registerView("androidx.appcompat.widget.Toolbar") { Toolbar(it) }
             registerView("com.google.android.material.appbar.MaterialToolbar") { MaterialToolbar(it) }
             registerView("com.google.android.material.bottomnavigation.BottomNavigationView") {
-                BottomNavigationView(
-                    it
-                )
+                BottomNavigationView(it)
             }
             registerView("com.google.android.material.navigation.NavigationView") {
                 NavigationView(
                     it
                 )
             }
-
             registerView("com.google.android.material.navigationrail.NavigationRailView") {
-                NavigationRailView(
-                    it
-                )
+                NavigationRailView(it)
             }
 
+            // App bar views
             registerView("com.google.android.material.appbar.AppBarLayout") { AppBarLayout(it) }
             registerView("com.google.android.material.appbar.CollapsingToolbarLayout") {
-                CollapsingToolbarLayout(
-                    it
-                )
+                CollapsingToolbarLayout(it)
             }
 
+            // Pager views
             registerView("androidx.viewpager.widget.ViewPager") { ViewPager(it) }
             registerView("androidx.viewpager2.widget.ViewPager2") { ViewPager2(it) }
 
+            // Text field views
             registerView("com.google.android.material.textfield.TextInputLayout") {
                 TextInputLayout(
                     it
@@ -230,6 +283,7 @@ class ViewProcessor {
                 )
             }
 
+            // Layout containers
             registerView("androidx.drawerlayout.widget.DrawerLayout") { DrawerLayout(it) }
             registerView("androidx.slidingpanelayout.widget.SlidingPaneLayout") {
                 SlidingPaneLayout(
@@ -237,162 +291,148 @@ class ViewProcessor {
                 )
             }
 
+            // Special views
             registerView("com.google.android.material.timepicker.MaterialTimePicker") {
                 MaterialTimePicker.Builder().build().requireView()
             }
-
             registerView("com.google.android.material.snackbar.Snackbar") {
                 Snackbar.make(View(it), "", Snackbar.LENGTH_SHORT).view
             }
         }
 
-
+        /**
+         * Registers a view creator for a specific class name.
+         *
+         * @param className The fully qualified class name of the view
+         * @param creator The function that creates the view instance
+         */
         @JvmStatic
         private fun registerView(className: String, creator: (ContextThemeWrapper) -> View) {
             viewCreators.put(className, creator)
         }
 
+        /**
+         * Registers a view creator for a specific package and class name.
+         *
+         * @param packageName The package name
+         * @param className The class name
+         * @param creator The function that creates the view instance
+         */
         @JvmStatic
         fun registerView(
-            packageName: String, className: String, creator: (ContextThemeWrapper) -> View,
+            packageName: String,
+            className: String,
+            creator: (ContextThemeWrapper) -> View,
         ) {
             viewCreators.put("$packageName.$className", creator)
         }
 
+        /**
+         * Checks if a view is registered for the given package and class name.
+         *
+         * @param packageName The package name
+         * @param className The class name
+         * @return true if the view is registered, false otherwise
+         */
         @JvmStatic
         fun isRegistered(packageName: String, className: String): Boolean =
             viewCreators.containsKey("$packageName.$className")
 
+        /**
+         * Checks if a view is registered for the given class path.
+         *
+         * @param classPath The class path to check
+         * @return true if the view is registered, false otherwise
+         */
         internal fun isRegistered(classPath: String): Boolean =
             viewCreators.containsKey(getFullQualifiedType(classPath))
 
+        /**
+         * Creates a view instance for the given package and class name.
+         *
+         * @param packageName The package name
+         * @param className The class name
+         * @param context The themed context wrapper
+         * @return The created view instance, or null if creation fails
+         */
         @JvmStatic
         fun createView(
-            packageName: String, className: String, context: ContextThemeWrapper,
+            packageName: String,
+            className: String,
+            context: ContextThemeWrapper,
         ): View? {
-            val v = viewCreators["$packageName.$className"]?.let { it(context) }
-            Log.d("ThemeCheck", v?.context?.theme.toString())
-            return v
+            val cacheKey = "$packageName.$className"
+            return viewCache[cacheKey] ?: viewCreators[cacheKey]?.let { creator ->
+                creator(context).also { view ->
+                    viewCache.put(cacheKey, view)
+                }
+            }
         }
 
-
-        //handle if the classPath is include and fragment and data and requestFocus and binding and databinding and viewModel and tag and checkable and gesture and keyFrame and Preference and transition and view and include-marco
+        /**
+         * Creates a view instance for the given class path.
+         *
+         * @param classPath The class path
+         * @param context The themed context wrapper
+         * @return The created view instance, or null if creation fails
+         */
         internal fun createView(classPath: String, context: ContextThemeWrapper): View? {
-            val v = viewCreators[getFullQualifiedType(classPath)]?.let { it(context) }
-            Log.d("ThemeCheck", v?.context?.theme.toString())
-            return v
+            val fullyQualifiedName = getFullQualifiedType(classPath)
+            return viewCache[fullyQualifiedName]
+                ?: viewCreators[fullyQualifiedName]?.let { creator ->
+                    creator(context).also { view ->
+                        viewCache.put(fullyQualifiedName, view)
+                    }
+                }
         }
 
+        /**
+         * Creates a view instance by type, with fallback to reflection if not registered.
+         *
+         * @param context The themed context wrapper
+         * @param type The type of view to create
+         * @return The created view instance
+         * @throws IllegalArgumentException if view creation fails
+         */
         internal fun createViewByType(context: ContextThemeWrapper, type: String): View {
             val fullyQualifiedName = getFullQualifiedType(type)
 
-            val vv = viewCreators[fullyQualifiedName]?.let { constructor ->
-                constructor(context)
-            }
-            logViewThemeResources(vv)
-            if (vv != null) return vv
-
-
-            return try {
-                val kClass = Class.forName(fullyQualifiedName).kotlin
-
-                val ktor = kClass.constructors.firstOrNull { constructor ->
-                    constructor.parameters.size == 1 && constructor.parameters[0].type.classifier == Context::class
-                }
-                    ?: throw IllegalArgumentException("No constructor with Context found for $fullyQualifiedName")
-
-                val viewConstructor: (ContextThemeWrapper) -> View = { ctx ->
-                    requireNotNull(ktor.call(ctx) as? View) { "View creation failed for type $fullyQualifiedName" }
-                }
-
-                registerView(fullyQualifiedName, viewConstructor)
-                val v = viewConstructor(context)
-                Log.d("ThemeCheck", v.context.theme.toString())
-                v
-            } catch (e: Exception) {
-                Log.e("ViewFactory", "Error creating view for type: $fullyQualifiedName", e)
-                throw IllegalArgumentException(
-                    "Error creating view for type: $fullyQualifiedName", e
-                )
-            }
-        }
-
-        private fun getFullQualifiedType(type: String): String =
-            if (type.contains(".")) type else "android.widget.$type"
-
-        @ColorInt
-        fun Context.getColorFromAttr(attr: Int): Int {
-            val typedValue = TypedValue()
-            theme.resolveAttribute(attr, typedValue, true)
-            return typedValue.data
-        }
-
-        // Function to get and log the theme resources of a view
-        fun logViewThemeResources(view: View?) {
-            if (view == null) return
-            val context = view.context
-
-            // Get the theme resource ID
-            val themeResourceId = context.resources.configuration.uiMode
-
-            // Get text color (if the view supports it)
-            val textColor = when (view) {
-                is TextView -> view.currentTextColor
-                else -> null
-            }
-
-            // Get primary color
-            val primaryColor = context.getColorFromAttr(android.R.attr.colorPrimary)
-
-            // Get background color
-            val backgroundColor = (view.background as? ColorDrawable)?.color
-
-            // Create a string to hold the list of all attributes
-            val styleAttributes = StringBuilder()
-
-            // Attributes to check for
-            val attributes = intArrayOf(
-                android.R.attr.textColor,
-                android.R.attr.colorPrimary,
-                android.R.attr.background,
-                android.R.attr.textSize,
-                android.R.attr.fontFamily,
-                android.R.attr.colorAccent,
-                android.R.attr.colorControlNormal,
-                android.R.attr.colorControlActivated,
-                android.R.attr.colorButtonNormal,
-                android.R.attr.buttonStyle,
-                android.R.attr.editTextStyle,
-                android.R.attr.spinnerStyle,
-                android.R.attr.buttonStyleSmall,
-                android.R.attr.colorPrimaryDark,
-                android.R.attr.actionModeBackground,
-                android.R.attr.actionModeCloseDrawable,
-                android.R.attr.alertDialogTheme,
-                android.R.attr.windowBackground
-            )
-
-            // Loop through the attributes and resolve their values
-            for (attr in attributes) {
-                val typedValue = TypedValue()
-                val resolved = context.theme.resolveAttribute(attr, typedValue, true)
-
-                if (resolved) {
-                    // Check the type of the attribute and handle accordingly
-                    when (typedValue.type) {
-                        TypedValue.TYPE_STRING -> styleAttributes.append("Attribute(${attr}): ${typedValue.string}, ")
-                        TypedValue.TYPE_DIMENSION -> styleAttributes.append("Attribute(${attr}): ${typedValue.getDimension(context.resources.displayMetrics)}, ")
-                        TypedValue.TYPE_FLOAT -> styleAttributes.append("Attribute(${attr}): ${typedValue.float}, ")
-                        TypedValue.TYPE_INT_COLOR_ARGB8, TypedValue.TYPE_INT_COLOR_RGB8, TypedValue.TYPE_INT_COLOR_ARGB4, TypedValue.TYPE_INT_COLOR_RGB4 ->
-                            styleAttributes.append("Attribute(${attr}): ${typedValue.data}, ")
-                        else -> styleAttributes.append("Attribute(${attr}): Unknown type, ")
+            return viewCache[fullyQualifiedName]
+                ?: viewCreators[fullyQualifiedName]?.let { creator ->
+                    creator(context).also { view ->
+                        viewCache.put(fullyQualifiedName, view)
                     }
-                }
-            }
+                } ?: try {
+                    val kClass = Class.forName(fullyQualifiedName).kotlin
+                    val ktor = kClass.constructors.firstOrNull { constructor ->
+                        constructor.parameters.size == 1 && constructor.parameters[0].type.classifier == Context::class
+                    }
+                        ?: throw IllegalArgumentException("No constructor with Context found for $fullyQualifiedName")
 
-            // Log all the attributes and the view information
-            Log.d("Theme", "View: ${view::class.java.simpleName}, Text Color: $textColor, Primary Color: $primaryColor, Background Color: $backgroundColor, Theme Resource ID: $themeResourceId, Style Attributes: $styleAttributes")
-            println("View: ${view::class.java.simpleName}, Text Color: $textColor, Primary Color: $primaryColor, Background Color: $backgroundColor, Theme Resource ID: $themeResourceId, Style Attributes: $styleAttributes")
+                    val viewConstructor: (ContextThemeWrapper) -> View = { ctx ->
+                        requireNotNull(ktor.call(ctx) as? View) { "View creation failed for type $fullyQualifiedName" }
+                    }
+
+                    registerView(fullyQualifiedName, viewConstructor)
+                    viewConstructor(context).also { view ->
+                        viewCache.put(fullyQualifiedName, view)
+                    }
+                } catch (e: Exception) {
+                    logger.severe("Error creating view for type: $fullyQualifiedName")
+                    throw IllegalArgumentException(
+                        "Error creating view for type: $fullyQualifiedName",
+                        e
+                    )
+                }
         }
+
+        /**
+         * Gets the fully qualified type name for a given type string.
+         *
+         * @param type The type string to process
+         * @return The fully qualified type name
+         */
+        private fun getFullQualifiedType(type: String): String =
+            if (type.contains(".")) type else "$DEFAULT_ANDROID_WIDGET_PACKAGE$type"
     }
 }

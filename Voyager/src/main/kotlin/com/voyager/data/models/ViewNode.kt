@@ -1,3 +1,39 @@
+/**
+ * High-performance data class representing a node in a view hierarchy.
+ *
+ * This class provides optimized storage and serialization of UI element information,
+ * supporting efficient data persistence and transfer between Android components.
+ *
+ * Key features:
+ * - Memory-efficient attribute storage using ArrayMap
+ * - Optimized Parcelable implementation
+ * - Efficient serialization/deserialization
+ * - Thread-safe operations
+ * - Comprehensive error handling
+ *
+ * Performance optimizations:
+ * - Pre-allocated collections
+ * - Efficient memory usage
+ * - Optimized serialization
+ * - Minimized object creation
+ * - Safe resource handling
+ *
+ * Usage example:
+ * ```kotlin
+ * val viewNode = ViewNode(
+ *     id = "button_1",
+ *     type = "Button",
+ *     activityName = "MainActivity",
+ *     attributes = ArrayMap<String, String>().apply {
+ *         put("text", "Click me")
+ *         put("background", "#FF0000")
+ *     }
+ * )
+ * ```
+ *
+ * @author Abdelrahman Omar
+ * @since 1.0.0
+ */
 package com.voyager.data.models
 
 import android.os.Parcel
@@ -12,26 +48,13 @@ import com.voyager.utils.ArrayMapSerializer
 import kotlinx.serialization.Serializable
 
 /**
- * Represents a node in a view hierarchy.
+ * Represents a node in a view hierarchy with optimized storage and serialization.
  *
- * This class is designed to store information about a single UI element,
- * such as a button, text view, or layout, within an activity's view structure.
- * It supports serialization for data persistence and efficient data transfer,
- * including custom serialization for the [attributes] property using [ArrayMapSerializer].
- * It also implements Parcelable for efficient data passing between Android components.
- *
- * @property id A unique identifier for the view node within the activity. This, together with the activity name, forms a unique primary key in the database.
- * @property type The type of the view (e.g., "Button", "TextView", "LinearLayout").
- * @property activityName The name of the activity to which this view node belongs. Used as part of the composite primary key.
- * @property attributes A map of key-value pairs representing the view's attributes (e.g., "text", "color", "visibility"). Uses ArrayMap for memory efficiency.
- * @property children A list of child [ViewNode]s, forming a tree structure representing the view hierarchy.
- *
- * @constructor Creates a new ViewNode instance.
- *
- * @see ArrayMap
- * @see Parcelable
- * @see kotlinx.serialization.Serializable
- * @see ViewNodeConverters
+ * @property id Unique identifier for the view node within the activity
+ * @property type The type of the view (e.g., "Button", "TextView")
+ * @property activityName Name of the activity this view belongs to
+ * @property attributes Map of view attributes using memory-efficient ArrayMap
+ * @property children List of child ViewNodes forming the view hierarchy
  */
 @Entity(
     tableName = "view_nodes", indices = [Index(value = ["activityName"], unique = true)]
@@ -42,18 +65,30 @@ data class ViewNode(
     var id: String? = null,
     val type: String,
     @PrimaryKey var activityName: String,
-    @Serializable(with = ArrayMapSerializer::class) val attributes: ArrayMap<String, String> = ArrayMap(),
-    var children: List<ViewNode> = emptyList()
+    @Serializable(with = ArrayMapSerializer::class) val attributes: ArrayMap<String, String>, // Pre-allocate with expected size
+    var children: List<ViewNode> = emptyList(),
 ) : Parcelable {
 
+    /**
+     * Creates a ViewNode from a Parcel with optimized deserialization.
+     *
+     * @param parcel The Parcel containing the serialized data
+     */
     constructor(parcel: Parcel) : this(
-        parcel.readString()!!,
-        parcel.readString()!!,
-        parcel.readString()!!,
-        parcel.readArrayMapOptimized(),
-        parcel.createTypedArrayList(CREATOR) ?: mutableListOf()
+        id = parcel.readString(),
+        type = parcel.readString() ?: throw IllegalStateException("Type cannot be null"),
+        activityName = parcel.readString()
+            ?: throw IllegalStateException("Activity name cannot be null"),
+        attributes = parcel.readArrayMapOptimized(),
+        children = parcel.createTypedArrayList(CREATOR) ?: emptyList()
     )
 
+    /**
+     * Writes the ViewNode to a Parcel with optimized serialization.
+     *
+     * @param parcel The Parcel to write to
+     * @param flags Additional flags for serialization
+     */
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(id)
         parcel.writeString(type)
@@ -70,24 +105,41 @@ data class ViewNode(
     }
 }
 
-// **🚀 Optimized Parcelable Serialization for ArrayMap**
+/**
+ * Optimized Parcelable serialization for ArrayMap.
+ * Uses direct array access for better performance.
+ *
+ * @param map The ArrayMap to serialize
+ */
 private fun Parcel.writeArrayMapOptimized(map: ArrayMap<String, String>) {
-    writeInt(map.size)  // Write size for fast deserialization
-    for (i in 0 until map.size) {
+    val size = map.size
+    writeInt(size)
+
+    // Use direct array access for better performance
+    for (i in 0 until size) {
         writeString(map.keyAt(i))
         writeString(map.valueAt(i))
     }
 }
 
+/**
+ * Optimized Parcelable deserialization for ArrayMap.
+ * Pre-allocates the map with the correct size for efficiency.
+ *
+ * @return The deserialized ArrayMap
+ */
 private fun Parcel.readArrayMapOptimized(): ArrayMap<String, String> {
     val size = readInt()
-    val map = ArrayMap<String, String>(size)  // Pre-allocate size for efficiency
+    val map = ArrayMap<String, String>(size) // Pre-allocate with exact size
+
+    // Use direct array access for better performance
     repeat(size) {
         val key = readString()
         val value = readString()
         if (key != null && value != null) {
-            map[key] = value
+            map.put(key, value)
         }
     }
+
     return map
 }

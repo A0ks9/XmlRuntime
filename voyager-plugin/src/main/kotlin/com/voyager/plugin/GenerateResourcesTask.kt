@@ -1,3 +1,36 @@
+/**
+ * High-performance Gradle task for generating resource bridges from Android resource files.
+ *
+ * This task efficiently processes Android resource files and generates optimized Kotlin code
+ * for resource access. It supports incremental builds and caching for better performance.
+ *
+ * Key features:
+ * - Incremental resource processing
+ * - Efficient file handling
+ * - Optimized code generation
+ * - Memory-efficient processing
+ * - Comprehensive error handling
+ *
+ * Performance optimizations:
+ * - Efficient file reading
+ * - Optimized string operations
+ * - Minimized object creation
+ * - Safe resource handling
+ * - Fast code generation
+ *
+ * Usage example:
+ * ```kotlin
+ * tasks.register<GenerateResourcesTask>("generateResources") {
+ *     valuesFiles.from(fileTree("src/main/res/values"))
+ *     pluginVersion.set("1.0.0")
+ *     packageName.set("com.example.app")
+ *     outputDir.set(layout.buildDirectory.dir("generated/kt-resources"))
+ * }
+ * ```
+ *
+ * @author Abdelrahman Omar
+ * @since 1.0.0
+ */
 package com.voyager.plugin
 
 import com.squareup.kotlinpoet.ClassName
@@ -30,34 +63,77 @@ import java.util.EnumMap
 import java.util.regex.Pattern
 import javax.inject.Inject
 
+/**
+ * Task for generating resource bridges from Android resource files.
+ */
 @CacheableTask
 abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
 
+    companion object {
+        private const val BUFFER_SIZE = 8192
+        private const val HEX_FORMAT = "%02x"
+        private const val HASH_ALGORITHM = "SHA-256"
+        private const val GENERATED_FILE_NAME = "ResourcesBridge.kt"
+        private const val GENERATED_PACKAGE = "com.voyager.resources"
+
+        private val LOGGER: Logger = Logging.getLogger(GenerateResourcesTask::class.java)
+        private val json = Json { prettyPrint = true }
+
+        // Pre-compiled patterns for better performance
+        private val NAME_PATTERNS =
+            ResourceType.entries.filterNot { it.isFileBased }.associateWith { type ->
+                    Pattern.compile(
+                        """<${type.tag}[^>]+?name\s*=\s*["']([^"']+)["']""", Pattern.DOTALL
+                    )
+                }
+    }
+
+    /**
+     * Collection of resource files to process.
+     */
     @get:PathSensitive(PathSensitivity.RELATIVE)
     @get:IgnoreEmptyDirectories
     @get:Incremental
     @get:InputFiles
     abstract val valuesFiles: ConfigurableFileCollection
 
+    /**
+     * Version of the plugin for cache invalidation.
+     */
     @get:Input
     abstract val pluginVersion: Property<String>
 
+    /**
+     * Package name for the generated code.
+     */
     @get:Input
     abstract val packageName: Property<String>
 
+    /**
+     * Output directory for generated files.
+     */
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
+    /**
+     * File for storing resource hashes.
+     */
     private val hashFile: File by lazy {
         project.layout.buildDirectory.file("generated/kt-resources/ResourcesBridge.hash")
             .get().asFile.also { it.parentFile.mkdirs() }
     }
 
+    /**
+     * File for storing resource metadata.
+     */
     private val metadataFile: File by lazy {
         project.layout.buildDirectory.file("generated/kt-resources/resources-metadata.json")
             .get().asFile.also { it.parentFile.mkdirs() }
     }
 
+    /**
+     * Enumeration of supported resource types.
+     */
     private enum class ResourceType(val tag: String) {
         COLOR("color"), STRING("string"), STYLE("style"), DIMEN("dimen"), ANIM("anim"), DRAWABLE("drawable"), BOOL(
             "bool"
@@ -65,27 +141,15 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
         INTEGER("integer"), ARRAY("array"), PLURALS("plurals"), MENU("menu"), TRANSITION("transition"), FONT(
             "font"
         ),
-        RAW("raw"), XML("xml"), INTERPOLATOR("interpolator"), MIPMAP("mipmap"), ATTR("attr")
+        RAW("raw"), XML("xml"), INTERPOLATOR("interpolator"), MIPMAP("mipmap"), ATTR("attr");
+
+        val isFileBased: Boolean
+            get() = this in listOf(ANIM, DRAWABLE, RAW, XML, INTERPOLATOR, MIPMAP)
     }
 
-    companion object {
-        private val NAME_PATTERNS = ResourceType.entries.filterNot {
-                it == ResourceType.ANIM || it == ResourceType.DRAWABLE || it == ResourceType.RAW || it == ResourceType.XML || it == ResourceType.INTERPOLATOR || it == ResourceType.MIPMAP
-            }.associateWith {
-                Pattern.compile(
-                    """<${it.tag}[^>]+?name\s*=\s*["']([^"']+)["']""", Pattern.DOTALL
-                )
-            }
-
-        private const val HEX_FORMAT = "%02x"
-        private val LOGGER: Logger = Logging.getLogger(GenerateResourcesTask::class.java)
-        private const val HASH_ALGORITHM = "SHA-256"
-        private val json = Json { prettyPrint = true }
-
-        private const val GENERATED_FILE_NAME = "ResourcesBridge.kt"
-        private const val GENERATED_PACKAGE = "com.voyager.resources"
-    }
-
+    /**
+     * Main task action for resource generation.
+     */
     @TaskAction
     fun generateBridge(inputChanges: InputChanges) {
         LOGGER.lifecycle("Input files detected: ${valuesFiles.files}")
@@ -102,6 +166,9 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
         }
     }
 
+    /**
+     * Performs incremental resource generation.
+     */
     private fun performIncrementalGeneration(inputChanges: InputChanges) {
         val previousResources = loadPreviousResourcesMetadata() ?: emptyMap()
         val resources = extractResources(inputChanges)
@@ -113,6 +180,9 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
         }
     }
 
+    /**
+     * Regenerates all resources.
+     */
     private fun regenerateAll() {
         val resources = extractAllResources()
         generateKotlinCode(resources)
@@ -120,6 +190,9 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
         saveHash()
     }
 
+    /**
+     * Checks if the task is up to date.
+     */
     private fun isUpToDate(): Boolean {
         val pkgPath = GENERATED_PACKAGE.replace('.', File.separatorChar)
         val generatedFile = File(outputDir.get().asFile, "$pkgPath/$GENERATED_FILE_NAME")
@@ -129,25 +202,37 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
         ) == calculateHash()
     }
 
+    /**
+     * Calculates hash of input files.
+     */
     private fun calculateHash(): String {
         val digest = MessageDigest.getInstance(HASH_ALGORITHM)
         digest.update(pluginVersion.get().toByteArray(Charsets.UTF_8))
 
         valuesFiles.files.forEach { file ->
             Files.newInputStream(file.toPath()).use { input ->
-                DigestInputStream(input, digest).use { while (it.read(ByteArray(8192)) != -1); }
+                DigestInputStream(input, digest).use {
+                    while (it.read(ByteArray(BUFFER_SIZE)) != -1) { /* reading Digests*/
+                    }
+                }
             }
         }
 
         return digest.digest().joinToString("") { HEX_FORMAT.format(it) }
     }
 
+    /**
+     * Extracts resources from all files.
+     */
     private fun extractAllResources(): Map<ResourceType, Set<String>> =
         EnumMap<ResourceType, MutableSet<String>>(ResourceType::class.java).apply {
             ResourceType.entries.forEach { put(it, LinkedHashSet()) }
             valuesFiles.files.forEach { extractResourcesFromFile(it, this) }
         }
 
+    /**
+     * Extracts resources from changed files.
+     */
     private fun extractResources(inputChanges: InputChanges): EnumMap<ResourceType, MutableSet<String>> =
         EnumMap<ResourceType, MutableSet<String>>(ResourceType::class.java).apply {
             ResourceType.entries.forEach { put(it, mutableSetOf()) }
@@ -156,6 +241,9 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
             }
         }
 
+    /**
+     * Extracts resources from a single file.
+     */
     private fun extractResourcesFromFile(
         file: File,
         resources: EnumMap<ResourceType, MutableSet<String>>,
@@ -173,9 +261,7 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
         }
 
         if (!found) {
-            ResourceType.entries.filter {
-                it == ResourceType.ANIM || it == ResourceType.DRAWABLE || it == ResourceType.RAW || it == ResourceType.XML || it == ResourceType.INTERPOLATOR || it == ResourceType.MIPMAP
-            }.forEach { type ->
+            ResourceType.entries.filter { it.isFileBased }.forEach { type ->
                 if (file.extension == type.tag) {
                     resources[type]?.add(file.nameWithoutExtension.replace(".", "_"))
                 }
@@ -183,6 +269,9 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
         }
     }
 
+    /**
+     * Generates Kotlin code for resource access.
+     */
     private fun generateKotlinCode(resources: Map<ResourceType, Set<String>>) {
         val getResIdBody = resources.entries.joinToString("\n") { (type, names) ->
             "\"${type.tag}\" -> when (name) {" + names.joinToString("\n") { "\"$it\" -> R.${type.tag}.$it" } + "\nelse -> -1 }"
@@ -202,13 +291,22 @@ abstract class GenerateResourcesTask @Inject constructor() : DefaultTask() {
             .addType(classBuilder.build()).build().writeTo(outputDir.get().asFile)
     }
 
+    /**
+     * Loads previous resource metadata.
+     */
     private fun loadPreviousResourcesMetadata(): Map<ResourceType, Set<String>>? =
         if (metadataFile.exists()) json.decodeFromString(metadataFile.readText()) else null
 
+    /**
+     * Saves resource metadata.
+     */
     private fun saveResourcesMetadata(resources: Map<ResourceType, Set<String>>) {
         metadataFile.writeText(json.encodeToString(resources))
     }
 
+    /**
+     * Saves hash of input files.
+     */
     private fun saveHash() {
         hashFile.writeText(calculateHash())
     }

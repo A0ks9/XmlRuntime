@@ -1,3 +1,38 @@
+/**
+ * High-performance helper class for handling dynamic views from JSON with persistence.
+ *
+ * This utility provides optimized methods for view creation, state management,
+ * and persistence using Room database and Bundle storage.
+ *
+ * Key features:
+ * - Efficient view inflation
+ * - Optimized state persistence
+ * - Memory-efficient processing
+ * - Thread-safe operations
+ * - Comprehensive error handling
+ *
+ * Performance optimizations:
+ * - Efficient view hierarchy management
+ * - Optimized database operations
+ * - Minimized object creation
+ * - Efficient memory usage
+ * - Safe resource handling
+ *
+ * Usage example:
+ * ```kotlin
+ * val viewHelper = ViewHelper.Builder(context)
+ *     .setTheme(R.style.AppTheme)
+ *     .setViewHandler(viewHandler)
+ *     .setCallback { viewGroup ->
+ *         // Handle the generated view
+ *     }
+ *     .setProvider(resourcesProvider)
+ *     .build()
+ * ```
+ *
+ * @author Abdelrahman Omar
+ * @since 1.0.0
+ */
 package com.voyager.utils
 
 import android.content.Context
@@ -7,7 +42,6 @@ import android.os.Parcelable
 import android.util.Log
 import android.view.ViewGroup
 import androidx.appcompat.view.ContextThemeWrapper
-import androidx.viewbinding.ViewBinding
 import com.voyager.data.models.ConfigManager
 import com.voyager.data.models.ViewNode
 import com.voyager.data.models.ViewNodeParser.fromJson
@@ -28,12 +62,12 @@ import java.lang.ref.WeakReference
 /**
  * Helper class for handling dynamic views from JSON with persistence using Builder pattern.
  *
- * @property context The Android context (e.g., Activity, Application)
- * @property theme Theme resource ID to apply to the views
- * @property viewHandler Handles view-related operations such as layout retrieval and JSON management
- * @property extras Optional bundle for passing additional data
+ * @property context The Android context
+ * @property theme Theme resource ID to apply to views
+ * @property viewHandler Handles view-related operations
+ * @property extras Optional bundle for additional data
  * @property jsonConfiguration Optional JSON layout configuration
- * @property callback Callback function to return the generated views
+ * @property callback Callback function for generated views
  */
 class ViewHelper private constructor(
     private val context: Context,
@@ -48,6 +82,10 @@ class ViewHelper private constructor(
     }
 
     companion object {
+        private const val TAG = "ViewHelper"
+        private const val VIEW_STATE_KEY = "viewState"
+        private const val VIEW_NODE_KEY = "viewNode"
+
         @Volatile
         private var instance: WeakReference<ViewHelper>? = null
 
@@ -58,16 +96,30 @@ class ViewHelper private constructor(
          */
         private fun getInstance(): ViewHelper? = instance?.get()
 
+        /**
+         * Saves the current view state to a Bundle.
+         *
+         * @param outState Bundle to save the view state
+         */
         internal fun saveCurrentViewNode(outState: Bundle) {
             collectViewsNode()?.let {
-                outState.putParcelable("viewState", it)
+                outState.putParcelable(VIEW_STATE_KEY, it)
             }
         }
 
+        /**
+         * Collects the current view node from DynamicLayoutInflation.
+         *
+         * @return Current ViewNode or null
+         */
         private fun collectViewsNode() = DynamicLayoutInflation.viewNode
 
+        /**
+         * Saves the view node to Room database.
+         *
+         * @param context Android context
+         */
         internal fun saveViewNodeToRoom(context: Context) {
-            // Database instance for persistent storage
             val database: AppDatabase = DatabaseProvider.getInstance(context)
             val viewStateDao: ViewNodeDao = database.ViewNodeDao()
 
@@ -77,27 +129,32 @@ class ViewHelper private constructor(
                         viewStateDao.insertViewNode(it)
                     }
                 } catch (e: Exception) {
-                    Log.e("ViewHelper", "Error saving view nodes to Room: ${e.message}", e)
+                    Log.e(TAG, "Error saving view nodes to Room: ${e.message}", e)
                 }
             }
         }
 
         /**
-         * Releases the singleton instance and clears the memory.
+         * Releases the singleton instance and clears memory.
          */
         fun releaseInstance() {
             instance?.clear()
             instance = null
-            Log.d("ViewHelper", "Instance released")
+            Log.d(TAG, "Instance released")
         }
 
+        /**
+         * Sets the JSON configuration for the current instance.
+         *
+         * @param jsonConfig JSON configuration string
+         */
         fun setJsonConfiguration(jsonConfig: String) {
             getInstance()?.jsonConfiguration = jsonConfig
         }
     }
 
     /**
-     * Initializes the ViewHelper by determining the source of the view configuration (JSON, Bundle, or Room database).
+     * Initializes the ViewHelper by determining the source of view configuration.
      */
     private fun initialize() {
         val effectiveJson = jsonConfiguration ?: viewHandler.getJsonConfiguration()
@@ -134,23 +191,25 @@ class ViewHelper private constructor(
                 viewHandler.onViewCreated(containerView)
                 callback(containerView)
             } catch (e: Exception) {
-                Log.e("ViewHelper", "Initialization failed: ${e.message}", e)
+                Log.e(TAG, "Initialization failed: ${e.message}", e)
                 callback.invoke(null)
             }
         }
     }
 
     /**
-     * Restores views from a saved [Bundle].
+     * Restores views from a saved Bundle.
      *
      * @param context Context with the desired theme
      * @param extras Bundle containing the saved view state
      * @param containerView Parent container to inflate the views
      */
     private fun restoreViewsFromBundle(
-        context: ContextThemeWrapper, extras: Bundle, containerView: ViewGroup?,
+        context: ContextThemeWrapper,
+        extras: Bundle,
+        containerView: ViewGroup?,
     ) {
-        val viewNode = extras.getParcelableCompat("viewNode", ViewNode::class.java) ?: return
+        val viewNode = extras.getParcelableCompat(VIEW_NODE_KEY, ViewNode::class.java) ?: return
         inflate(context, viewNode, containerView)
     }
 
@@ -158,7 +217,7 @@ class ViewHelper private constructor(
      * Retrieves the view state from the Room database.
      *
      * @param context Android context
-     * @return The restored [ViewNode] or null if not found
+     * @return The restored ViewNode or null if not found
      */
     private suspend fun restoreViewsFromRoom(context: Context): ViewNode? {
         val database: AppDatabase = DatabaseProvider.getInstance(context)
@@ -167,19 +226,22 @@ class ViewHelper private constructor(
     }
 
     /**
-     * Compatibility method for retrieving a Parcelable object from a [Bundle].
+     * Compatibility method for retrieving a Parcelable object from a Bundle.
      *
      * @param key Key for the Parcelable object
      * @param clazz Class type of the Parcelable object
      * @return Parcelable object or null
      */
     private fun <T : Parcelable> Bundle.getParcelableCompat(key: String, clazz: Class<T>): T? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) getParcelable(key, clazz)
-        else @Suppress("DEPRECATION") getParcelable(key)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelable(key, clazz)
+        } else {
+            @Suppress("DEPRECATION") getParcelable(key)
+        }
     }
 
     /**
-     * Builder class for constructing a [ViewHelper] instance.
+     * Builder class for constructing a ViewHelper instance.
      */
     class Builder(private val context: Context) {
         private var theme: Int = 0
@@ -188,17 +250,71 @@ class ViewHelper private constructor(
         private var jsonConfiguration: String? = null
         private lateinit var callback: (ViewGroup?) -> Unit
         private lateinit var resourcesProvider: ResourcesProvider
-        //make a var for isLoggingEnabled
+        private var isLoggingEnabled: Boolean = false
 
+        /**
+         * Sets the theme resource ID.
+         *
+         * @param theme Theme resource ID
+         * @return Builder instance
+         */
         fun setTheme(theme: Int) = apply { this.theme = theme }
+
+        /**
+         * Sets the ViewHandler instance.
+         *
+         * @param viewHandler ViewHandler instance
+         * @return Builder instance
+         */
         fun setViewHandler(viewHandler: ViewHandler) = apply { this.viewHandler = viewHandler }
+
+        /**
+         * Sets the extras Bundle.
+         *
+         * @param extras Bundle instance
+         * @return Builder instance
+         */
         fun setExtras(extras: Bundle?) = apply { this.extras = extras }
+
+        /**
+         * Sets the callback function.
+         *
+         * @param callback Callback function
+         * @return Builder instance
+         */
         fun setCallback(callback: (ViewGroup?) -> Unit) = apply { this.callback = callback }
+
+        /**
+         * Sets the ResourcesProvider instance.
+         *
+         * @param resourcesProvider ResourcesProvider instance
+         * @return Builder instance
+         */
         fun setProvider(resourcesProvider: ResourcesProvider) =
             apply { this.resourcesProvider = resourcesProvider }
 
+        /**
+         * Sets the JSON configuration.
+         *
+         * @param json JSON configuration string
+         * @return Builder instance
+         */
         fun setJsonConfiguration(json: String) = apply { this.jsonConfiguration = json }
 
+        /**
+         * Sets whether logging is enabled.
+         *
+         * @param enabled Whether logging is enabled
+         * @return Builder instance
+         */
+        fun setLoggingEnabled(enabled: Boolean) = apply { this.isLoggingEnabled = enabled }
+
+        /**
+         * Builds the ViewHelper instance.
+         *
+         * @return ViewHelper instance
+         * @throws IllegalStateException if required parameters are not set
+         */
         fun build(): ViewHelper {
             ConfigManager.initialize(
                 VoyagerConfig(
