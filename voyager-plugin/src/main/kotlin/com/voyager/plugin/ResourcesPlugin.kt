@@ -38,9 +38,10 @@ import com.android.build.api.variant.Variant
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.Directory
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import java.util.Locale
@@ -93,7 +94,7 @@ class ResourcesPlugin : Plugin<Project> {
 
             // Create and configure task for the variant
             val generateTask = createGenerateTask(
-                project, variant, extension, generatedDir as DirectoryProperty
+                project, variant, extension, generatedDir
             )
 
             // Configure source sets and dependencies
@@ -114,7 +115,7 @@ class ResourcesPlugin : Plugin<Project> {
         project: Project,
         variant: Variant,
         extension: ResourcesExtension,
-        generatedDir: DirectoryProperty,
+        generatedDir: Provider<Directory>,
     ) = project.tasks.register(
         "generateResources${variant.name.capitalize()}", GenerateResourcesTask::class.java
     ) { task ->
