@@ -2,7 +2,6 @@ package com.voyager.utils.processors
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.TypedValue
 import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
@@ -23,7 +22,6 @@ import android.widget.Space
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.VideoView
-import androidx.annotation.ColorInt
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 import androidx.appcompat.widget.AppCompatButton
@@ -38,7 +36,6 @@ import androidx.appcompat.widget.AppCompatTextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.cardview.widget.CardView
-import androidx.collection.LruCache
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.widget.NestedScrollView
@@ -101,20 +98,10 @@ class ViewProcessor {
         private val viewCreators = ConcurrentHashMap<String, (ContextThemeWrapper) -> View>()
 
         /**
-         * Cache for frequently used view instances to reduce memory allocations.
-         * Size is limited to prevent memory leaks.
-         */
-        private val viewCache = LruCache<String, View>(20)
-
-        /**
          * Lazy-initialized logger to reduce startup overhead.
          */
         private val logger by lazy { Logger.getLogger(ViewProcessor::class.java.name) }
 
-        /**
-         * Performance-optimized constants.
-         */
-        private const val MAX_CACHE_SIZE = 20
         private const val DEFAULT_ANDROID_WIDGET_PACKAGE = "android.widget."
 
         init {
@@ -362,11 +349,7 @@ class ViewProcessor {
             context: ContextThemeWrapper,
         ): View? {
             val cacheKey = "$packageName.$className"
-            return viewCache[cacheKey] ?: viewCreators[cacheKey]?.let { creator ->
-                creator(context).also { view ->
-                    viewCache.put(cacheKey, view)
-                }
-            }
+            return viewCreators[cacheKey]?.invoke(context)
         }
 
         /**
@@ -378,12 +361,7 @@ class ViewProcessor {
          */
         internal fun createView(classPath: String, context: ContextThemeWrapper): View? {
             val fullyQualifiedName = getFullQualifiedType(classPath)
-            return viewCache[fullyQualifiedName]
-                ?: viewCreators[fullyQualifiedName]?.let { creator ->
-                    creator(context).also { view ->
-                        viewCache.put(fullyQualifiedName, view)
-                    }
-                }
+            return viewCreators[fullyQualifiedName]?.invoke(context)
         }
 
         /**
@@ -397,33 +375,25 @@ class ViewProcessor {
         internal fun createViewByType(context: ContextThemeWrapper, type: String): View {
             val fullyQualifiedName = getFullQualifiedType(type)
 
-            return viewCache[fullyQualifiedName]
-                ?: viewCreators[fullyQualifiedName]?.let { creator ->
-                    creator(context).also { view ->
-                        viewCache.put(fullyQualifiedName, view)
-                    }
-                } ?: try {
-                    val kClass = Class.forName(fullyQualifiedName).kotlin
-                    val ktor = kClass.constructors.firstOrNull { constructor ->
-                        constructor.parameters.size == 1 && constructor.parameters[0].type.classifier == Context::class
-                    }
-                        ?: throw IllegalArgumentException("No constructor with Context found for $fullyQualifiedName")
-
-                    val viewConstructor: (ContextThemeWrapper) -> View = { ctx ->
-                        requireNotNull(ktor.call(ctx) as? View) { "View creation failed for type $fullyQualifiedName" }
-                    }
-
-                    registerView(fullyQualifiedName, viewConstructor)
-                    viewConstructor(context).also { view ->
-                        viewCache.put(fullyQualifiedName, view)
-                    }
-                } catch (e: Exception) {
-                    logger.severe("Error creating view for type: $fullyQualifiedName")
-                    throw IllegalArgumentException(
-                        "Error creating view for type: $fullyQualifiedName",
-                        e
-                    )
+            return viewCreators[fullyQualifiedName]?.invoke(context) ?: try {
+                val kClass = Class.forName(fullyQualifiedName).kotlin
+                val ktor = kClass.constructors.firstOrNull { constructor ->
+                    constructor.parameters.size == 1 && constructor.parameters[0].type.classifier == Context::class
                 }
+                    ?: throw IllegalArgumentException("No constructor with Context found for $fullyQualifiedName")
+
+                val viewConstructor: (ContextThemeWrapper) -> View = { ctx ->
+                    requireNotNull(ktor.call(ctx) as? View) { "View creation failed for type $fullyQualifiedName" }
+                }
+
+                registerView(fullyQualifiedName, viewConstructor)
+                viewConstructor(context)
+            } catch (e: Exception) {
+                logger.severe("Error creating view for type: $fullyQualifiedName")
+                throw IllegalArgumentException(
+                    "Error creating view for type: $fullyQualifiedName", e
+                )
+            }
         }
 
         /**

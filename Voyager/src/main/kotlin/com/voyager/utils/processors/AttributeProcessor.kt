@@ -19,6 +19,7 @@ package com.voyager.utils.processors
 
 import android.view.View
 import com.voyager.utils.partition
+import com.voyager.utils.processors.AttributeProcessor.INITIAL_CAPACITY
 import com.voyager.utils.view.Attributes
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -52,18 +53,18 @@ internal object AttributeProcessor {
     private const val BITS_PER_LONG = 6
     private const val BIT_MASK = 0x3F
     private const val BITMAP_INITIAL_SIZE = 4
-    
+
     /**
      * Cached string constants to prevent allocations in hot paths.
      */
     private const val LAYOUT_CONSTRAINT_PREFIX = "layout_constraint"
     private const val BIAS_KEYWORD = "bias"
-    
+
     /**
      * Lazy-initialized logger to reduce startup overhead.
      */
     private val logger by lazy { Logger.getLogger(AttributeProcessor::class.java.name) }
-    
+
     /**
      * Thread-safe storage for attribute handlers and their identifiers.
      * Pre-sized to [INITIAL_CAPACITY] to reduce resizing operations.
@@ -84,7 +85,7 @@ internal object AttributeProcessor {
      */
     inline fun <reified V : View, reified T> registerAttribute(
         name: String,
-        crossinline handler: (V, T) -> Unit
+        crossinline handler: (V, T) -> Unit,
     ) {
         // Thread-safe check and registration for API 21+
         var id = attributeIds[name]
@@ -95,10 +96,8 @@ internal object AttributeProcessor {
                 if (id == null) {
                     id = nextId.getAndIncrement()
                     attributeIds[name] = id
-                    @Suppress("UNCHECKED_CAST")
-                    attributeHandlers[id] = AttributeHandler(
-                        V::class.java,
-                        T::class.java
+                    @Suppress("UNCHECKED_CAST") attributeHandlers[id] = AttributeHandler(
+                        V::class.java, T::class.java
                     ) { view, value -> handler(view as V, value as T) }
                 }
             }
@@ -118,7 +117,7 @@ internal object AttributeProcessor {
         contract {
             returns() implies (value != null)
         }
-        
+
         val id = attributeIds[name] ?: return
         if (bitmask.setIfNotSet(id)) {
             attributeHandlers[id]?.apply(view, value)
@@ -139,30 +138,27 @@ internal object AttributeProcessor {
      */
     fun applyAttributes(view: View, attrs: Map<String, Any?>) {
         bitmask.clear()
-        
+
         // Fast path for ID attribute
         attrs[Attributes.Common.ID.name]?.let { id ->
             applyAttribute(view, Attributes.Common.ID.name, id)
         }
 
-        // Process attributes in batches using sequence operations
-        attrs.asSequence()
-            .filterNot { (key, _) -> key.isIDAttribute() }
+        // Process attributes in batches
+        attrs.filterNot { (key, _) -> key.isIDAttribute() }
             .partition { (key, _) -> key.isConstraintLayoutAttribute() }
             .let { (constraints, normal) ->
                 // Process normal attributes
-                normal.forEach { (name, value) -> 
+                normal.forEach { (name, value) ->
                     applyAttribute(view, name, value)
                 }
-                
+
                 // Process constraints efficiently
-                constraints
-                    .partition { (key, _) -> key.isConstraint() }
-                    .let { (pure, bias) ->
-                        pure.forEach { (name, value) -> 
+                constraints.partition { (key, _) -> key.isConstraint() }.let { (pure, bias) ->
+                        pure.forEach { (name, value) ->
                             applyAttribute(view, name, value)
                         }
-                        bias.forEach { (name, value) -> 
+                        bias.forEach { (name, value) ->
                             applyAttribute(view, name, value)
                         }
                     }
@@ -179,7 +175,7 @@ internal object AttributeProcessor {
     class AttributeHandler(
         private val viewClass: Class<*>,
         private val valueClass: Class<*>,
-        private val handler: (View, Any?) -> Unit
+        private val handler: (View, Any?) -> Unit,
     ) {
         /**
          * Applies the attribute value to the view with type checking.
@@ -193,7 +189,7 @@ internal object AttributeProcessor {
             contract {
                 returns() implies (value != null)
             }
-            
+
             if (viewClass.isInstance(view) && (value == null || valueClass.isInstance(value))) {
                 handler(view, value)
             }
@@ -255,18 +251,17 @@ internal object AttributeProcessor {
      * Zero-allocation string extension functions for attribute type checking.
      */
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun String.isConstraintLayoutAttribute() = 
+    private inline fun String.isConstraintLayoutAttribute() =
         startsWith(LAYOUT_CONSTRAINT_PREFIX, ignoreCase = true)
 
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun String.isConstraint() = 
+    private inline fun String.isConstraint() =
         isConstraintLayoutAttribute() && !contains(BIAS_KEYWORD, ignoreCase = true)
 
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun String.isBias() = 
+    private inline fun String.isBias() =
         isConstraintLayoutAttribute() && contains(BIAS_KEYWORD, ignoreCase = true)
 
     @Suppress("NOTHING_TO_INLINE")
-    private inline fun String.isIDAttribute() = 
-        equals(Attributes.Common.ID.name, ignoreCase = true)
+    private inline fun String.isIDAttribute() = equals(Attributes.Common.ID.name, ignoreCase = true)
 }

@@ -83,7 +83,6 @@ class ViewHelper private constructor(
 
     companion object {
         private const val TAG = "ViewHelper"
-        private const val VIEW_STATE_KEY = "viewState"
         private const val VIEW_NODE_KEY = "viewNode"
 
         @Volatile
@@ -103,7 +102,7 @@ class ViewHelper private constructor(
          */
         internal fun saveCurrentViewNode(outState: Bundle) {
             collectViewsNode()?.let {
-                outState.putParcelable(VIEW_STATE_KEY, it)
+                outState.putParcelable(VIEW_NODE_KEY, it)
             }
         }
 

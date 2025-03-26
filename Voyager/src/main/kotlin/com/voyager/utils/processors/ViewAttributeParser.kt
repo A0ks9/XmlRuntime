@@ -56,7 +56,12 @@ abstract class ViewAttributeParser {
          */
         @JvmStatic
         inline fun <reified V : View, reified T> registerAttributes(attributeMap: Map<String, (V, T?) -> Unit>) {
-            AttributeProcessor.registerAttributes(attributeMap)
+            attributeMap.forEach { (attr, handler) ->
+                AttributeProcessor.registerAttribute(
+                    attr,
+                    handler
+                )
+            }
         }
     }
 }

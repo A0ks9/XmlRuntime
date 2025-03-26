@@ -43,6 +43,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.collection.ArrayMap
+import com.voyager.data.models.ConfigManager
 import com.voyager.data.models.ViewNode
 import com.voyager.data.models.ViewNodeParser.fromJson
 import com.voyager.utils.FileHelper.getFileExtension
@@ -119,7 +120,7 @@ object DynamicLayoutInflation {
      * @param parent The parent ViewGroup
      * @param callback Optional callback to handle the inflated view
      */
-    private suspend fun inflateJson(
+    private fun inflateJson(
         context: ContextThemeWrapper,
         layoutUri: Uri,
         parent: ViewGroup?,
@@ -141,7 +142,7 @@ object DynamicLayoutInflation {
      * @param parent The parent ViewGroup
      * @param callback Optional callback to handle the inflated view
      */
-    private suspend fun inflateXml(
+    private fun inflateXml(
         context: ContextThemeWrapper,
         layoutUri: Uri,
         parent: ViewGroup?,
@@ -226,7 +227,7 @@ object DynamicLayoutInflation {
         view: View,
         attributes: ArrayMap<String, String>,
     ) {
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
+        if (ConfigManager.config.isLoggingEnabled) {
             Log.d(TAG, "Applying attributes to ${view.javaClass.simpleName}")
         }
         AttributeProcessor.applyAttributes(view, attributes)
