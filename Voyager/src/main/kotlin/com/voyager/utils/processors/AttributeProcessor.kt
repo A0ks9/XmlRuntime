@@ -96,7 +96,8 @@ internal object AttributeProcessor {
                 if (id == null) {
                     id = nextId.getAndIncrement()
                     attributeIds[name] = id
-                    @Suppress("UNCHECKED_CAST") attributeHandlers[id] = AttributeHandler(
+                    @Suppress("UNCHECKED_CAST")
+                    attributeHandlers[id] = AttributeHandler(
                         V::class.java, T::class.java
                     ) { view, value -> handler(view as V, value as T) }
                 }
