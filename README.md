@@ -7,6 +7,19 @@
 
 Voyager is a high-performance, dynamic XML runtime layout engine for Android that enables you to load and render XML layouts at runtime without requiring app recompilation. It provides a flexible and efficient way to create dynamic user interfaces.
 
+# ⚠ Project Archived – No Longer Maintained
+
+This project is no longer maintained and will not receive any further updates, bug fixes, or support.
+
+## 🚨 Status  
+- 🚫 No new features  
+- 🛠 No bug fixes  
+- 📭 No issue tracking or pull requests  
+
+You are free to **fork** and modify the project as needed. However, please note that it is provided **as-is**, with no guarantees of stability or future updates.  
+
+Thank you to everyone who contributed and supported this project!
+
 ## 🌟 Features
 
 - **Dynamic XML Loading**: Load and render XML layouts at runtime
