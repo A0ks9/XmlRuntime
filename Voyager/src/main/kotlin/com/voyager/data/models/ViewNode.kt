@@ -8,7 +8,10 @@
  * - Memory-efficient attribute storage using ArrayMap
  * - Optimized Parcelable implementation
  * - Efficient serialization/deserialization
- * - Thread-safe operations
+ * - Thread-safe due to immutable properties (id, children, activityName) post-construction.
+ *   The `attributes` ArrayMap (also val) is not thread-safe for internal mutation,
+ *   so it should not be modified after the ViewNode is created and shared.
+ *   All properties are now `val`, promoting immutability.
  * - Comprehensive error handling
  *
  * Performance optimizations:
@@ -50,11 +53,14 @@ import kotlinx.serialization.Serializable
 /**
  * Represents a node in a view hierarchy with optimized storage and serialization.
  *
- * @property id Unique identifier for the view node within the activity
- * @property type The type of the view (e.g., "Button", "TextView")
- * @property activityName Name of the activity this view belongs to
- * @property attributes Map of view attributes using memory-efficient ArrayMap
- * @property children List of child ViewNodes forming the view hierarchy
+ * @property id Optional unique identifier for the view node within the activity's view hierarchy. Now immutable (val).
+ * @property type The type of the view (e.g., "Button", "TextView").
+ * @property activityName Name of the activity this view belongs to. Serves as the @PrimaryKey for persistence
+ *                      (implying one main view hierarchy stored per activity) and is immutable (val).
+ * @property attributes Map of view attributes using memory-efficient ArrayMap. Immutable (val) reference.
+ *                      The contents of the ArrayMap should not be modified after ViewNode creation to ensure thread safety.
+ * @property children Immutable list (val) of child ViewNodes forming the view hierarchy.
+ *                      This ensures the hierarchy structure is not modified post-creation, aiding thread safety.
  */
 @Entity(
     tableName = "view_nodes", indices = [Index(value = ["activityName"], unique = true)]
@@ -62,11 +68,11 @@ import kotlinx.serialization.Serializable
 @TypeConverters(ViewNodeConverters::class)
 @Serializable
 data class ViewNode(
-    var id: String? = null,
+    val id: String? = null, // Changed var to val
     val type: String,
-    @PrimaryKey var activityName: String,
+    @PrimaryKey val activityName: String, // Changed var to val for better immutability
     @Serializable(with = ArrayMapSerializer::class) val attributes: ArrayMap<String, String>, // Pre-allocate with expected size
-    var children: List<ViewNode> = emptyList(),
+    val children: List<ViewNode> = emptyList(), // Changed var to val
 ) : Parcelable {
 
     /**
