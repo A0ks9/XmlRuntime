@@ -1,26 +1,13 @@
 /**
- * High-performance KSP processor provider for the Voyager framework.
+ * This file defines `KspProcessorProvider`, the service provider interface implementation
+ * for KSP (Kotlin Symbol Processing) in the Voyager processor module.
  *
- * This provider efficiently creates and manages KSP processors for generating
- * view attribute parsers. It handles the initialization and configuration of
- * processors in a memory-efficient and thread-safe manner.
+ * KSP discovers and loads symbol processors through implementations of the
+ * [SymbolProcessorProvider] interface. This class serves as that entry point,
+ * responsible for creating and providing instances of Voyager's [AttributeProcessor].
  *
- * Key features:
- * - Efficient processor creation
- * - Optimized resource management
- * - Thread-safe operations
- * - Memory-efficient implementation
- *
- * Performance optimizations:
- * - Lazy processor initialization
- * - Efficient resource handling
- * - Minimized object creation
- * - Safe resource cleanup
- *
- * Usage:
- * The provider is automatically configured by the KSP framework and creates
- * AttributeProcessor instances for processing annotated classes.
- *
+ * @see com.google.devtools.ksp.processing.SymbolProcessorProvider
+ * @see com.voyager.processors.ksp.AttributeProcessor
  * @author Abdelrahman Omar
  * @since 1.0.0
  */
@@ -32,21 +19,30 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.voyager.processors.ksp.AttributeProcessor
 
 /**
- * Provider for creating KSP processors in the Voyager framework.
+ * `KspProcessorProvider` is the entry point for the Kotlin Symbol Processing (KSP) API.
  *
- * This class handles the creation and configuration of KSP processors,
- * specifically for generating view attribute parsers.
+ * KSP discovers this class through the service provider configuration file
+ * (`META-INF/services/com.google.devtools.ksp.processing.SymbolProcessorProvider`).
+ * When KSP initializes, it calls the [create] method of this provider to obtain an
+ * instance of the [SymbolProcessor] (in this case, [AttributeProcessor]) that will
+ * perform the actual annotation processing and code generation.
+ *
+ * This class is responsible for instantiating the [AttributeProcessor] and providing it
+ * with essential KSP services from the [SymbolProcessorEnvironment], such as the
+ * [com.google.devtools.ksp.processing.CodeGenerator] and [com.google.devtools.ksp.processing.KSPLogger].
  */
 class KspProcessorProvider : SymbolProcessorProvider {
 
     /**
-     * Creates a new SymbolProcessor instance for the given environment.
+     * Called by KSP to create a new instance of the [SymbolProcessor].
      *
-     * This method efficiently creates and configures an AttributeProcessor
-     * with the provided environment settings.
+     * This implementation instantiates and returns an [AttributeProcessor],
+     * injecting it with the necessary [SymbolProcessorEnvironment.codeGenerator] and
+     * [SymbolProcessorEnvironment.logger] from the KSP environment.
      *
-     * @param environment The KSP processing environment
-     * @return A configured SymbolProcessor instance
+     * @param environment The KSP [SymbolProcessorEnvironment] providing access to KSP services
+     *                    like code generation and logging.
+     * @return A new instance of [AttributeProcessor] configured with the provided environment.
      */
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
         return AttributeProcessor(
