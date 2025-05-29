@@ -1,36 +1,26 @@
 /**
- * Efficient serializer for Android's ArrayMap<String, String>.
+ * `ArrayMapSerializer` is a custom [KSerializer] for `androidx.collection.ArrayMap<String, String>`.
+ * It leverages `kotlinx.serialization`'s [MapSerializer] for the actual serialization and
+ * deserialization process, ensuring compatibility with the JSON format, while providing
+ * optimized creation of [ArrayMap] instances during deserialization.
  *
- * This serializer provides optimized serialization and deserialization of ArrayMap instances,
- * with a focus on performance and memory efficiency.
+ * This serializer is used by [com.voyager.data.models.ViewNode] to efficiently handle its
+ * `attributes` field when serializing to/from JSON.
  *
- * Key features:
- * - Optimized serialization using MapSerializer
- * - Memory-efficient deserialization
- * - Thread-safe operations
- * - Type-safe conversions
+ * Key Optimizations:
+ * - **Serialization:** Delegates to the standard [MapSerializer], which is efficient.
+ * - **Deserialization:**
+ *   1. Deserializes the JSON into a standard [Map<String, String>].
+ *   2. Creates an [ArrayMap] with the exact capacity of the deserialized map,
+ *      avoiding potential reallocations and improving memory efficiency for `ArrayMap`.
+ *   3. Populates the [ArrayMap] from the standard [Map].
  *
- * Performance optimizations:
- * - Pre-allocated ArrayMap capacity
- * - Efficient map conversion
- * - Minimized object creation
- * - Optimized string handling
- *
- * Usage example:
- * ```kotlin
- * // Serialize ArrayMap
- * val arrayMap = ArrayMap<String, String>()
- * arrayMap["key"] = "value"
- * val json = Json.encodeToString(ArrayMapSerializer, arrayMap)
- *
- * // Deserialize ArrayMap
- * val deserialized = Json.decodeFromString(ArrayMapSerializer, json)
- * ```
+ * This approach balances standard, robust serialization logic with `ArrayMap`-specific optimizations.
  *
  * @author Abdelrahman Omar
  * @since 1.0.0
  */
-package com.voyager.utils
+package com.voyager.utils.serialization // Corrected package declaration
 
 import androidx.collection.ArrayMap
 import kotlinx.serialization.KSerializer

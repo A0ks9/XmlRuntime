@@ -32,14 +32,14 @@ object ViewNodeConverters {
     @TypeConverter
     fun fromViewNodeList(list: List<ViewNode>): String {
         return jsonFormat.encodeToString(
-            ListSerializer(ViewNode.CREATOR.serializer()), list
+            ListSerializer(ViewNode.serializer()), list // Corrected: Use ViewNode.serializer()
         )
     }
 
     @TypeConverter
     fun toViewNodeList(json: String): List<ViewNode> {
         return jsonFormat.decodeFromString(
-            ListSerializer(ViewNode.CREATOR.serializer()), json
+            ListSerializer(ViewNode.serializer()), json // Corrected: Use ViewNode.serializer()
         )
     }
 }
