@@ -41,9 +41,20 @@ class MainViewModel(
     private val _isFileSelected = MutableLiveData(false)
     val isFileSelected: LiveData<Boolean> = _isFileSelected
 
-    private val _fileNameToCreate = MutableLiveData<String?>()
-    val fileNameToCreate: LiveData<String?> = _fileNameToCreate
+    private val _requestCreateFileEvent = MutableLiveData<String?>()
+    val requestCreateFileEvent: LiveData<String?> = _requestCreateFileEvent
 
+    // LiveData for dynamic EditText
+    private val _dynamicEditTextData = MutableLiveData<String>("Default EditText Value")
+    val dynamicEditTextData: LiveData<String> = _dynamicEditTextData
+
+    // LiveData for dynamic TextView
+    private val _dynamicTextViewData = MutableLiveData<String>("Default TextView Value from VM")
+    val dynamicTextViewData: LiveData<String> = _dynamicTextViewData
+
+    fun updateDynamicEditTextData(newText: String) {
+        _dynamicEditTextData.value = newText
+    }
 
     fun setShowXmlText(text: String) {
         _showXmlText.value = text
@@ -59,20 +70,21 @@ class MainViewModel(
         _isFileSelected.value = true
     }
 
-    fun convertXmlToJson(context: Context) {
+    fun convertXmlToJson(contentResolver: ContentResolver) {
         viewModelScope.launch {
-            val uri = _selectedFile.value ?: return@launch
+            val selectedFileUri = _selectedFile.value ?: return@launch // Use internal state for URI
             try {
-                context.contentResolver.openInputStream(uri)
+                contentResolver.openInputStream(selectedFileUri)
                     ?.use { inputStream -> // Get InputStream
                         _parsedJson.value = xmlRepository.convertXmlToJson(inputStream)
                             .toString() // Pass InputStream
                         Log.d("Json Parsed", _parsedJson.value.toString())
-                        xmlRepository.getFileNameFromUri(context.contentResolver, uri) { fileName ->
+                        // Use passed contentResolver and selectedFileUri
+                        xmlRepository.getFileNameFromUri(contentResolver, selectedFileUri) { fileName ->
                             createDocument(fileName.replace(".xml", ".json"))
                         }
                     } ?: run {
-                    Log.e("ConvertXml", "Failed to open input stream for URI: $uri")
+                    Log.e("ConvertXml", "Failed to open input stream for URI: $selectedFileUri")
                     _parsedJson.value = null // Or handle error appropriately
                 }
             } catch (e: Exception) {
@@ -87,9 +99,16 @@ class MainViewModel(
         // You'll likely use an ActivityResultLauncher here in MainActivity
         // and observe a LiveData from ViewModel to trigger it.
         // For now, let's just hold the filename or trigger for Activity.
-        _fileNameToCreate.value = fileName
+        _requestCreateFileEvent.value = fileName
     }
 
+    /**
+     * Call this method from the Activity after the file creation request has been handled
+     * to prevent re-triggering the event on configuration changes.
+     */
+    fun creationRequestHandled() {
+        _requestCreateFileEvent.value = null
+    }
 
     fun writeToFile(uri: Uri, contentResolver: ContentResolver) {
         viewModelScope.launch(Dispatchers.IO) {

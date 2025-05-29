@@ -37,6 +37,10 @@ class MainActivity : AppCompatActivity(), ViewHandler {
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var createDocumentLauncher: ActivityResultLauncher<String>
 
+    // References to dynamically inflated views
+    private var dynamicTextView: TextView? = null
+    private var dynamicEditText: android.widget.EditText? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -176,12 +180,30 @@ class MainActivity : AppCompatActivity(), ViewHandler {
     }
 
     private fun setupObservers() {
-        mainViewModel.fileNameToCreate.observe(this) { fileName ->
-            fileName?.let { createDocumentLauncher.launch(it) } // Launch file creation when filename is ready
+        mainViewModel.requestCreateFileEvent.observe(this) { fileName ->
+            fileName?.let {
+                createDocumentLauncher.launch(it) // Launch file creation when filename is ready
+                mainViewModel.creationRequestHandled() // Notify ViewModel that event has been handled
+            }
         }
 
         mainViewModel.isFileCreated.observe(this) { isCreated ->
             if (isCreated) Log.d("MainActivity", "File created successfully!")
+        }
+
+        // Observer for dynamic TextView data
+        mainViewModel.dynamicTextViewData.observe(this) { text ->
+            dynamicTextView?.text = text
+            Log.d("MainActivity", "Dynamic TextView updated: $text")
+        }
+
+        // Observer for dynamic EditText data
+        mainViewModel.dynamicEditTextData.observe(this) { text ->
+            // Only update if the text is different to avoid infinite loops with TextWatcher
+            if (dynamicEditText?.text.toString() != text) {
+                dynamicEditText?.setText(text)
+                Log.d("MainActivity", "Dynamic EditText updated from ViewModel: $text")
+            }
         }
     }
 
@@ -200,7 +222,7 @@ class MainActivity : AppCompatActivity(), ViewHandler {
                     )
                 )
 
-                mainViewModel.isFileCreated.value == false -> mainViewModel.convertXmlToJson(this@MainActivity)
+                mainViewModel.isFileCreated.value == false -> mainViewModel.convertXmlToJson(this.contentResolver)
             }
         }
 
@@ -211,9 +233,43 @@ class MainActivity : AppCompatActivity(), ViewHandler {
 
     private fun inflateAndShowJsonView() {
         val createdFileUri = mainViewModel.createdFileUri.value ?: return
-        inflate(this, R.style.Theme_Voyager, createdFileUri, binding.parentLayout) { view ->
-            DynamicLayoutInflation.setDelegate(view, applicationContext)
-            view?.post { Log.d("MainActivity", "Inflated view: $view") }
+        inflate(this, R.style.Theme_Voyager, createdFileUri, binding.parentLayout) { inflatedView ->
+            // Assuming DynamicLayoutInflation.setDelegate is for other potential specific view interactions.
+            // For standard views like EditText and TextView, direct manipulation is more straightforward here.
+            DynamicLayoutInflation.setDelegate(inflatedView, applicationContext) // Keep if it serves other purposes
+
+            inflatedView?.let { viewGroup ->
+                // Find and setup Dynamic TextView
+                this.dynamicTextView = viewGroup.findViewWithTag<TextView>("myDynamicTextView")
+                this.dynamicTextView?.let { tv ->
+                    tv.text = mainViewModel.dynamicTextViewData.value
+                    Log.d("MainActivity", "Dynamic TextView initialized with: ${tv.text}")
+                } ?: Log.e("MainActivity", "Dynamic TextView with tag 'myDynamicTextView' not found.")
+
+                // Find and setup Dynamic EditText
+                this.dynamicEditText = viewGroup.findViewWithTag<android.widget.EditText>("myDynamicEditText")
+                this.dynamicEditText?.let { et ->
+                    et.setText(mainViewModel.dynamicEditTextData.value)
+                    et.addTextChangedListener(object : android.text.TextWatcher {
+                        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                        override fun afterTextChanged(s: android.text.Editable?) {
+                            val newText = s.toString()
+                            // Only update ViewModel if the text actually changed,
+                            // and if it's different from what ViewModel currently holds,
+                            // to prevent potential loops if ViewModel observation also sets text.
+                            if (mainViewModel.dynamicEditTextData.value != newText) {
+                                mainViewModel.updateDynamicEditTextData(newText)
+                                Log.d("MainActivity", "Dynamic EditText new text sent to ViewModel: $newText")
+                            }
+                        }
+                    })
+                    Log.d("MainActivity", "Dynamic EditText initialized and TextWatcher attached. Initial text: ${et.text}")
+                } ?: Log.e("MainActivity", "Dynamic EditText with tag 'myDynamicEditText' not found.")
+
+                Log.d("MainActivity", "Inflated view hierarchy processed for dynamic elements.")
+            }
+            inflatedView?.post { Log.d("MainActivity", "Inflated view: $inflatedView") }
         }
     }
 
