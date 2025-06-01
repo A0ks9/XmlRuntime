@@ -4,19 +4,33 @@
  * This module provides optimized XML parsing and JSON conversion with minimal memory overhead.
  * It uses efficient streaming parsing and optimized memory management.
  *
- * Key features:
- * - Incremental XML parsing
- * - Memory-efficient JSON generation
- * - Optimized string handling
- * - Thread-safe operations
- * - Comprehensive error handling
+ * Key Features:
+ * - **Incremental XML Parsing:** Efficient streaming parsing of XML data
+ * - **Memory-Efficient JSON Generation:** Optimized JSON output with minimal allocations
+ * - **Thread Safety:** Thread-local storage for parser state
+ * - **Error Handling:** Comprehensive error handling and logging
+ * - **Performance Optimization:** Efficient buffer management and string handling
  *
- * Performance optimizations:
- * - Efficient buffer management
- * - Optimized memory allocation
- * - Minimized string operations
+ * Performance Optimizations:
+ * - Efficient buffer management with optimized sizes
+ * - Thread-local storage for parser state
+ * - Direct pointer arithmetic for string operations
+ * - Pre-allocated vector capacities
+ * - Minimized object creation
  * - Safe resource handling
- * - Fast JSON generation
+ *
+ * Best Practices:
+ * 1. Use appropriate buffer sizes for your use case
+ * 2. Handle parser errors appropriately
+ * 3. Consider memory usage with large XML files
+ * 4. Monitor thread-local storage usage
+ * 5. Use appropriate logging levels
+ *
+ * Example Usage:
+ * ```cpp
+ * // Parse XML from an input stream
+ * jstring result = Java_com_voyager_utils_FileHelper_parseXML(env, inputStream);
+ * ```
  *
  * @author Abdelrahman Omar
  * @since 1.0.0
@@ -41,7 +55,10 @@ using namespace std;
 constexpr int BUFFER_SIZE = 8192;  // Increased buffer size for better performance
 constexpr int INITIAL_VECTOR_CAPACITY = 16;  // Pre-allocate vector capacity
 
-// Thread-local storage for parser state
+/**
+ * Thread-local storage for parser state to ensure thread safety.
+ * Uses efficient memory management and pre-allocated buffers.
+ */
 thread_local struct ParserState {
     unique_ptr<PrettyWriter<StringBuffer>> writer;
     vector<bool> childrenStarted;
@@ -58,6 +75,12 @@ thread_local struct ParserState {
  * Optimized function to remove namespace prefix.
  * Uses direct pointer arithmetic for better performance.
  *
+ * Performance Considerations:
+ * - Direct pointer arithmetic
+ * - No string copying
+ * - Minimal object creation
+ * - Fast operation
+ *
  * @param str Input string with optional namespace prefix
  * @return Pointer to the substring after the colon
  */
@@ -69,6 +92,12 @@ inline const char* removePrefixBeforeColon(const char* str) noexcept {
 /**
  * Optimized XML start element handler.
  * Uses direct buffer access and minimizes allocations.
+ *
+ * Performance Considerations:
+ * - Efficient children array creation
+ * - Direct buffer access
+ * - Pre-allocated vector usage
+ * - Minimal object creation
  *
  * @param userData User data pointer (unused)
  * @param name Element name
@@ -114,6 +143,12 @@ void XMLCALL startElement(void* userData, const char* name, const char** attribu
  * Optimized XML end element handler.
  * Uses direct buffer access for better performance.
  *
+ * Performance Considerations:
+ * - Direct buffer access
+ * - Efficient vector operations
+ * - Minimal object creation
+ * - Fast operation
+ *
  * @param userData User data pointer (unused)
  * @param name Element name (unused)
  */
@@ -132,12 +167,19 @@ void XMLCALL endElement(void* userData, const char* name) noexcept {
  * JNI function for XML to JSON conversion with optimized memory management.
  * Uses incremental parsing and efficient buffer handling.
  *
+ * Performance Considerations:
+ * - Incremental parsing
+ * - Efficient buffer management
+ * - Safe resource handling
+ * - Error handling
+ * - Memory cleanup
+ *
  * @param env JNI environment
  * @param inputStream Java InputStream object
  * @return JSON string as jstring
  */
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_voyager_utils_FileHelper_parseXML(JNIEnv* env, jobject /* this */, jobject inputStream) {
+Java_com_voyager_core_data_utils_FileHelper_parseXML(JNIEnv* env, jobject /* this */, jobject inputStream) {
     // Get InputStream class and read method
     jclass inputStreamClass = env->GetObjectClass(inputStream);
     jmethodID readMethod = env->GetMethodID(inputStreamClass, "read", "([B)I");

@@ -6,5 +6,4 @@ plugins {
     alias(libs.plugins.google.ksp) apply false
     alias(libs.plugins.jetbrains.kotlin.jvm) apply false
     alias(libs.plugins.plugin.serialization) apply false
-    id("com.labters.styler.stylerplugin") version "1.0.0"
 }

@@ -2,9 +2,7 @@ package com.voyager.utils
 
 import android.view.View
 import android.view.ViewGroup
-import io.mockk.Runs
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
@@ -12,10 +10,10 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.util.logging.Logger
-import com.voyager.utils.ReflectionUtils // Import the object to test
 
 // Mock Log for pure JUnit if not using Robolectric
 import android.util.Log
+import com.voyager.core.view.model.GeneratedView
 import io.mockk.mockkStatic
 
 @DisplayName("ReflectionUtils Tests")

@@ -8,7 +8,6 @@ import android.util.DisplayMetrics
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.MarginLayoutParams
-import androidx.collection.ArrayMap
 import io.mockk.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -16,13 +15,13 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import org.junit.jupiter.params.provider.ValueSource
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.WeakHashMap
 
 // Mocking Log for String.toLayoutParam -> toPixels -> logWarning if Dimens.toPixels is not found or fails
 import android.util.Log
+import com.voyager.core.view.model.GeneratedView
 
 @DisplayName("Extensions.kt Tests")
 class ExtensionsTest {

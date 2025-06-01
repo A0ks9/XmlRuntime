@@ -2,14 +2,13 @@ package com.voyager.utils
 
 import android.view.View
 import android.view.ViewGroup
+import com.voyager.core.view.model.GeneratedView
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import java.util.logging.Logger
-import com.voyager.utils.Utils // Import the object to test
 
 // For GeneratedView, assuming it's in the same package or imported correctly.
 // For this test, we don't need to mock Log if Utils.kt doesn't use it directly for these functions.

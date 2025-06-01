@@ -24,9 +24,9 @@ import com.example.ui.viewModels.MainViewModel
 import com.voyager.resources.ResourcesBridge
 import com.voyager.utils.DynamicLayoutInflation
 import com.voyager.utils.DynamicLayoutInflation.inflate
-import com.voyager.utils.interfaces.ViewHandler
-import com.voyager.utils.interfaces.ViewHandler.Companion.initialize
-import com.voyager.utils.interfaces.ViewHandler.Companion.saveDataWithRoom
+import com.voyager.core.view.ViewHandler
+import com.voyager.core.view.ViewHandler.Companion.initialize
+import com.voyager.core.view.ViewHandler.Companion.saveDataWithRoom
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : AppCompatActivity(), ViewHandler {

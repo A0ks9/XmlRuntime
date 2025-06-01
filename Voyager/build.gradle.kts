@@ -26,7 +26,7 @@ publishing {
 
 android {
     namespace = "com.voyager"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "29.0.13113456"
 
     defaultConfig {
@@ -118,6 +118,7 @@ dependencies {
     // Reactive programming with RxJava for responsive UIs
     implementation(libs.rx.java)
     implementation(libs.rx.android)
+    implementation(libs.coroutines.rx3)
 
     implementation(project.dependencies.platform(libs.koin.bom))
     implementation(libs.koin.android)

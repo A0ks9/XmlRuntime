@@ -1,7 +1,7 @@
 package com.example
 
 import android.app.Application
-import com.example.di.originalAppModule
+import com.example.di.AppModule
 import com.voyager.di.appModule
 import com.voyager.resources.ResourcesBridge
 import org.koin.android.ext.koin.androidContext
@@ -18,7 +18,7 @@ class MyApplication : Application() {
             androidContext(this@MyApplication) // Pass application context
             modules(
                 appModule(ResourcesBridge(), true),
-                originalAppModule
+                AppModule
             )             // Load your AppModule
         }
     }

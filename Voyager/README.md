@@ -8,7 +8,7 @@ The core module of Voyager provides the fundamental building blocks for:
 - Parsing layout definitions ([ViewNode](./src/main/kotlin/com/voyager/data/models/ViewNode.kt)).
 - Inflating these definitions into actual Android [View](https://developer.android.com/reference/android/view/View) hierarchies ([DynamicLayoutInflation](./src/main/kotlin/com/voyager/utils/DynamicLayoutInflation.kt)).
 - Processing and applying view attributes efficiently ([AttributeProcessor](./src/main/kotlin/com/voyager/utils/processors/AttributeProcessor.kt)).
-- Managing and creating view instances, including support for custom views ([ViewProcessor](./src/main/kotlin/com/voyager/utils/processors/ViewProcessor.kt)).
+- Managing and creating view instances, including support for custom views ([ViewProcessor](./src/main/kotlin/com/voyager/utils/processors/ViewFactory.kt)).
 - Handling file and URI operations for layout loading ([FileHelper](./src/main/kotlin/com/voyager/utils/FileHelper.kt)).
 
 ## Integration
