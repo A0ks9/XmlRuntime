@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22.1)
+cmake_minimum_required(VERSION 3.4.1)
 
 include(FetchContent)
 
@@ -18,7 +18,7 @@ add_library(xmlParser
 FetchContent_Declare(
         expat
         GIT_REPOSITORY https://github.com/libexpat/libexpat.git
-        GIT_TAG R_2_6_4
+        GIT_TAG master
         SOURCE_SUBDIR expat/
 )
 

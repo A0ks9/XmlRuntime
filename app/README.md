@@ -5,80 +5,142 @@
 This `app` module serves as a sample application to demonstrate the features and usage of the **Voyager** library. It showcases how Voyager can dynamically inflate XML layouts at runtime, providing a flexible way to build and update user interfaces without needing to recompile the application.
 
 This sample provides practical examples of:
-- Loading XML layout definitions from various sources.
-- Rendering these layouts into native Android views.
-- Integrating custom views with Voyager.
-- Managing UI state and logic with ViewModels.
-- Utilizing dependency injection with Koin.
+- Loading XML layout definitions from various sources
+- Rendering these layouts into native Android views
+- Integrating custom views with Voyager
+- Managing UI state and logic with ViewModels
+- Utilizing dependency injection with Koin
+- Handling runtime permissions and file access
+- Implementing edge-to-edge display
+- Using RxJava for asynchronous operations
 
 ## 2. Module Structure
 
 The `app` module is structured as follows:
 
+### Core Components
+
 *   **`com.example.MyApplication`**:
-    *   Contains the main `Application` class.
-    *   Responsible for initializing Koin for dependency injection.
+    *   Main `Application` class that initializes core components
+    *   Sets up logging system with `AndroidLogger`
+    *   Initializes Koin for dependency injection
+    *   Registers custom attributes for XML parsing
 
 *   **`com.example.di`**:
-    *   Houses Koin modules, such as `originalAppModule`.
-    *   These modules define how dependencies (like ViewModels, services, etc.) are provided and injected throughout the application.
+    *   Contains Koin modules for dependency injection
+    *   `AppModule`: Defines ViewModel and other dependencies
+    *   Uses Koin's DSL for clean dependency configuration
+
+*   **`com.example.logging`**:
+    *   `AndroidLogger`: Custom implementation of Voyager's logging interface
+    *   Provides Android-specific logging using `android.util.Log`
+
+### UI Components
 
 *   **`com.example.ui.activities`**:
-    *   Contains Android `Activity` classes.
-    *   `MainActivity`: Serves as the main entry point of the application and provides an example screen demonstrating Voyager's capabilities.
+    *   `MainActivity`: Main entry point demonstrating Voyager's capabilities
+    *   Implements file selection and XML rendering
+    *   Handles runtime permissions
+    *   Uses edge-to-edge display
+    *   Manages RxJava subscriptions
 
 *   **`com.example.ui.components`**:
-    *   Includes custom view implementations.
-    *   `CustomButton.kt`: An example of a custom view component that is registered with Voyager using the `@ViewRegister` annotation, allowing it to be used in dynamically inflated XML layouts.
+    *   `CustomButton`: Example custom view implementation
+    *   Demonstrates `@ViewRegister` and `@Attribute` usage
+    *   Shows how to create custom XML attributes
+    *   Extends `AppCompatButton` for Material Design support
 
 *   **`com.example.ui.viewModels`**:
-    *   Contains `ViewModel` classes.
-    *   `MainViewModel.kt`: Handles the UI logic, state management, and business operations for `MainActivity`. It interacts with Voyager to load and display layouts.
+    *   `MainViewModel`: Manages UI state and business logic
+    *   Uses LiveData for reactive UI updates
+    *   Handles file selection state
+    *   Manages button text and enabled states
+
+### Resources
 
 *   **`res/layout`**:
-    *   `activity_main.xml`: The main layout for `MainActivity`, primarily using traditional Android view binding for its static components.
-    *   Other XML layout files (e.g., `*.xml` loaded at runtime) are dynamically processed and inflated by Voyager, not directly referenced in compiled code in the same way `activity_main.xml` is.
+    *   `activity_main.xml`: Main layout using ViewBinding
+    *   Supports dynamic XML loading and rendering
+    *   Implements Material Design components
 
 *   **`res/values`**:
-    *   Contains standard Android resources like strings (`strings.xml`), colors (`colors.xml`), and themes (`themes.xml`).
+    *   Standard Android resources
+    *   Custom theme implementation
+    *   String and color resources
 
-## 3. How to Build and Run
+## 3. Key Features
 
-To build and run this sample application:
+### Dynamic XML Loading
+- Uses Storage Access Framework (SAF) for file selection
+- Supports loading XML from various sources
+- Handles runtime permissions for file access
 
-1.  **Prerequisites:**
-    *   Ensure you have Android Studio installed.
-    *   Make sure the Android SDK is set up correctly.
+### Custom View Integration
+- Demonstrates custom view creation with `@ViewRegister`
+- Shows custom attribute implementation with `@Attribute`
+- Provides example of extending Android components
 
-2.  **Building and Running:**
-    *   Open the root project (which includes the Voyager library and this `app` module) in Android Studio.
-    *   Select the `app` run configuration from the dropdown menu in the toolbar.
-    *   Click the 'Run' button (or press `Shift + F10`). Android Studio will build and deploy the application to the selected emulator or connected device.
+### Modern Android Architecture
+- Uses ViewModel for state management
+- Implements LiveData for reactive UI updates
+- Follows MVVM architecture pattern
+- Uses Koin for dependency injection
 
-## 4. Key Features Demonstrated
+### UI/UX Features
+- Implements edge-to-edge display
+- Uses Material Design components
+- Supports dynamic theme changes
+- Provides responsive layout
 
-This sample application highlights the following key features of the Voyager library and modern Android development practices:
+### Asynchronous Operations
+- Uses RxJava for background processing
+- Handles XML rendering asynchronously
+- Manages subscriptions properly
 
-*   **Dynamic XML Loading and Rendering:** The core functionality of Voyager is showcased by loading XML layout strings (or files) at runtime and rendering them into interactive views.
-*   **Custom View Integration:** Demonstrates how to create and use custom views (e.g., `CustomButton.kt`) within Voyager-inflated layouts using `@ViewRegister` for the view class and `@Attribute` for its custom XML attributes.
-*   **ViewModel Usage:** `MainViewModel` is used to manage UI-related data, handle user interactions, and orchestrate calls to the Voyager library, separating logic from the `MainActivity`.
-*   **Dependency Injection with Koin:** Koin is used to manage dependencies, making the codebase more modular, testable, and maintainable (e.g., injecting `MainViewModel` into `MainActivity`).
-*   **Storage Access Framework (SAF):** The app demonstrates using SAF for:
-    *   Opening user-selected XML layout files from device storage.
-    *   Saving generated JSON representations of layouts to device storage.
+## 4. How to Build and Run
+
+### Prerequisites
+- Android Studio Arctic Fox or newer
+- Android SDK 21 or higher
+- Kotlin 1.5.0 or higher
+
+### Building and Running
+1. Open the project in Android Studio
+2. Sync Gradle files
+3. Select the `app` run configuration
+4. Click 'Run' or press `Shift + F10`
+
+### Testing the App
+1. Launch the app
+2. Grant storage permissions if prompted
+3. Click "Choose File" to select an XML file
+4. Click "Render XML" to see the dynamic layout
 
 ## 5. Dependencies
 
-The `app` module relies on several key dependencies:
+### Core Dependencies
+- **Voyager Library**:
+  - `:xml-runtime`: Core runtime library
+  - `:voyager-processor`: KSP annotation processor
 
-*   **Voyager Library (Local Module):**
-    *   `implementation(project(":xml-runtime"))`: The core Voyager runtime library.
-    *   `ksp(project(":voyager-processor"))`: The KSP annotation processor for Voyager, used to generate code for custom views and attributes.
-*   **Koin:**
-    *   Used for dependency injection to manage and provide objects like ViewModels.
-*   **AndroidX Libraries:**
-    *   Standard libraries such as `AppCompat`, `ConstraintLayout`, `RecyclerView`, `Lifecycle (ViewModel, LiveData)`, etc.
-*   **Material Components for Android:**
-    *   For modern UI elements and themes.
+### AndroidX Libraries
+- AppCompat
+- ConstraintLayout
+- Lifecycle (ViewModel, LiveData)
+- Core KTX
 
-This README provides an overview of the `app` module's purpose, structure, and how to get it running. For more details on the Voyager library itself, please refer to the main project README.md.
+### Other Dependencies
+- Koin for dependency injection
+- RxJava for asynchronous operations
+- Material Components for Android
+
+## 6. Contributing
+
+Feel free to contribute to this sample app by:
+1. Forking the repository
+2. Creating a feature branch
+3. Submitting a pull request
+
+## 7. License
+
+This sample app is provided under the same license as the Voyager library.

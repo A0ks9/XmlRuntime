@@ -4,65 +4,141 @@ import android.content.Context
 import android.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
-import com.voyager.core.model.ConfigManager // Assuming ConfigManager is now in core.model
+import com.voyager.core.model.ConfigManager
+import com.voyager.core.utils.logging.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Utility object for parsing color strings and resources.
+ * Provides efficient and thread-safe color parsing operations.
+ *
+ * Key Features:
+ * - Hex color parsing
+ * - Resource color parsing
+ * - Thread-safe operations
+ * - Performance optimized
+ * - Comprehensive error handling
+ *
+ * Performance Optimizations:
+ * - ConcurrentHashMap for caching
+ * - Efficient string operations
+ * - Minimal object creation
+ * - Safe resource handling
+ *
+ * Best Practices:
+ * 1. Use isColor() to check before parsing
+ * 2. Handle null values appropriately
+ * 3. Consider resource availability
+ * 4. Use thread-safe operations
+ * 5. Consider performance impact
+ *
+ * Example Usage:
+ * ```kotlin
+ * // Check if string is color
+ * val isColor = "#FF0000".isColor()
+ *
+ * // Parse color value
+ * val color = ColorParser.getColor("#FF0000", context)
+ * ```
  */
 object ColorParser {
-
+    private val logger = LoggerFactory.getLogger(ColorParser::class.java.simpleName)
     private val config = ConfigManager.config
+
+    // Thread-safe cache for color resources
+    private val colorResourceCache = ConcurrentHashMap<String, Int>()
 
     /**
      * Checks if this string likely represents a color value.
-     * It currently checks if the string starts with "#" (for hex colors) or "@color/" (for color resources).
+     * Thread-safe operation.
+     *
+     * Performance Considerations:
+     * - Efficient string operations
+     * - Minimal object creation
+     * - Safe null handling
      *
      * @receiver The string to check.
      * @return `true` if the string format suggests a color value, `false` otherwise.
      */
-    fun String.isColor(): Boolean = this.startsWith("#") || this.startsWith("@color/")
+    fun String.isColor(): Boolean = try {
+        this.startsWith("#") || this.startsWith("@color/")
+    } catch (e: Exception) {
+        logger.error("isColor", "Failed to check color value: ${e.message}")
+        false
+    }
 
     /**
      * Gets a color from a string or resource.
+     * Thread-safe operation with error handling.
      *
-     * This function handles hex color strings (e.g., "#RRGGBB", "#AARRGGBB", "#RGB", "#ARGB")
-     * and Android color resource names (e.g., "@color/my_color").
+     * Performance Considerations:
+     * - Uses ConcurrentHashMap for caching
+     * - Efficient string operations
+     * - Minimal object creation
+     * - Safe resource handling
      *
-     * For hex colors:
-     * - "#RRGGBB" or "#RGB" are parsed directly.
-     * - "#AARRGGBB" or "#ARGB" are parsed directly.
-     * - Short hex formats like "#RGB" (length 4 including '#') are expanded to "#RRGGBB".
-     * - Short hex formats like "#ARGB" (length 5 including '#') are expanded to "#AARRGGBB".
-     *
-     * For resource names:
-     * - Strings starting with "@color/" are treated as resource names.
-     * - The "@color/" prefix is removed, and the remaining string is used to look up
-     *   the resource ID using the ConfigManager's provider.
-     * - The color is then retrieved using ContextCompat.getColor.
-     *
-     * If the input string is null, or if a resource lookup fails, the `defaultColor` is returned.
-     *
-     * @param colorValue The color string or resource name (e.g., "#RRGGBB", "@color/my_color")
+     * @param colorValue The color string or resource name
      * @param context The application context
-     * @param defaultColor The default color to return if parsing fails. Defaults to Color.BLACK.
-     * @return The parsed color value as an integer.
+     * @param defaultColor The default color to return if parsing fails
+     * @return The parsed color value as an integer
      */
-    fun getColor(colorValue: String?, context: Context, defaultColor: Int = Color.BLACK): Int =
+    fun getColor(colorValue: String?, context: Context, defaultColor: Int = Color.BLACK): Int = try {
         colorValue?.removePrefix("@color/")?.let { c ->
             if (c.startsWith("#")) {
-                // Handle hex colors
-                when (c.length) {
-                    // Expand short hex colors if necessary
-                    4 -> "#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}".toColorInt() // #RGB -> #RRGGBB
-                    5 -> "#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}${c[4]}${c[4]}".toColorInt() // #ARGB -> #AARRGGBB
-                    // Assume full hex (6 or 8 chars) for other lengths
-                    else -> c.toColorInt()
-                }
+                parseHexColor(c)
             } else {
-                // Handle color resources
-                // Assuming ConfigManager.config.provider is available and has getResId
-                config.provider.getResId("color", c).takeIf { it != 0 }
-                    ?.let { ContextCompat.getColor(context, it) } ?: defaultColor
+                parseResourceColor(c, context, defaultColor)
             }
-        } ?: defaultColor // Return default color if input string is null
+        } ?: defaultColor
+    } catch (e: Exception) {
+        logger.error("getColor", "Failed to parse color: ${e.message}")
+        defaultColor
+    }
+
+    /**
+     * Parses a hex color string.
+     * Thread-safe operation with error handling.
+     *
+     * @param hexColor The hex color string
+     * @return The parsed color value
+     */
+    private fun parseHexColor(hexColor: String): Int = try {
+        when (hexColor.length) {
+            4 -> "#${hexColor[1]}${hexColor[1]}${hexColor[2]}${hexColor[2]}${hexColor[3]}${hexColor[3]}".toColorInt()
+            5 -> "#${hexColor[1]}${hexColor[1]}${hexColor[2]}${hexColor[2]}${hexColor[3]}${hexColor[3]}${hexColor[4]}${hexColor[4]}".toColorInt()
+            else -> hexColor.toColorInt()
+        }
+    } catch (e: Exception) {
+        logger.error("parseHexColor", "Failed to parse hex color: ${e.message}")
+        Color.BLACK
+    }
+
+    /**
+     * Parses a color resource.
+     * Thread-safe operation with caching.
+     *
+     * @param resourceName The color resource name
+     * @param context The application context
+     * @param defaultColor The default color to return if parsing fails
+     * @return The parsed color value
+     */
+    private fun parseResourceColor(resourceName: String, context: Context, defaultColor: Int): Int = try {
+        colorResourceCache.getOrPut(resourceName) {
+            config.provider.getResId("color", resourceName).takeIf { it != 0 }
+                ?.let { ContextCompat.getColor(context, it) } ?: defaultColor
+        }
+    } catch (e: Exception) {
+        logger.error("parseResourceColor", "Failed to parse resource color: ${e.message}")
+        defaultColor
+    }
+
+    /**
+     * Clears the color resource cache.
+     * Useful for testing or when resource configuration changes.
+     * Thread-safe operation.
+     */
+    fun clearCache() {
+        colorResourceCache.clear()
+        logger.debug("clearCache", "Color resource cache cleared")
+    }
 }

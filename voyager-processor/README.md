@@ -330,4 +330,74 @@ internal class MyCustomCardViewAttributeParser : ViewAttributeParser() {
 *   **Error Reporting:** KSP provides errors and warnings at compile time. Check your build output for messages from `voyager-processor` if you encounter issues with annotation usage (e.g., incorrect targets, unresolvable types, non-mutable properties). The processor attempts to link errors to the specific source code elements.
 
 By using `@ViewRegister` and `@Attribute`, you significantly reduce the manual boilerplate needed to make your custom views fully compatible with the Voyager framework's dynamic UI capabilities.
+
+## Performance Optimization
+
+### 1. Code Generation
+- Efficient symbol processing
+- Optimized attribute mapping
+- Minimal object creation
+- Thread-safe operations
+- Incremental processing support
+
+### 2. Runtime Performance
+- No reflection overhead
+- Direct method calls
+- Efficient type casting
+- Memory-optimized attribute handling
+- Fast view creation
+
+### 3. Memory Management
+- Efficient resource handling
+- Proper cleanup
+- Minimal object allocation
+- Thread-safe operations
+- Cache optimization
+
+## Error Handling
+
+### 1. Compile-time Errors
+```kotlin
+// Invalid usage examples
+@ViewRegister
+class InvalidView {
+    @Attribute(xmlName = "text") // Error: Not a View subclass
+    var text: String? = null
+}
+
+@ViewRegister
+class AnotherView : View {
+    @Attribute(xmlName = "text")
+    val text: String? = null // Error: Must be var
+}
+```
+
+### 2. Runtime Error Handling
+```kotlin
+@ViewRegister(name = "SafeView")
+class SafeView : View {
+    @Attribute(xmlName = "color")
+    fun setColor(color: Int) {
+        try {
+            setBackgroundColor(color)
+        } catch (e: Exception) {
+            // Handle error
+        }
+    }
+}
+```
+
+### 3. Type Conversion Errors
+```kotlin
+@ViewRegister(name = "TypeSafeView")
+class TypeSafeView : View {
+    @Attribute(xmlName = "number")
+    fun setNumber(value: Int) {
+        try {
+            // Handle number
+        } catch (e: NumberFormatException) {
+            // Handle invalid number
+        }
+    }
+}
 ```

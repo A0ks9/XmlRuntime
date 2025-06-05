@@ -2,15 +2,14 @@ package com.example.ui.activities
 
 import android.Manifest
 import android.content.Context
-import android.content.Intent
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
-import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,49 +20,60 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.R
 import com.example.databinding.ActivityMainBinding
 import com.example.ui.viewModels.MainViewModel
-import com.voyager.resources.ResourcesBridge
-import com.voyager.utils.DynamicLayoutInflation
-import com.voyager.utils.DynamicLayoutInflation.inflate
-import com.voyager.core.view.ViewHandler
-import com.voyager.core.view.ViewHandler.Companion.initialize
-import com.voyager.core.view.ViewHandler.Companion.saveDataWithRoom
+import com.voyager.core.Voyager
+import com.voyager.core.view.utils.ViewExtensions.findViewByIdString
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
+import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.core.parameter.parametersOf
 
-class MainActivity : AppCompatActivity(), ViewHandler {
+/**
+ * Main activity of the application that demonstrates the Voyager XML runtime capabilities.
+ * This activity allows users to:
+ * 1. Select XML files from device storage
+ * 2. Render the selected XML layouts dynamically
+ * 3. View theme resources and attributes
+ */
+class MainActivity : AppCompatActivity() {
 
+    // View binding for the activity layout
     private lateinit var binding: ActivityMainBinding
-    private val mainViewModel: MainViewModel by viewModel() // Inject ViewModel using Koin
+    // ViewModel for managing UI state and business logic
+    private val mainViewModel: MainViewModel by viewModel()
+    // Voyager instance for XML rendering
+    private val voyager: Voyager by inject { parametersOf(this) }
+    // Composite disposable for managing RxJava subscriptions
+    private val disposables = CompositeDisposable()
+    // Activity result launchers for file selection and permissions
     private lateinit var openDocumentLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
-    private lateinit var createDocumentLauncher: ActivityResultLauncher<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Enable edge-to-edge display
         enableEdgeToEdge()
+        // Set the app theme
         setTheme(R.style.Theme_Voyager)
+        // Initialize view binding
         binding = ActivityMainBinding.inflate(layoutInflater)
-        initialize(
-            binding,
-            this,
-            this,
-            R.style.Theme_Voyager,
-            savedInstanceState,
-            provider = ResourcesBridge()
-        ) {}
 
         setContentView(binding.root)
 
+        // Log theme resources for debugging
         logViewThemeResources(binding.XmlParserButton)
 
+        // Set up data binding
         binding.viewModel = mainViewModel
         binding.lifecycleOwner = this
 
+        // Initialize activity result launchers and UI
         setupActivityResultLaunchers()
-        setupObservers()
         setupUI()
 
-        // Request necessary permissions
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) { // For Android 10 and below
+        // Request storage permissions for Android 10 and below
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             requestPermissionLauncher.launch(
                 arrayOf(
                     Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -73,6 +83,9 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         }
     }
 
+    /**
+     * Helper function to get color from theme attributes
+     */
     @ColorInt
     fun Context.getColorFromAttr(attr: Int): Int {
         val typedValue = TypedValue()
@@ -80,7 +93,10 @@ class MainActivity : AppCompatActivity(), ViewHandler {
         return typedValue.data
     }
 
-    // Function to get and log the theme resources of a view
+    /**
+     * Logs theme resources and attributes for a given view
+     * Used for debugging theme-related issues
+     */
     fun logViewThemeResources(view: View) {
         val context = view.context
 
@@ -133,21 +149,37 @@ class MainActivity : AppCompatActivity(), ViewHandler {
                 // Check the type of the attribute and handle accordingly
                 when (typedValue.type) {
                     TypedValue.TYPE_STRING -> styleAttributes.append("Attribute(${attr}): ${typedValue.string}, ")
-                    TypedValue.TYPE_DIMENSION -> styleAttributes.append("Attribute(${attr}): ${typedValue.getDimension(context.resources.displayMetrics)}, ")
+                    TypedValue.TYPE_DIMENSION -> styleAttributes.append(
+                        "Attribute(${attr}): ${
+                            typedValue.getDimension(
+                                context.resources.displayMetrics
+                            )
+                        }, "
+                    )
+
                     TypedValue.TYPE_FLOAT -> styleAttributes.append("Attribute(${attr}): ${typedValue.float}, ")
-                    TypedValue.TYPE_INT_COLOR_ARGB8, TypedValue.TYPE_INT_COLOR_RGB8, TypedValue.TYPE_INT_COLOR_ARGB4, TypedValue.TYPE_INT_COLOR_RGB4 ->
-                        styleAttributes.append("Attribute(${attr}): ${typedValue.data}, ")
+                    TypedValue.TYPE_INT_COLOR_ARGB8, TypedValue.TYPE_INT_COLOR_RGB8, TypedValue.TYPE_INT_COLOR_ARGB4, TypedValue.TYPE_INT_COLOR_RGB4 -> styleAttributes.append(
+                        "Attribute(${attr}): ${typedValue.data}, "
+                    )
+
                     else -> styleAttributes.append("Attribute(${attr}): Unknown type, ")
                 }
             }
         }
 
         // Log all the attributes and the view information
-        Log.d("Theme", "View: ${view::class.java.simpleName}, Text Color: $textColor, Primary Color: $primaryColor, Background Color: $backgroundColor, Theme Resource ID: $themeResourceId, Style Attributes: $styleAttributes")
+        Log.d(
+            "Theme",
+            "View: ${view::class.java.simpleName}, Text Color: $textColor, Primary Color: $primaryColor, Background Color: $backgroundColor, Theme Resource ID: $themeResourceId, Style Attributes: $styleAttributes"
+        )
         println("View: ${view::class.java.simpleName}, Text Color: $textColor, Primary Color: $primaryColor, Background Color: $backgroundColor, Theme Resource ID: $themeResourceId, Style Attributes: $styleAttributes")
     }
 
+    /**
+     * Sets up activity result launchers for file selection and permissions
+     */
     private fun setupActivityResultLaunchers() {
+        // Launcher for opening XML files
         openDocumentLauncher =
             registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
                 uri?.let {
@@ -155,82 +187,64 @@ class MainActivity : AppCompatActivity(), ViewHandler {
                 }
             }
 
+        // Launcher for requesting storage permissions
         requestPermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
                 val readGranted = permissions[Manifest.permission.READ_EXTERNAL_STORAGE] == true
                 val writeGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] == true
                 binding.XmlParserButton.isActivated = readGranted && writeGranted
             }
-
-        createDocumentLauncher =
-            registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-                uri?.let {  // Persist URI permissions
-                    contentResolver.takePersistableUriPermission(
-                        it,
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                    mainViewModel.writeToFile(it, contentResolver)
-                }
-            }
-
     }
 
-    private fun setupObservers() {
-        mainViewModel.fileNameToCreate.observe(this) { fileName ->
-            fileName?.let { createDocumentLauncher.launch(it) } // Launch file creation when filename is ready
-        }
-
-        mainViewModel.isFileCreated.observe(this) { isCreated ->
-            if (isCreated) Log.d("MainActivity", "File created successfully!")
-        }
-    }
-
+    /**
+     * Sets up the UI components and their interactions
+     */
     private fun setupUI() {
+        // Handle system window insets for edge-to-edge display
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
+        // Set up XML parser button click listener
         binding.XmlParserButton.setOnClickListener {
-            when {
-                mainViewModel.isFileSelected.value == false -> openDocumentLauncher.launch(
-                    arrayOf(
-                        "application/xml", "text/xml"
-                    )
-                )
+            if (mainViewModel.isFileSelected.value != true) {
+                // Open file picker if no file is selected
+                openDocumentLauncher.launch(arrayOf("application/xml", "text/xml"))
+            } else {
+                // Render the selected XML file
+                val renderFile = mainViewModel.selectedFile.value
+                    ?: throw IllegalStateException("Selected file URI is null")
 
-                mainViewModel.isFileCreated.value == false -> mainViewModel.convertXmlToJson(this@MainActivity)
+                renderFile.let { uri ->
+                    // Use RxJava to handle XML rendering asynchronously
+                    val disposableRender = voyager.renderRx(uri).subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread()).subscribe({ renderedView ->
+                            binding.parentLayout.addView(renderedView)
+                            setupCustomUI()
+                        }, { error ->
+                            Log.e(
+                                "MainActivity",
+                                "Error rendering XML, Details: ${error.message}",
+                                error
+                            )
+                        })
+                    disposables.add(disposableRender)
+                }
             }
         }
+    }
 
-        binding.showXml.setOnClickListener {
-            inflateAndShowJsonView()
+    override fun onDestroy() {
+        super.onDestroy()
+        // Clean up RxJava subscriptions
+        disposables.clear()
+    }
+
+    private fun setupCustomUI() {
+        binding.parentLayout.findViewByIdString("showXml")?.setOnClickListener {
+            Toast.makeText(this@MainActivity, "HELL YEAH !", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    private fun inflateAndShowJsonView() {
-        val createdFileUri = mainViewModel.createdFileUri.value ?: return
-        inflate(this, R.style.Theme_Voyager, createdFileUri, binding.parentLayout) { view ->
-            DynamicLayoutInflation.setDelegate(view, applicationContext)
-            view?.post { Log.d("MainActivity", "Inflated view: $view") }
-        }
-    }
-
-    override fun onStop() {
-        saveViewData()
-        super.onStop()
-    }
-
-    private fun saveViewData() {
-        saveDataWithRoom(this)
-    }
-
-    override fun getContainerLayout(): ViewGroup = binding.parentLayout
-
-    override fun getJsonConfiguration(): String? = null
-
-    override fun onViewCreated(parentView: ViewGroup?) {
-        // Optional callback after view inflation
     }
 }

@@ -47,6 +47,19 @@
  * }
  * ```
  *
+ * **Performance Considerations:**
+ * - Use meaningful, short names for better readability
+ * - Consider view hierarchy impact on performance
+ * - Implement efficient attribute handling
+ * - Use appropriate view types for the use case
+ *
+ * **Best Practices:**
+ * - Provide a descriptive name for better maintainability
+ * - Implement proper attribute validation
+ * - Handle state restoration properly
+ * - Consider memory usage in attribute setters
+ * - Implement efficient view recycling
+ *
  * @property name (Optional) The string identifier for this view type that will be used in Voyager's
  *               dynamic layout definitions (e.g., JSON or XML). This name is also used to
  *               register the view with Voyager's runtime `ViewProcessor`.

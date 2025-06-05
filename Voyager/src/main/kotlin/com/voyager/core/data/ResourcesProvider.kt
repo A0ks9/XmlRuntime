@@ -8,20 +8,32 @@ package com.voyager.core.data
  * handle resource lookup in various ways (e.g., from local resources, remote resources, or
  * dynamic resource generation).
  *
- * Key features:
+ * Key Features:
  * - Type-safe resource resolution
  * - Flexible resource lookup implementation
  * - Support for dynamic resource management
  * - Integration with Android's resource system
+ * - Thread-safe operations
  *
- * Example usage:
+ * Example Usage:
  * ```kotlin
- * class LocalResourcesProvider : ResourcesProvider {
+ * class LocalResourcesProvider(
+ *     private val context: Context
+ * ) : ResourcesProvider {
  *     override fun getResId(type: String, name: String): Int {
  *         return context.resources.getIdentifier(name, type, context.packageName)
  *     }
  * }
  * ```
+ *
+ * Resource Types:
+ * - "layout" - Layout resources (e.g., "activity_main")
+ * - "drawable" - Drawable resources (e.g., "ic_launcher")
+ * - "string" - String resources (e.g., "app_name")
+ * - "color" - Color resources (e.g., "primary_color")
+ * - "dimen" - Dimension resources (e.g., "margin_normal")
+ * - "style" - Style resources (e.g., "AppTheme")
+ * - "attr" - Attribute resources (e.g., "android:attr/colorPrimary")
  *
  * @author Abdelrahman Omar
  * @since 1.0.0
@@ -46,6 +58,7 @@ interface ResourcesProvider {
      * @param type The type of the resource (e.g., "layout", "drawable")
      * @param name The name of the resource without the type prefix
      * @return The resource ID if found, or 0 if the resource is not found
+     * @throws IllegalArgumentException if type or name is empty
      */
     fun getResId(type: String, name: String): Int
 }

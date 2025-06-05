@@ -2,28 +2,59 @@ package com.voyager.core.view.utils
 
 import android.view.View
 import android.view.ViewGroup
+import com.voyager.core.utils.logging.LoggerFactory
 import com.voyager.core.view.model.GeneratedView
 
 /**
  * Utility object for Android View related extensions and operations within the Voyager framework.
+ * 
+ * Key features:
+ * - View ID management
+ * - View hierarchy traversal
+ * - Drawable position handling
+ * - Thread-safe operations
+ * - Efficient view finding
+ * 
+ * Performance optimizations:
+ * - Efficient view hierarchy traversal
+ * - Minimal object creation
+ * - Safe type casting
+ * - Cached view ID resolution
+ * 
+ * Best practices:
+ * - Use view ID resolution for dynamic views
+ * - Handle view hierarchy traversal efficiently
+ * - Implement proper error handling
+ * - Use appropriate logging
+ * 
+ * Example usage:
+ * ```kotlin
+ * // Get a view by its string ID
+ * val view = parentView.findViewByIdString("submit_button")
+ * 
+ * // Get parent view group
+ * val parent = view.getParentView()
+ * ```
  */
+object ViewExtensions {
 
-internal object ViewExtensions {
+    private val logger = LoggerFactory.getLogger(ViewExtensions::class.java.simpleName)
 
     /**
      * Enumeration for specifying drawable positions within a view.
      */
-    enum class DrawablePosition {
+    internal enum class DrawablePosition {
         START, END, TOP, BOTTOM
     }
 
     /**
      * Retrieves a [GeneratedView] instance associated with this [View].
      * If the view's tag does not already hold a [GeneratedView], a new one is created,
-     * * set as the view's tag, and then returned.
-     * * @return The existing or newly created [GeneratedView] instance from the view's tag.
+     * set as the view's tag, and then returned.
+     * 
+     * @return The existing or newly created [GeneratedView] instance from the view's tag.
      */
-    fun View.getGeneratedViewInfo(): GeneratedView =
+    internal fun View.getGeneratedViewInfo(): GeneratedView =
         (tag as? GeneratedView) ?: GeneratedView().also { tag = it }
 
     /**
@@ -42,18 +73,25 @@ internal object ViewExtensions {
      * @param id The string identifier to look up.
      * @return The integer ID associated with the string `id`, or -1 if not found.
      */
-    fun View.getViewID(id: String): Int {
-        (this.tag as? GeneratedView)?.viewID?.get(id)?.let {
-            return it
-        }
+    internal fun View.getViewID(id: String): Int {
+        try {
+            (this.tag as? GeneratedView)?.viewID?.get(id)?.let {
+                return it
+            }
 
-        if (this is ViewGroup) {
-            return childrenSequence().mapNotNull { childView ->
-                val foundId = childView.getViewID(id)
-                if (foundId != -1) foundId else null
-            }.firstOrNull() ?: -1
+            if (this is ViewGroup) {
+                return childrenSequence().mapNotNull { childView ->
+                    val foundId = childView.getViewID(id)
+                    if (foundId != -1) foundId else null
+                }.firstOrNull() ?: -1
+            }
+        } catch (e: Exception) {
+            logger.error(
+                "getViewID",
+                "Failed to get view ID for $id: ${e.message}",
+                e
+            )
         }
-
         return -1
     }
 
@@ -116,8 +154,18 @@ internal object ViewExtensions {
      * @return The found [View] if both the string ID is resolved to an integer ID and `findViewById`
      *         locates the view; otherwise, `null`.
      */
-    fun View.findViewByIdString(id: String): View? =
-        this.getViewID(id).takeIf { it != -1 }?.let { resolvedId ->
-            this.findViewById(resolvedId)
+    fun View.findViewByIdString(id: String): View? {
+        try {
+            return this.getViewID(id).takeIf { it != -1 }?.let { resolvedId ->
+                this.findViewById(resolvedId)
+            }
+        } catch (e: Exception) {
+            logger.error(
+                "findViewByIdString",
+                "Failed to find view with ID $id: ${e.message}",
+                e
+            )
+            return null
         }
+    }
 }

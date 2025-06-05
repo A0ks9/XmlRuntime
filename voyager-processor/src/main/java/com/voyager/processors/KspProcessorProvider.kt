@@ -46,8 +46,7 @@ class KspProcessorProvider : SymbolProcessorProvider {
      */
     override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
         return AttributeProcessor(
-            codeGenerator = environment.codeGenerator,
-            logger = environment.logger
+            environment.codeGenerator, environment.logger
         )
     }
 }

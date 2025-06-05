@@ -59,31 +59,43 @@ import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
+import com.voyager.core.data.utils.FileHelper.copyToInternal
+import com.voyager.core.data.utils.FileHelper.handleDownloads
+import com.voyager.core.data.utils.FileHelper.handleExternalStorage
+import com.voyager.core.data.utils.FileHelper.handleMedia
+import com.voyager.core.data.utils.FileHelper.parseXML
+import com.voyager.core.parser.ViewNodeParser
+import com.voyager.core.utils.logging.LogLevel
+import com.voyager.core.utils.logging.LoggerFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.logging.Level
-import java.util.logging.Logger
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** Name of the sub-folder within the app's internal files directory used for storing fallback copies of files. */
 private const val FALLBACK_FOLDER = "voyager_fallback_cache"
+
 /** URI scheme for content providers. */
 private const val SCHEME_CONTENT = "content"
+
 /** URI scheme for files. */
 private const val SCHEME_FILE = "file"
+
 /** Default file name to use when a name cannot be determined from a URI. */
 private const val UNKNOWN_FILE = "unknown_file"
+
 /** Identifier for primary external storage type in document URIs. */
 private const val PRIMARY_STORAGE = "primary"
+
 /** Prefix for raw file paths in some download document URIs. */
 private const val RAW_PREFIX = "raw:"
+
 /** Content URI string for public downloads directory. */
 private const val DOWNLOADS_PUBLIC_URI_STRING = "content://downloads/public_downloads"
 
@@ -109,9 +121,9 @@ private const val DOWNLOADS_PUBLIC_URI_STRING = "content://downloads/public_down
  * often falls back to copying files to internal app storage, which doesn't require these permissions
  * for the app's own directories.
  */
-object FileHelper {
+internal object FileHelper {
 
-    private val logger by lazy { Logger.getLogger(FileHelper::class.java.name) }
+    private val logger = LoggerFactory.getLogger(FileHelper::class.java.name)
 
     /**
      * Initializes the FileHelper by loading the native "xmlParser" library.
@@ -122,9 +134,12 @@ object FileHelper {
     init {
         try {
             System.loadLibrary("xmlParser")
-            logger.info("Native library 'xmlParser' loaded successfully.")
+            logger.info(message = "Native library 'xmlParser' loaded successfully.")
         } catch (e: UnsatisfiedLinkError) {
-            logger.log(Level.SEVERE, "Failed to load native library 'xmlParser'. XML parsing will not work.", e)
+            logger.log(
+                LogLevel.ERROR,
+                message = "Failed to load native library 'xmlParser'. XML parsing will not work., error: ${e.message}"
+            )
         }
     }
 
@@ -135,7 +150,7 @@ object FileHelper {
      * This function is implemented in the native library "xmlParser". It is designed for
      * performance-critical XML parsing tasks within the Voyager framework, specifically for
      * converting XML layouts into a JSON format that can then be processed by
-     * [com.voyager.data.models.ViewNodeParser].
+     * [ViewNodeParser].
      *
      * Performance Considerations:
      * - Uses native code for efficient parsing
@@ -177,25 +192,25 @@ object FileHelper {
     @JvmStatic
     fun getPath(context: Context, uri: Uri): String? {
         pathCache[uri]?.let {
-            logger.finer("Path cache hit for URI: $uri -> $it")
+            logger.debug(message = "Path cache hit for URI: $uri -> $it")
             return it
         }
-        logger.finer("Path cache miss for URI: $uri. Attempting resolution.")
+        logger.debug(message = "Path cache miss for URI: $uri. Attempting resolution.")
 
         val resolvedPath: String? = when {
             DocumentsContract.isDocumentUri(context, uri) -> handleDocumentUri(context, uri)
             SCHEME_CONTENT.equals(uri.scheme, ignoreCase = true) -> handleContentUri(context, uri)
             SCHEME_FILE.equals(uri.scheme, ignoreCase = true) -> uri.path
             else -> {
-                logger.warning("Unknown URI scheme or type: $uri. Attempting to copy to internal storage.")
+                logger.warn(message = "Unknown URI scheme or type: $uri. Attempting to copy to internal storage.")
                 copyToInternal(context, uri)
             }
         }
 
         resolvedPath?.also {
-            logger.info("Resolved URI: $uri to path: $it. Caching.")
+            logger.info(message = "Resolved URI: $uri to path: $it. Caching.")
             pathCache[uri] = it
-        } ?: logger.warning("Failed to resolve path for URI: $uri")
+        } ?: logger.warn(message = "Failed to resolve path for URI: $uri")
 
         return resolvedPath
     }
@@ -219,11 +234,12 @@ object FileHelper {
         isDownloads(uri) -> handleDownloads(context, uri)
         isMedia(uri) -> handleMedia(context, uri)
         isGoogleDrive(uri) -> {
-            logger.info("Google Drive URI detected ($uri), attempting to copy to internal storage.")
+            logger.info(message = "Google Drive URI detected ($uri), attempting to copy to internal storage.")
             copyToInternal(context, uri)
         }
+
         else -> {
-            logger.info("Unknown document URI provider ($uri), attempting to copy to internal storage.")
+            logger.info(message = "Unknown document URI provider ($uri), attempting to copy to internal storage.")
             copyToInternal(context, uri)
         }
     }
@@ -240,7 +256,7 @@ object FileHelper {
      */
     private fun handleExternalStorage(context: Context, uri: Uri): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            logger.info("Android Q+ detected for external storage URI ($uri), copying to internal.")
+            logger.info(message = "Android Q+ detected for external storage URI ($uri), copying to internal.")
             return copyToInternal(context, uri)
         }
 
@@ -250,7 +266,7 @@ object FileHelper {
         val relativePath = parts.getOrNull(1)
 
         if (relativePath == null) {
-            logger.warning("Could not parse relative path from external storage docId: $docId")
+            logger.warn(message = "Could not parse relative path from external storage docId: $docId")
             return copyToInternal(context, uri)
         }
 
@@ -258,15 +274,16 @@ object FileHelper {
             Environment.getExternalStorageDirectory().absolutePath
         } else {
             // This might not be reliable for all secondary storage.
-            System.getenv("EXTERNAL_STORAGE") ?: Environment.getExternalStorageDirectory().absolutePath
+            System.getenv("EXTERNAL_STORAGE")
+                ?: Environment.getExternalStorageDirectory().absolutePath
         }
         val fullPath = File(storagePath, relativePath).absolutePath
 
         return if (File(fullPath).exists()) {
-            logger.finer("Resolved external storage URI ($uri) to direct path: $fullPath")
+            logger.debug(message = "Resolved external storage URI ($uri) to direct path: $fullPath")
             fullPath
         } else {
-            logger.warning("Constructed path for external storage URI ($uri) does not exist: $fullPath. Copying to internal.")
+            logger.warn(message = "Constructed path for external storage URI ($uri) does not exist: $fullPath. Copying to internal.")
             copyToInternal(context, uri)
         }
     }
@@ -284,7 +301,7 @@ object FileHelper {
      */
     private fun handleDownloads(context: Context, uri: Uri): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            logger.info("Android Q+ detected for downloads URI ($uri), copying to internal.")
+            logger.info(message = "Android Q+ detected for downloads URI ($uri), copying to internal.")
             return copyToInternal(context, uri)
         }
 
@@ -292,10 +309,10 @@ object FileHelper {
         if (docId.startsWith(RAW_PREFIX)) {
             val rawPath = docId.removePrefix(RAW_PREFIX)
             return if (File(rawPath).exists()) {
-                logger.finer("Resolved downloads URI ($uri) to raw path: $rawPath")
+                logger.debug(message = "Resolved downloads URI ($uri) to raw path: $rawPath")
                 rawPath
             } else {
-                logger.warning("Raw path for downloads URI ($uri) does not exist: $rawPath. Copying to internal.")
+                logger.warn(message = "Raw path for downloads URI ($uri) does not exist: $rawPath. Copying to internal.")
                 copyToInternal(context, uri)
             }
         }
@@ -303,12 +320,12 @@ object FileHelper {
         // For non-raw paths, try to get from MediaStore (downloads are often there)
         val downloadId = docId.toLongOrNull()
         if (downloadId == null) {
-            logger.warning("Could not parse download ID: $docId for URI ($uri). Copying to internal.")
+            logger.warn(message = "Could not parse download ID: $docId for URI ($uri). Copying to internal.")
             return copyToInternal(context, uri)
         }
         val contentUri = ContentUris.withAppendedId(DOWNLOADS_PUBLIC_URI_STRING.toUri(), downloadId)
         return getDataColumn(context, contentUri, null, null) ?: run {
-            logger.warning("Failed to get data column for downloads URI ($uri). Copying to internal.")
+            logger.warn(message = "Failed to get data column for downloads URI ($uri). Copying to internal.")
             copyToInternal(context, uri)
         }
     }
@@ -326,7 +343,7 @@ object FileHelper {
      */
     private fun handleMedia(context: Context, uri: Uri): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            logger.info("Android Q+ detected for media URI ($uri), copying to internal.")
+            logger.info(message = "Android Q+ detected for media URI ($uri), copying to internal.")
             return copyToInternal(context, uri)
         }
 
@@ -336,7 +353,7 @@ object FileHelper {
         val mediaId = parts.getOrNull(1)
 
         if (mediaId == null) {
-            logger.warning("Could not parse media ID from media docId: $docId for URI ($uri). Copying to internal.")
+            logger.warn(message = "Could not parse media ID from media docId: $docId for URI ($uri). Copying to internal.")
             return copyToInternal(context, uri)
         }
 
@@ -345,14 +362,14 @@ object FileHelper {
             "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
             "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
             else -> {
-                logger.warning("Unknown media type '$mediaType' in URI ($uri).")
+                logger.warn(message = "Unknown media type '$mediaType' in URI ($uri).")
                 null
             }
         }
 
         return contentUri?.let { cUri ->
             getDataColumn(context, cUri, "_id=?", arrayOf(mediaId)) ?: run {
-                logger.warning("Failed to get data column for media URI ($uri), type '$mediaType'. Copying to internal.")
+                logger.warn(message = "Failed to get data column for media URI ($uri), type '$mediaType'. Copying to internal.")
                 copyToInternal(context, uri)
             }
         } ?: copyToInternal(context, uri)
@@ -377,18 +394,18 @@ object FileHelper {
             // However, direct file system access is often restricted.
             // Consider if copyToInternal is a more robust default for Google Photos.
             // For now, retaining original logic but with caution.
-            logger.info("Google Photos URI detected ($uri). Using lastPathSegment: ${uri.lastPathSegment}. Direct file access may be limited.")
+            logger.info(message = "Google Photos URI detected ($uri). Using lastPathSegment: ${uri.lastPathSegment}. Direct file access may be limited.")
             return uri.lastPathSegment // This might not always be a usable file path.
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            logger.info("Android Q+ detected for content URI ($uri), attempting to copy to internal.")
+            logger.info(message = "Android Q+ detected for content URI ($uri), attempting to copy to internal.")
             return copyToInternal(context, uri)
         }
 
         // For older versions, try to get the _data column
         return getDataColumn(context, uri, null, null) ?: run {
-            logger.warning("Failed to get data column for content URI ($uri) on pre-Q device. Attempting to copy to internal.")
+            logger.warn(message = "Failed to get data column for content URI ($uri) on pre-Q device. Attempting to copy to internal.")
             copyToInternal(context, uri)
         }
     }
@@ -416,14 +433,14 @@ object FileHelper {
             ?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val path = cursor.getString(0) // Column index for _data is 0
-                    logger.finer("Data column query for URI ($uri) returned path: $path")
+                    logger.debug(message = "Data column query for URI ($uri) returned path: $path")
                     path
                 } else {
-                    logger.warning("Data column query for URI ($uri) returned no results.")
+                    logger.warn(message = "Data column query for URI ($uri) returned no results.")
                     null
                 }
             } ?: run {
-            logger.warning("ContentResolver query for URI ($uri) returned null cursor.")
+            logger.warn(message = "ContentResolver query for URI ($uri) returned null cursor.")
             null
         }
 
@@ -444,17 +461,18 @@ object FileHelper {
      */
     private fun copyToInternal(context: Context, uri: Uri): String? {
         val displayName = try {
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-                ?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
-                    } else null
-                }
+            context.contentResolver.query(
+                uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+                } else null
+            }
         } catch (e: Exception) {
-            logger.log(Level.WARNING, "Failed to query display name for URI: $uri", e)
+            logger.log(LogLevel.WARN , message = "Failed to query display name for URI: $uri", throwable = e)
             null
         } ?: run {
-            logger.warning("Could not determine display name for URI: $uri. Using fallback name.")
+            logger.warn(message = "Could not determine display name for URI: $uri. Using fallback name.")
             "$UNKNOWN_FILE-${UUID.randomUUID()}" // Fallback display name
         }
 
@@ -475,7 +493,7 @@ object FileHelper {
                     FileOutputStream(destFile).use { output ->
                         input.channel.transferTo(0, input.channel.size(), output.channel)
                         copied = true
-                        logger.info("Successfully copied URI ($uri) to internal storage (channel transfer): ${destFile.absolutePath}")
+                        logger.info(message = "Successfully copied URI ($uri) to internal storage (channel transfer): ${destFile.absolutePath}")
                     }
                 }
             }
@@ -486,17 +504,21 @@ object FileHelper {
                     FileOutputStream(destFile).use { output ->
                         input.copyTo(output)
                         copied = true // Mark as copied via stream
-                        logger.info("Successfully copied URI ($uri) to internal storage (stream copy): ${destFile.absolutePath}")
+                        logger.info(message = "Successfully copied URI ($uri) to internal storage (stream copy): ${destFile.absolutePath}")
                     }
                 }
             }
             return if (copied) destFile.absolutePath else {
-                logger.severe("Failed to copy URI ($uri) to internal storage after all attempts.")
+                logger.error(message = "Failed to copy URI ($uri) to internal storage after all attempts.")
                 destFile.delete() // Clean up partially created file if copy failed
                 null
             }
         } catch (e: Exception) {
-            logger.log(Level.SEVERE, "Error copying URI ($uri) to internal storage: ${destFile.absolutePath}", e)
+            logger.log(
+                LogLevel.ERROR,
+                message = "Error copying URI ($uri) to internal storage: ${destFile.absolutePath}",
+                throwable = e
+            )
             destFile.delete() // Clean up
             return null
         }
@@ -505,13 +527,21 @@ object FileHelper {
     // --- URI Type Checkers ---
 
     /** Checks if the URI authority is for external storage documents. */
-    private fun isExternalStorage(uri: Uri): Boolean = "com.android.externalstorage.documents" == uri.authority
+    private fun isExternalStorage(uri: Uri): Boolean =
+        "com.android.externalstorage.documents" == uri.authority
+
     /** Checks if the URI authority is for downloads provider documents. */
-    private fun isDownloads(uri: Uri): Boolean = "com.android.providers.downloads.documents" == uri.authority
+    private fun isDownloads(uri: Uri): Boolean =
+        "com.android.providers.downloads.documents" == uri.authority
+
     /** Checks if the URI authority is for media provider documents. */
-    private fun isMedia(uri: Uri): Boolean = "com.android.providers.media.documents" == uri.authority
+    private fun isMedia(uri: Uri): Boolean =
+        "com.android.providers.media.documents" == uri.authority
+
     /** Checks if the URI authority is for Google Photos. */
-    private fun isGooglePhotos(uri: Uri): Boolean = "com.google.android.apps.photos.content" == uri.authority
+    private fun isGooglePhotos(uri: Uri): Boolean =
+        "com.google.android.apps.photos.content" == uri.authority
+
     /** Checks if the URI authority is for Google Drive. */
     private fun isGoogleDrive(uri: Uri): Boolean = uri.authority in listOf(
         "com.google.android.apps.docs.storage",
@@ -539,9 +569,10 @@ object FileHelper {
             val fileName = when (uri.scheme) {
                 ContentResolver.SCHEME_CONTENT -> queryFileName(contentResolver, uri)
                 ContentResolver.SCHEME_FILE -> uri.lastPathSegment ?: UNKNOWN_FILE // For file URIs
-                else -> uri.path?.substringAfterLast('/') ?: UNKNOWN_FILE // Basic fallback for other URIs
+                else -> uri.path?.substringAfterLast('/')
+                    ?: UNKNOWN_FILE // Basic fallback for other URIs
             }
-            logger.finer("Retrieved file name for URI ($uri): $fileName")
+            logger.debug(message = "Retrieved file name for URI ($uri): $fileName")
             withContext(Dispatchers.Main) { callback(fileName) }
         }
     }
@@ -570,16 +601,13 @@ object FileHelper {
      *         For a truly asynchronous version, consider using a callback as described in the KDoc
      *         for [getFileExtension] taking a callback parameter.
      */
-    fun getFileExtension(context: Context, uri: Uri): String? {
-        var extension: String? = null
-        CoroutineScope(Dispatchers.IO).launch {
-            extension = when (uri.scheme) {
-                ContentResolver.SCHEME_CONTENT -> getMimeTypeExtension(context, uri) ?: ""
-                ContentResolver.SCHEME_FILE -> uri.path?.substringAfterLast('.', "") ?: ""
-                else -> "" // No standard way to get extension for other schemes
-            }
-            logger.finer("Retrieved file extension for URI ($uri): $extension")
+    fun getFileExtension(context: Context, uri: Uri): String {
+        var extension = when (uri.scheme) {
+            ContentResolver.SCHEME_CONTENT -> getMimeTypeExtension(context, uri) ?: ""
+            ContentResolver.SCHEME_FILE -> uri.path?.substringAfterLast('.', "") ?: ""
+            else -> "" // No standard way to get extension for other schemes
         }
+        logger.debug(message = "Retrieved file extension for URI ($uri): $extension")
         return extension
     }
 

@@ -61,6 +61,18 @@
  * to handle necessary type conversions from string to the actual type required by the
  * property or function parameter (e.g., String to Int, String to ColorInt, String to Boolean).
  *
+ * **Performance Considerations:**
+ * - Use property setters for simple value assignments
+ * - Use functions for complex operations or when multiple properties need to be updated
+ * - Consider caching expensive operations in property setters
+ * - Use appropriate types to minimize conversion overhead
+ *
+ * **Error Handling:**
+ * - Property setters should handle null values appropriately
+ * - Functions should validate input parameters
+ * - Consider using nullable types for optional attributes
+ * - Implement proper error handling for type conversions
+ *
  * @property xmlName The name of the XML attribute as it would appear in a Voyager layout
  *                   definition (e.g., "customTitle", "app:layout_constraintTop_toTopOf", "android:text").
  *                   This name is used by the KSP processor to create a mapping.

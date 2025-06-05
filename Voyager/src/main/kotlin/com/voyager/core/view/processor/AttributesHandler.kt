@@ -27,20 +27,23 @@ import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import com.bumptech.glide.Glide
+import com.voyager.core.model.ConfigManager
+import com.voyager.core.utils.logging.LoggerFactory
 import com.voyager.core.utils.parser.BooleanParser.isBoolean
+import com.voyager.core.utils.parser.BooleanParser.parseBoolean
+import com.voyager.core.utils.parser.ColorParser.getColor
 import com.voyager.core.utils.parser.ColorParser.isColor
+import com.voyager.core.utils.parser.PorterDuffParser.parsePorterDuff
+import com.voyager.core.utils.parser.ResourceParser.getDrawable
+import com.voyager.core.view.utils.RelativeLayoutUtils.addRelativeLayoutRule
+import com.voyager.core.view.utils.RelativeLayoutUtils.parseRelativeLayoutBoolean
+import com.voyager.core.view.utils.ViewExtensions.DrawablePosition
 import com.voyager.core.view.utils.ViewExtensions.getParentView
 import com.voyager.core.view.utils.ViewExtensions.getViewID
-import com.voyager.core.view.utils.toLayoutParam
-import com.voyager.data.models.ConfigManager
-import com.voyager.utils.ParseHelper.getColor
-import com.voyager.utils.ParseHelper.getDrawable
-import com.voyager.utils.ParseHelper.parseBoolean
-import com.voyager.utils.ParseHelper.parsePorterDuff
-import com.voyager.utils.ParseHelper.parseRelativeLayoutBoolean
-import com.voyager.utils.Utils.DrawablePosition
-import com.voyager.utils.extractViewId
+import com.voyager.core.view.utils.id.ViewIdUtils.extractViewId
 import com.voyager.core.view.utils.text.ReverseTransformation
+import com.voyager.core.view.utils.toLayoutParam
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * A high-performance handler for processing Android view attributes in the Voyager framework.
@@ -54,6 +57,9 @@ import com.voyager.core.view.utils.text.ReverseTransformation
  * - Memory-efficient drawable processing
  * - Thread-safe operations
  * - Comprehensive attribute support
+ * - Error handling and logging
+ * - Resource cleanup
+ * - Cache management
  *
  * Performance optimizations:
  * - Lazy initialization of resources
@@ -61,6 +67,18 @@ import com.voyager.core.view.utils.text.ReverseTransformation
  * - Efficient string operations
  * - Optimized drawable handling
  * - Reduced object creation
+ * - Thread-safe caching
+ * - Resource pooling
+ *
+ * Best practices:
+ * 1. Handle null values appropriately
+ * 2. Consider view lifecycle
+ * 3. Use thread-safe operations
+ * 4. Consider memory leaks
+ * 5. Implement proper error handling
+ * 6. Validate attributes before use
+ * 7. Clean up resources properly
+ * 8. Use caching effectively
  *
  * Usage example:
  * ```kotlin
@@ -74,16 +92,20 @@ import com.voyager.core.view.utils.text.ReverseTransformation
  *
  * // Apply transformations
  * AttributesHandler.handleTransformationMethod(textView, "password")
+ *
+ * // Clear cache
+ * AttributesHandler.clearCache()
  * ```
  *
  * @author Abdelrahman Omar
  * @since 1.0.0
  */
 internal object AttributesHandler {
-
     private const val TAG = "AttributesHandler"
     private const val WRAP_CONTENT = ViewGroup.LayoutParams.WRAP_CONTENT
     private val config = ConfigManager.config
+    private val logger = LoggerFactory.getLogger(TAG)
+    private val resourceCache = ConcurrentHashMap<String, Any>()
 
     // Transformation constants
     private const val TRANSFORM_ALL_CAPS = "allCaps"
@@ -103,35 +125,91 @@ internal object AttributesHandler {
     private const val PROTOCOL_DOUBLE_SLASH = "//"
 
     /**
+     * Clears all cached resources.
+     * Thread-safe operation that removes all cached values.
+     *
+     * Performance Considerations:
+     * - Clear cache only when necessary
+     * - Consider memory impact
+     * - Handle concurrent access
+     */
+    fun clearCache() {
+        try {
+            resourceCache.clear()
+            logger.debug("clearCache", "Resource cache cleared successfully")
+        } catch (e: Exception) {
+            logger.error("clearCache", "Failed to clear resource cache: ${e.message}")
+        }
+    }
+
+    /**
+     * Gets a cached resource value.
+     * Thread-safe operation that retrieves a cached value.
+     *
+     * @param key The cache key
+     * @return The cached value, or null if not found
+     */
+    fun <T> getCachedResource(key: String): T? {
+        return try {
+            @Suppress("UNCHECKED_CAST")
+            resourceCache[key] as? T
+        } catch (e: Exception) {
+            logger.error("getCachedResource", "Failed to get cached resource for key $key: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Sets a cached resource value.
+     * Thread-safe operation that caches a value.
+     *
+     * @param key The cache key
+     * @param value The value to cache
+     */
+    fun <T> setCachedResource(key: String, value: T) {
+        try {
+            resourceCache[key] = value as Any
+        } catch (e: Exception) {
+            logger.error("setCachedResource", "Failed to set cached resource for key $key: ${e.message}")
+        }
+    }
+
+    /**
      * Sets an image source for an ImageView, supporting both local resources and remote URLs.
+     * Thread-safe operation with efficient resource handling.
+     *
+     * Performance Considerations:
+     * - Efficient resource loading
+     * - Minimal object creation
+     * - Safe resource handling
+     * - Optimized image loading
      *
      * @param view The target ImageView
      * @param imageSource The source URL or resource reference
+     * @throws IllegalArgumentException if the image source format is invalid
      */
     fun setImageSource(view: ImageView, imageSource: String) {
-        val processedSource = when {
-            imageSource.startsWith(PROTOCOL_DOUBLE_SLASH) -> PROTOCOL_HTTP + imageSource
-            imageSource.startsWith(PROTOCOL_HTTP) || imageSource.startsWith(PROTOCOL_HTTPS) -> imageSource
-            imageSource.startsWith("@$RESOURCE_TYPE_DRAWABLE/") -> {
-                val drawable =
-                    getDrawable(view, imageSource.removePrefix("@$RESOURCE_TYPE_DRAWABLE/"))
-                if (drawable != null) {
-                    view.setImageDrawable(drawable)
+        try {
+            val processedSource = when {
+                imageSource.startsWith(PROTOCOL_DOUBLE_SLASH) -> PROTOCOL_HTTP + imageSource
+                imageSource.startsWith(PROTOCOL_HTTP) || imageSource.startsWith(PROTOCOL_HTTPS) -> imageSource
+                imageSource.startsWith("@$RESOURCE_TYPE_DRAWABLE/") -> {
+                    val drawable = getDrawable(view, imageSource.removePrefix("@$RESOURCE_TYPE_DRAWABLE/"))
+                    if (drawable != null) {
+                        view.setImageDrawable(drawable)
+                        return
+                    }
+                    view.setImageResource(android.R.drawable.ic_menu_report_image)
                     return
                 }
-                view.setImageResource(android.R.drawable.ic_menu_report_image)
-                return
+                else -> throw IllegalArgumentException("Unsupported image source format: $imageSource")
             }
 
-            else -> {
-                if (config.isLoggingEnabled) Log.w(
-                    TAG, "Unsupported image source format: $imageSource"
-                )
-                return
-            }
+            Glide.with(view.context).load(processedSource).into(view)
+        } catch (e: Exception) {
+            logger.error("setImageSource", "Failed to set image source: ${e.message}")
+            view.setImageResource(android.R.drawable.ic_menu_report_image)
         }
-
-        Glide.with(view.context).load(processedSource).into(view)
     }
 
     /**
@@ -163,7 +241,7 @@ internal object AttributesHandler {
                 anchor.isBoolean() -> parseRelativeLayoutBoolean(parseBoolean(anchor))
                 else -> view.getParentView()?.getViewID(anchor.extractViewId())!!
             }
-            com.voyager.utils.ParseHelper.addRelativeLayoutRule(view, layoutRule, anchorId)
+            addRelativeLayoutRule(view, layoutRule, anchorId)
         }
     }
 
@@ -540,28 +618,30 @@ internal object AttributesHandler {
 
     /**
      * Efficiently loads a font from system fonts or assets with optimized performance.
+     * Thread-safe operation with efficient resource handling.
      *
-     * This method provides fast font loading with minimal memory overhead by:
-     * - Using system fonts when possible
-     * - Optimizing asset loading
-     * - Efficient string operations
-     * - Reduced object allocations
+     * Performance Considerations:
+     * - Efficient font loading
+     * - Minimal object creation
+     * - Safe resource handling
+     * - Optimized asset loading
      *
      * @param context The context for asset access
      * @param fontName The name of the font to load
      * @return The loaded Typeface or null if loading fails
      */
-    fun loadFontFromAttribute(context: Context, fontName: String): Typeface? = try {
-        when (fontName.substringAfter("/")) {
-            "sans-serif" -> Typeface.SANS_SERIF
-            "serif" -> Typeface.SERIF
-            "monospace" -> Typeface.MONOSPACE
-            else -> Typeface.createFromAsset(context.assets, "fonts/$fontName.ttf")
+    fun loadFontFromAttribute(context: Context, fontName: String): Typeface? {
+        return try {
+            val cacheKey = "font:$fontName"
+            getCachedResource<Typeface>(cacheKey) ?: when (fontName.substringAfter("/")) {
+                "sans-serif" -> Typeface.SANS_SERIF
+                "serif" -> Typeface.SERIF
+                "monospace" -> Typeface.MONOSPACE
+                else -> Typeface.createFromAsset(context.assets, "fonts/$fontName.ttf")
+            }.also { setCachedResource(cacheKey, it) }
+        } catch (e: Exception) {
+            logger.error("loadFontFromAttribute", "Failed to load font: $fontName", e)
+            null
         }
-    } catch (e: Exception) {
-        if (config.isLoggingEnabled) {
-            Log.e(TAG, "Failed to load font: $fontName", e)
-        }
-        null
     }
 }

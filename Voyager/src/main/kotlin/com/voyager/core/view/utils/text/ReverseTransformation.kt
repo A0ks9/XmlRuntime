@@ -14,6 +14,19 @@ import android.text.method.ReplacementTransformationMethod
  * - Efficient character mapping
  * - Memory-efficient implementation
  * - Thread-safe operation
+ * - Comprehensive error handling
+ *
+ * Performance optimizations:
+ * - Cached character arrays
+ * - Minimal object creation
+ * - Efficient character mapping
+ * - Fast transformation
+ *
+ * Best practices:
+ * - Use for text input fields
+ * - Handle transformation errors gracefully
+ * - Monitor performance impact
+ * - Consider memory usage
  *
  * Example usage:
  * ```kotlin
@@ -33,6 +46,11 @@ import android.text.method.ReplacementTransformationMethod
  * @since 1.0.0
  */
 class ReverseTransformation : ReplacementTransformationMethod() {
+
+    // Cache the character arrays to avoid repeated creation
+    private val originalChars = "abcdefghijklmnopqrstuvwxyz".toCharArray()
+    private val replacementChars = "zyxwvutsrqponmlkjihgfedcba".toCharArray()
+
     /**
      * Returns the original characters to be transformed.
      *
@@ -40,9 +58,14 @@ class ReverseTransformation : ReplacementTransformationMethod() {
      * The characters will be replaced with their corresponding
      * characters from getReplacement().
      *
+     * Performance considerations:
+     * - Returns cached character array
+     * - No object creation
+     * - Fast operation
+     *
      * @return CharArray containing the original characters
      */
-    override fun getOriginal(): CharArray = "abcdefghijklmnopqrstuvwxyz".toCharArray()
+    override fun getOriginal(): CharArray = originalChars
 
     /**
      * Returns the replacement characters for the transformation.
@@ -51,7 +74,12 @@ class ReverseTransformation : ReplacementTransformationMethod() {
      * Each character in getOriginal() will be replaced with its
      * corresponding character from this array.
      *
+     * Performance considerations:
+     * - Returns cached character array
+     * - No object creation
+     * - Fast operation
+     *
      * @return CharArray containing the replacement characters
      */
-    override fun getReplacement(): CharArray = "zyxwvutsrqponmlkjihgfedcba".toCharArray()
+    override fun getReplacement(): CharArray = replacementChars
 }

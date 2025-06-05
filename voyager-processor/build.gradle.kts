@@ -19,7 +19,7 @@ kotlin {
 dependencies {
     implementation(libs.symbol.processing.api)
     implementation(libs.symbol.processing)
-    implementation(libs.javapoet)
+    implementation(libs.kotlin.poet)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.junit.jupiter)

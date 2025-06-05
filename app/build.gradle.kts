@@ -18,7 +18,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         proguardFiles()
-
     }
 
     buildTypes {
@@ -45,6 +44,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "21"
+        freeCompilerArgs += listOf("-Xskip-prerelease-check")
     }
 }
 
@@ -65,6 +65,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlin.coroutines)
     implementation(libs.kotlin.coroutines.core)
+    implementation(libs.rx.java)
+    implementation(libs.rx.android)
     implementation(libs.kotlin.stdlib)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

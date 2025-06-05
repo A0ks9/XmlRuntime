@@ -1,20 +1,19 @@
 [versions]
 agp = "8.10.1"
-compileTesting = "0.19"
 junitJupiter = "5.12.1"
 kotlin = "2.1.20"
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-appcompat = "1.7.0"
+appcompat = "1.7.1"
 material = "1.12.0"
 activity = "1.10.1"
 constraintlayout = "2.2.1"
-rxjava = "3.1.10"
+rxjava = "3.1.11-RC4"
 coroutines-rx3 = "1.10.2"
 rxandroid = "3.0.2"
-kotlinCoroutines = "1.10.1"
+kotlinCoroutines = "1.10.2"
 gson = "2.12.1"
 ksp = "2.1.20-1.0.32"
 slidingPaneLayout = "1.2.0"
@@ -22,19 +21,14 @@ glide = "4.16.0"
 room = "2.7.1"
 koin = "4.1.0-Beta5"
 jetbrainsKotlinJvm = "2.1.10"
-mmkv = "2.2.2"
 kotlinx-serialization = "1.8.0"
 plugin-serliziation = "2.1.0"
 android-build = "8.9.3"
 kotlin-poet = "2.1.0"
-java-poet = "0.6.0"
 flexbox = "3.0.0"
-incap = "1.0.0"
-androidx-annotations = "1.9.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-compile-googletesting = { module = "com.google.testing.compile:compile-testing", version.ref = "compileTesting" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -55,9 +49,7 @@ sliding-pane-layout = { group = "androidx.slidingpanelayout", name = "slidingpan
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-room-compiler-processing = { module = "androidx.room:room-compiler-processing", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
-tencent-mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android" }
 koin-test = { module = "io.insert-koin:koin-test" }
@@ -65,10 +57,6 @@ kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-seria
 android-build-tools = { group = "com.android.tools.build", name = "gradle", version.ref = "android-build" }
 kotlin-poet = { group = "com.squareup", name = "kotlinpoet", version.ref = "kotlin-poet" }
 flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
-incap = { group = "net.ltgt.gradle.incap", name = "incap", version.ref = "incap" }
-incap-processor = { group = "net.ltgt.gradle.incap", name = "incap-processor", version.ref = "incap" }
-javapoet = { group = "com.palantir.javapoet", name = "javapoet", version.ref = "java-poet" }
-androidx-annotations = { group = "androidx.annotation", name = "annotation", version.ref = "androidx-annotations"}
 coroutines-rx3 = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-rx3", version.ref = "coroutines-rx3" }
 
 [plugins]

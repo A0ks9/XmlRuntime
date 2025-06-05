@@ -40,8 +40,6 @@ android {
                         "-std=c++17",    // Use C++17 standard
                         "-O3",           // High optimization for speed
                         "-fPIC",         // Generate position-independent code
-                        "-I${projectDir}/src/main/cpp/pugixml/src",   // Include pugixml headers
-                        "-I${projectDir}/src/main/cpp/rapidjson/include" // Include rapidjson headers
                     )
                 )
             }
