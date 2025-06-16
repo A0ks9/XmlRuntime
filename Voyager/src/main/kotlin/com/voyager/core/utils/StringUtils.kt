@@ -1,45 +1,44 @@
-package com.voyager.core.view.utils.id
+package com.voyager.core.utils
 
-import android.view.View
 import com.voyager.core.utils.logging.LoggerFactory
 
 /**
  * Utility functions for handling Android View IDs.
- * 
+ *
  * Key features:
  * - ID extraction from resource references
  * - Efficient ID parsing
  * - Thread-safe operations
  * - Comprehensive error handling
- * 
+ *
  * Performance optimizations:
  * - Compiled regex pattern
  * - Minimal object creation
  * - Fast string operations
- * 
+ *
  * Best practices:
  * - Use for dynamic view ID resolution
  * - Handle invalid ID formats gracefully
  * - Implement proper error handling
  * - Use appropriate logging
- * 
+ *
  * Example usage:
  * ```kotlin
  * // Extract ID from resource reference
  * val id = "@+id/submit_button".extractViewId() // Returns "submit_button"
- * 
+ *
  * // Extract ID from simple string
  * val id = "submit_button".extractViewId() // Returns "submit_button"
  * ```
  */
-internal object ViewIdUtils {
+internal object StringUtils {
 
-    private val logger = LoggerFactory.getLogger("ViewIdUtils")
+    private val logger = LoggerFactory.getLogger("StringUtils")
 
     /**
      * Regex used to parse string ID references like "@+id/name",
      * "@android:id/name", or simply "name". Captures the actual ID name.
-     * 
+     *
      * Pattern explanation:
      * - ^@\\+? - Matches optional @+ at start
      * - (?:android:id/|id/|id\\/)? - Optional android:id/, id/, or id/ prefix
@@ -56,7 +55,7 @@ internal object ViewIdUtils {
      * - Efficient string operations
      * - Minimal object creation
      * - Fast execution
-     * 
+     *
      * Error handling:
      * - Safe string parsing
      * - Graceful fallback for invalid formats
@@ -71,11 +70,9 @@ internal object ViewIdUtils {
             return viewIdRegex.find(this)?.groupValues?.getOrNull(1) ?: ""
         } catch (e: Exception) {
             logger.error(
-                "extractViewId",
-                "Failed to extract view ID from '$this': ${e.message}",
-                e
+                "extractViewId", "Failed to extract view ID from '$this': ${e.message}", e
             )
             return ""
         }
     }
-} 
+}

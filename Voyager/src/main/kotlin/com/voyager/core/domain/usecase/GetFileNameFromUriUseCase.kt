@@ -48,8 +48,8 @@ class GetFileNameFromUriUseCase(
      * @throws IllegalArgumentException if any parameter is null
      */
     operator fun invoke(
-        contentResolver: ContentResolver,
-        uri: Uri,
+        contentResolver: ContentResolver?,
+        uri: Uri?,
         callback: (String) -> Unit
     ) {
         if (contentResolver == null) {

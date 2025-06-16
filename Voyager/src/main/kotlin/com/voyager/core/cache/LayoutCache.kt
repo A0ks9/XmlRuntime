@@ -39,10 +39,10 @@ internal class LayoutCache(
     private val config = ConfigManager.config
 
     /** LruCache for memory-efficient storage with automatic eviction */
-    private val cache = LruCache<String, ViewNode>(maxSize)
+    private val cache = LruCache<Int, ViewNode>(maxSize)
     
     /** Thread-safe permanent storage for all cached layouts */
-    private val cacheMap = ConcurrentHashMap<String, ViewNode>()
+    private val cacheMap = ConcurrentHashMap<Int, ViewNode>()
 
     init {
         if (config.isLoggingEnabled) {
@@ -58,19 +58,19 @@ internal class LayoutCache(
      * @param xmlContent The XML content used as the cache key
      * @return The cached ViewNode or null if not found
      */
-    fun get(xmlContent: String): ViewNode? {
+    fun get(xmlContent: Int): ViewNode? {
         val result = cache.get(xmlContent) ?: cacheMap[xmlContent]
         if (config.isLoggingEnabled) {
             if (result != null) {
                 logger.debug(
                     "get",
-                    "Cache hit for XML content (length: ${xmlContent.length}, " +
+                    "Cache hit for XML content (length: ${xmlContent}, " +
                     "cache size: ${cache.size()}, total size: ${cacheMap.size})"
                 )
             } else {
                 logger.debug(
                     "get",
-                    "Cache miss for XML content (length: ${xmlContent.length}, " +
+                    "Cache miss for XML content (length: ${xmlContent}, " +
                     "cache size: ${cache.size()}, total size: ${cacheMap.size})"
                 )
             }
@@ -86,11 +86,11 @@ internal class LayoutCache(
      * @param xmlContent The XML content used as the cache key
      * @param layout The ViewNode to cache
      */
-    fun put(xmlContent: String, layout: ViewNode) {
+    fun put(xmlContent: Int, layout: ViewNode) {
         if (config.isLoggingEnabled) {
             logger.debug(
                 "put",
-                "Caching layout for XML content (length: ${xmlContent.length}, " +
+                "Caching layout for XML content (length: ${xmlContent}, " +
                 "current cache size: ${cache.size()}, total size: ${cacheMap.size})"
             )
         }

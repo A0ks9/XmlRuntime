@@ -15,9 +15,9 @@ import com.voyager.core.utils.logging.LoggerFactory
  */
 @PublishedApi
 internal class AttributeHandler(
-    private val viewClass: Class<*>,
+    private val viewClass: Class<out View>,
     private val valueClass: Class<*>,
-    private val handler: (View, Any?) -> Unit,
+    private val handler: (View, Any) -> Unit,
 ) {
     private val logger = LoggerFactory.getLogger(AttributeHandler::class.java.simpleName)
     private val config by lazy { ConfigManager.config }
@@ -29,12 +29,15 @@ internal class AttributeHandler(
      * @param view The view to apply the attribute to
      * @param value The value to apply
      */
-    internal fun process(view: View, value: Any?) {
-        if (viewClass.isInstance(view) && (value == null || valueClass.isInstance(value))) {
+    internal fun process(view: View, value: Any) {
+        if (viewClass.isInstance(view) && (valueClass.isInstance(value))) {
             try {
                 handler(view, value)
                 if (config.isLoggingEnabled) {
-                    logger.debug("process", "Successfully applied attribute to ${view::class.java.simpleName}")
+                    logger.debug(
+                        "process",
+                        "Successfully applied attribute to ${view::class.java.simpleName}"
+                    )
                 }
             } catch (e: Exception) {
                 if (config.isLoggingEnabled) {
@@ -49,10 +52,7 @@ internal class AttributeHandler(
             if (config.isLoggingEnabled) {
                 logger.warn(
                     "process",
-                    "Type mismatch for attribute application. View: ${view::class.java.simpleName} " +
-                    "(expected: ${viewClass.simpleName}), Value: ${value?.let { it::class.java.simpleName } ?: "null"} " +
-                    "(expected: ${valueClass.simpleName})"
-                )
+                    "Type mismatch for attribute application. View: ${view::class.java.simpleName} " + "(expected: ${viewClass.simpleName}), Value: ${value.let { it::class.java.simpleName } ?: "null"} " + "(expected: ${valueClass.simpleName})")
             }
         }
     }

@@ -12,26 +12,95 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
-import com.voyager.core.attribute.AttributeRegistry.register
-import com.voyager.core.model.Attributes
-import com.voyager.core.utils.Constants.HINT
-import com.voyager.core.utils.Constants.MARGIN
-import com.voyager.core.utils.Constants.MAX_HEIGHT
-import com.voyager.core.utils.Constants.MAX_WIDTH
-import com.voyager.core.utils.Constants.OVER_SCROLL_MODE
-import com.voyager.core.utils.Constants.SCROLLBARS
-import com.voyager.core.utils.Constants.SHADOW_COLOR
-import com.voyager.core.utils.Constants.SHADOW_DX
-import com.voyager.core.utils.Constants.SHADOW_DY
-import com.voyager.core.utils.Constants.SHADOW_RADIUS
-import com.voyager.core.utils.Constants.TEXT
-import com.voyager.core.utils.logging.LoggerFactory
+import com.voyager.core.attribute.attributesForView
+import com.voyager.core.model.Attributes.Common.ALPHA
+import com.voyager.core.model.Attributes.Common.BACKGROUND
+import com.voyager.core.model.Attributes.Common.BACKGROUND_TINT
+import com.voyager.core.model.Attributes.Common.BACKGROUND_TINT_MODE
+import com.voyager.core.model.Attributes.Common.CLICKABLE
+import com.voyager.core.model.Attributes.Common.CLIP_TO_PADDING
+import com.voyager.core.model.Attributes.Common.CONTENT_DESCRIPTION
+import com.voyager.core.model.Attributes.Common.DRAWABLE_BOTTOM
+import com.voyager.core.model.Attributes.Common.DRAWABLE_END
+import com.voyager.core.model.Attributes.Common.DRAWABLE_PADDING
+import com.voyager.core.model.Attributes.Common.DRAWABLE_START
+import com.voyager.core.model.Attributes.Common.DRAWABLE_TOP
+import com.voyager.core.model.Attributes.Common.ELEVATION
+import com.voyager.core.model.Attributes.Common.ELLIPSIZE
+import com.voyager.core.model.Attributes.Common.ENABLED
+import com.voyager.core.model.Attributes.Common.FONT_FAMILY
+import com.voyager.core.model.Attributes.Common.FOREGROUND
+import com.voyager.core.model.Attributes.Common.FOREGROUND_GRAVITY
+import com.voyager.core.model.Attributes.Common.FOREGROUND_TINT
+import com.voyager.core.model.Attributes.Common.FOREGROUND_TINT_MODE
+import com.voyager.core.model.Attributes.Common.HEIGHT
+import com.voyager.core.model.Attributes.Common.HINT
+import com.voyager.core.model.Attributes.Common.ID
+import com.voyager.core.model.Attributes.Common.IME_OPTIONS
+import com.voyager.core.model.Attributes.Common.IMPORTANT_FOR_ACCESSIBILITY
+import com.voyager.core.model.Attributes.Common.LAYOUT_GRAVITY
+import com.voyager.core.model.Attributes.Common.LAYOUT_HEIGHT
+import com.voyager.core.model.Attributes.Common.LAYOUT_MARGIN
+import com.voyager.core.model.Attributes.Common.LAYOUT_MARGIN_BOTTOM
+import com.voyager.core.model.Attributes.Common.LAYOUT_MARGIN_END
+import com.voyager.core.model.Attributes.Common.LAYOUT_MARGIN_LEFT
+import com.voyager.core.model.Attributes.Common.LAYOUT_MARGIN_RIGHT
+import com.voyager.core.model.Attributes.Common.LAYOUT_MARGIN_START
+import com.voyager.core.model.Attributes.Common.LAYOUT_MARGIN_TOP
+import com.voyager.core.model.Attributes.Common.LAYOUT_WIDTH
+import com.voyager.core.model.Attributes.Common.LETTER_SPACING
+import com.voyager.core.model.Attributes.Common.LINE_SPACING_EXTRA
+import com.voyager.core.model.Attributes.Common.LINE_SPACING_MULTIPLIER
+import com.voyager.core.model.Attributes.Common.LONG_CLICKABLE
+import com.voyager.core.model.Attributes.Common.MAX_HEIGHT
+import com.voyager.core.model.Attributes.Common.MAX_LINES
+import com.voyager.core.model.Attributes.Common.MAX_WIDTH
+import com.voyager.core.model.Attributes.Common.MIN_HEIGHT
+import com.voyager.core.model.Attributes.Common.MIN_WIDTH
+import com.voyager.core.model.Attributes.Common.OVER_SCROLL_MODE
+import com.voyager.core.model.Attributes.Common.PADDING
+import com.voyager.core.model.Attributes.Common.PADDING_BOTTOM
+import com.voyager.core.model.Attributes.Common.PADDING_END
+import com.voyager.core.model.Attributes.Common.PADDING_HORIZONTAL
+import com.voyager.core.model.Attributes.Common.PADDING_LEFT
+import com.voyager.core.model.Attributes.Common.PADDING_RIGHT
+import com.voyager.core.model.Attributes.Common.PADDING_START
+import com.voyager.core.model.Attributes.Common.PADDING_TOP
+import com.voyager.core.model.Attributes.Common.PADDING_VERTICAL
+import com.voyager.core.model.Attributes.Common.ROTATION
+import com.voyager.core.model.Attributes.Common.ROTATION_X
+import com.voyager.core.model.Attributes.Common.ROTATION_Y
+import com.voyager.core.model.Attributes.Common.SCALE_X
+import com.voyager.core.model.Attributes.Common.SCALE_Y
+import com.voyager.core.model.Attributes.Common.SCREEN_READER_FOCUSABLE
+import com.voyager.core.model.Attributes.Common.SCROLLBARS
+import com.voyager.core.model.Attributes.Common.SCROLL_INDICATORS
+import com.voyager.core.model.Attributes.Common.SHADOW_COLOR
+import com.voyager.core.model.Attributes.Common.SHADOW_DX
+import com.voyager.core.model.Attributes.Common.SHADOW_DY
+import com.voyager.core.model.Attributes.Common.SHADOW_RADIUS
+import com.voyager.core.model.Attributes.Common.TAG
+import com.voyager.core.model.Attributes.Common.TEXT
+import com.voyager.core.model.Attributes.Common.TEXT_ALL_CAPS
+import com.voyager.core.model.Attributes.Common.TEXT_COLOR
+import com.voyager.core.model.Attributes.Common.TEXT_COLOR_HINT
+import com.voyager.core.model.Attributes.Common.TEXT_SCALE_X
+import com.voyager.core.model.Attributes.Common.TEXT_SIZE
+import com.voyager.core.model.Attributes.Common.TEXT_STYLE
+import com.voyager.core.model.Attributes.Common.TOOLTIP_TEXT
+import com.voyager.core.model.Attributes.Common.TRANSFORMATION_METHOD
+import com.voyager.core.model.Attributes.Common.TRANSLATION_X
+import com.voyager.core.model.Attributes.Common.TRANSLATION_Y
+import com.voyager.core.model.Attributes.Common.TRANSLATION_Z
+import com.voyager.core.model.Attributes.Common.VISIBILITY
+import com.voyager.core.model.Attributes.Common.WIDTH
+import com.voyager.core.model.Attributes.TextView.TEXTVIEW_INPUT_TYPE
+import com.voyager.core.model.Attributes.TextView.TEXTVIEW_SINGLE_LINE
+import com.voyager.core.model.Attributes.View.VIEW_TEXT_ALIGNMENT
 import com.voyager.core.utils.parser.BooleanParser.parseBoolean
 import com.voyager.core.utils.parser.ColorParser.getColor
 import com.voyager.core.utils.parser.DimensionConverter.toPixels
 import com.voyager.core.utils.parser.GravityParser.parseGravity
-import com.voyager.core.utils.parser.NumericalParser.parseFloat
-import com.voyager.core.utils.parser.NumericalParser.parseInt
 import com.voyager.core.utils.parser.PorterDuffParser.parsePorterDuff
 import com.voyager.core.utils.parser.ResourceParser.getString
 import com.voyager.core.utils.parser.TextParser.parseEllipsize
@@ -39,7 +108,6 @@ import com.voyager.core.utils.parser.TextParser.parseImeOption
 import com.voyager.core.utils.parser.TextParser.parseInputType
 import com.voyager.core.utils.parser.TextParser.parseTextAlignment
 import com.voyager.core.utils.parser.TextParser.parseTextStyle
-import com.voyager.core.utils.parser.ViewPropertyParser.parseDrawingCacheQuality
 import com.voyager.core.utils.parser.ViewPropertyParser.parseImportantForAccessibility
 import com.voyager.core.utils.parser.ViewPropertyParser.parseOverScrollMode
 import com.voyager.core.utils.parser.ViewPropertyParser.parseScrollIndicators
@@ -49,15 +117,14 @@ import com.voyager.core.view.processor.AttributesHandler.handleDrawablePosition
 import com.voyager.core.view.processor.AttributesHandler.handleForeground
 import com.voyager.core.view.processor.AttributesHandler.handleForegroundTint
 import com.voyager.core.view.processor.AttributesHandler.handleScrollbar
-import com.voyager.core.view.processor.AttributesHandler.handleTint
-import com.voyager.core.view.processor.AttributesHandler.handleTintMode
 import com.voyager.core.view.processor.AttributesHandler.handleTransformationMethod
 import com.voyager.core.view.processor.AttributesHandler.loadFontFromAttribute
 import com.voyager.core.view.processor.AttributesHandler.setSize
 import com.voyager.core.view.utils.ViewExtensions.DrawablePosition
 import com.voyager.core.view.utils.ViewExtensions.getGeneratedViewInfo
 import com.voyager.core.view.utils.ViewExtensions.getParentView
-import com.voyager.core.view.utils.id.ViewIdUtils.extractViewId
+import com.voyager.core.utils.StringUtils.extractViewId
+import com.voyager.core.utils.logging.LoggerFactory
 import com.voyager.core.view.utils.setMargin
 import com.voyager.core.view.utils.setMarginBottom
 import com.voyager.core.view.utils.setMarginEnd
@@ -74,633 +141,438 @@ import com.voyager.core.view.utils.setPaddingRight
 import com.voyager.core.view.utils.setPaddingStart
 import com.voyager.core.view.utils.setPaddingTop
 import com.voyager.core.view.utils.setPaddingVertical
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Common attributes handler for the Voyager framework.
+ * Optimized common attributes handler for the Voyager framework.
  * Provides efficient and thread-safe attribute registration for Android views.
- *
- * Key features:
- * - Core Android view attribute registration
- * - Layout-specific attribute handling
- * - Thread-safe operations
- * - Performance optimized
- * - Memory efficient
- * - Comprehensive error handling
- * - Resource cleanup
- * - Cache management
- *
- * Performance optimizations:
- * - Efficient attribute registration
- * - Minimal object creation
- * - Safe resource handling
- * - Optimized layout parameter management
- * - Thread-safe caching
- * - Resource pooling
- *
- * Best practices:
- * 1. Initialize attributes only once
- * 2. Handle null values appropriately
- * 3. Consider view lifecycle
- * 4. Use thread-safe operations
- * 5. Consider memory leaks
- * 6. Implement proper error handling
- * 7. Validate attributes before use
- * 8. Clean up resources properly
- *
- * Example Usage:
- * ```kotlin
- * // Initialize common attributes
- * commonAttributes(isLoggingEnabled)
- *
- * // Register custom attributes
- * register<View, String>("customAttribute") { view, value ->
- *     view.setCustomValue(value)
- * }
- * ```
- *
- * @author Abdelrahman Omar
- * @since 1.0.0
  */
 internal object CommonAttributes {
-    private val logger = LoggerFactory.getLogger(CommonAttributes::class.java.simpleName)
-    private val attributeCache = ConcurrentHashMap<String, Any>()
+    private val attributeCache by lazy { ConcurrentHashMap<String, Any>() }
+    private val logger by lazy { LoggerFactory.getLogger("CommonAttributes") }
 
-    // Cache for frequently used values
-    private val horizontalMarginAttributes = setOf(
-        Attributes.Common.LAYOUT_MARGIN_LEFT,
-        Attributes.Common.LAYOUT_MARGIN_START,
-        Attributes.Common.LAYOUT_MARGIN_RIGHT,
-        Attributes.Common.LAYOUT_MARGIN_END
-    )
+    fun clearCache() = attributeCache.clear()
 
-    // Reusable arrays for attribute registration
-    private val basicViewAttributes = arrayOf(
-        Attributes.Common.VISIBILITY to View::setVisibility,
-        Attributes.Common.CLICKABLE to View::isClickable,
-        Attributes.Common.LONG_CLICKABLE to View::isLongClickable,
-        Attributes.Common.ENABLED to View::isEnabled,
-        Attributes.Common.SCROLLBARS to SCROLLBARS,
-        Attributes.Common.OVER_SCROLL_MODE to OVER_SCROLL_MODE
-    )
-
-    private val transformAttributes = arrayOf(
-        Attributes.Common.ROTATION to View::setRotation,
-        Attributes.Common.ROTATION_X to View::setRotationX,
-        Attributes.Common.ROTATION_Y to View::setRotationY,
-        Attributes.Common.SCALE_X to View::setScaleX,
-        Attributes.Common.SCALE_Y to View::setScaleY,
-        Attributes.Common.TRANSLATION_X to View::setTranslationX,
-        Attributes.Common.TRANSLATION_Y to View::setTranslationY,
-        Attributes.Common.TRANSLATION_Z to View::setTranslationZ,
-        Attributes.Common.ELEVATION to View::setElevation,
-        Attributes.Common.ALPHA to View::setAlpha
-    )
-
-    private val layoutSizeAttributes = arrayOf(
-        Attributes.Common.MIN_WIDTH to View::setMinimumWidth,
-        Attributes.Common.MIN_HEIGHT to View::setMinimumHeight,
-        Attributes.Common.MAX_WIDTH to MAX_WIDTH,
-        Attributes.Common.MAX_HEIGHT to MAX_HEIGHT
-    )
-
-    private val textViewAttributes = arrayOf(
-        Attributes.Common.TEXT to TEXT,
-        Attributes.Common.TEXT_SIZE to "textSize",
-        Attributes.Common.TEXT_COLOR to "textColor",
-        Attributes.Common.TEXT_STYLE to "textStyle",
-        Attributes.View.VIEW_TEXT_ALIGNMENT to "textAlignment",
-        Attributes.Common.ELLIPSIZE to "ellipsize",
-        Attributes.TextView.TEXTVIEW_SINGLE_LINE to "singleLine",
-        Attributes.Common.HINT to HINT,
-        Attributes.TextView.TEXTVIEW_INPUT_TYPE to "inputType",
-        Attributes.Common.TEXT_COLOR_HINT to "HintColor",
-        Attributes.Common.LETTER_SPACING to "letterSpacing",
-        Attributes.Common.LINE_SPACING_EXTRA to "lineSpacingExtra",
-        Attributes.Common.LINE_SPACING_MULTIPLIER to "lineSpacingMultiplier",
-        Attributes.Common.TEXT_ALL_CAPS to "isAllCaps",
-        Attributes.Common.MAX_LINES to "maxLines",
-        Attributes.Common.IME_OPTIONS to "imeOptions",
-        Attributes.Common.FONT_FAMILY to "fontFamily",
-        Attributes.Common.TEXT_SCALE_X to "textScaleX",
-        Attributes.Common.TRANSFORMATION_METHOD to "transformationMethod",
-        Attributes.Common.DRAWABLE_PADDING to "drawablePadding"
-    )
-
-    private val shadowAttributes = arrayOf(
-        Attributes.Common.SHADOW_COLOR to SHADOW_COLOR,
-        Attributes.Common.SHADOW_RADIUS to SHADOW_RADIUS,
-        Attributes.Common.SHADOW_DX to SHADOW_DX,
-        Attributes.Common.SHADOW_DY to SHADOW_DY
-    )
-
-    /**
-     * Clears the attribute cache.
-     * Thread-safe operation that removes all cached values.
-     *
-     * Performance Considerations:
-     * - Clear cache only when necessary
-     * - Consider memory impact
-     * - Handle concurrent access
-     */
-    fun clearCache() {
-        try {
-            attributeCache.clear()
-            logger.debug("clearCache", "Attribute cache cleared successfully")
-        } catch (e: Exception) {
-            logger.error("clearCache", "Failed to clear attribute cache: ${e.message}")
-        }
+    internal suspend fun commonAttributes() = coroutineScope {
+        launch { registerViewAttributes() }
+        launch { registerTextViewAttributes() }
+        launch { registerViewGroupAttributes() }
     }
 
-    /**
-     * Registers common attributes for Android views.
-     * Thread-safe operation with efficient attribute registration.
-     *
-     * Performance Considerations:
-     * - Initialize attributes only once
-     * - Use efficient attribute handlers
-     * - Consider attribute dependencies
-     * - Handle attribute validation
-     * - Cache attribute values
-     *
-     * @param isLoggingEnabled Whether to enable logging
-     * @throws IllegalStateException if registration fails
-     */
-    internal fun commonAttributes(isLoggingEnabled: Boolean) {
-        try {
-            // ID attribute
-            register<View, String>(Attributes.Common.ID) { targetView, attributeValue ->
-                try {
-                    targetView.getParentView()?.getGeneratedViewInfo()?.let { info ->
-                        if (isLoggingEnabled) {
-                            logger.debug(
-                                "commonAttributes",
-                                "ID: $attributeValue, viewID: ${attributeValue.extractViewId()}"
-                            )
-                        }
-                        targetView.id = View.generateViewId().also {
-                            info.viewID[attributeValue.extractViewId()] = it
-                        }
-                    }
-                } catch (e: Exception) {
-                    logger.error("commonAttributes", "Failed to set view ID: ${e.message}")
-                }
-            }
-
-            // Width and height attributes
-            widthAndHeightAttributes()
-
-            // Gravity attribute
-            register<View, String>(Attributes.Common.GRAVITY) { targetView, attributeValue ->
-                try {
-                    val alignment = parseGravity(attributeValue)
-                    when (val layoutParams = targetView.layoutParams) {
-                        is LinearLayout.LayoutParams -> layoutParams.gravity = alignment
-                        is FrameLayout.LayoutParams -> layoutParams.gravity = alignment
-                        else -> if (targetView is TextView) targetView.gravity = alignment
-                    }
-                } catch (e: Exception) {
-                    logger.error("commonAttributes", "Failed to set gravity: ${e.message}")
-                }
-            }
-
-            // Margin and padding attributes
-            marginAndPaddingAttributes()
-
-            // Basic view attributes
-            registerBasicViewAttributes(isLoggingEnabled)
-
-            // Background and foreground attributes
-            registerBackgroundAttributes()
-
-            // Transform attributes
-            registerTransformAttributes()
-
-            // Layout attributes
-            registerLayoutAttributes()
-
-            // Text view specific attributes
-            registerTextViewAttributes()
-
-            // Accessibility attributes
-            registerAccessibilityAttributes()
-
-            // Drawable attributes
-            registerDrawableAttributes()
-
-            logger.debug("commonAttributes", "Common attributes registered successfully")
-        } catch (e: Exception) {
-            throw IllegalStateException("Failed to register common attributes: ${e.message}", e)
-        }
-    }
-
-    /**
-     * Registers basic view attributes.
-     * Thread-safe operation with efficient attribute registration.
-     *
-     * Performance Considerations:
-     * - Efficient attribute registration
-     * - Minimal object creation
-     * - Safe resource handling
-     * - Optimized layout parameter management
-     *
-     * @param isLoggingEnabled Whether to enable logging
-     */
-    private fun registerBasicViewAttributes(isLoggingEnabled: Boolean) {
-        try {
-            basicViewAttributes.forEach { (attr, property) ->
-                register<View, String>(attr) { targetView, value ->
-                    try {
-                        when (property) {
-                            View::setVisibility -> targetView.visibility = parseVisibility(value)
-                            View::isClickable -> targetView.isClickable = parseBoolean(value)
-                            View::isLongClickable -> targetView.isLongClickable =
-                                parseBoolean(value)
-
-                            View::isEnabled -> targetView.isEnabled = parseBoolean(value)
-                            "scrollbars" -> handleScrollbar(targetView, value)
-                            "overScrollMode" -> targetView.overScrollMode =
-                                parseOverScrollMode(value)
-
-                            else -> if (isLoggingEnabled) {
-                                logger.warn(
-                                    "registerBasicViewAttributes",
-                                    "Unsupported property: $property"
-                                )
-                            }
-                        }
-                    } catch (e: Exception) {
-                        logger.error(
-                            "registerBasicViewAttributes",
-                            "Failed to set attribute $attr: ${e.message}"
-                        )
+    private fun registerViewAttributes() {
+        attributesForView<View> {
+            // Basic View Attributes
+            attribute<String>(ID) { view, value ->
+                view.getParentView()?.getGeneratedViewInfo()?.let { info ->
+                    view.id = View.generateViewId().also {
+                        info.viewID[value.extractViewId()] = it
                     }
                 }
             }
-
-            register<View, String>(Attributes.Common.TAG) { targetView, value ->
-                try {
-                    if (targetView.tag == null) targetView.tag = value
-                } catch (e: Exception) {
-                    logger.error("registerBasicViewAttributes", "Failed to set tag: ${e.message}")
-                }
+            attribute<String>(VISIBILITY) { view, value ->
+                view.visibility = parseVisibility(value)
             }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                register<View, String>(Attributes.Common.TOOLTIP_TEXT) { targetView, value ->
-                    try {
-                        targetView.tooltipText = getString(targetView.context, value)
-                    } catch (e: Exception) {
-                        logger.error(
-                            "registerBasicViewAttributes",
-                            "Failed to set tooltip: ${e.message}"
-                        )
-                    }
-                }
+            attribute<String>(CLICKABLE) { view, value -> view.isClickable = parseBoolean(value) }
+            attribute<String>(LONG_CLICKABLE) { view, value ->
+                view.isLongClickable = parseBoolean(value)
             }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                register<View, String>(Attributes.Common.SCROLL_INDICATORS) { targetView, value ->
-                    try {
-                        targetView.scrollIndicators = parseScrollIndicators(value)
-                    } catch (e: Exception) {
-                        logger.error(
-                            "registerBasicViewAttributes",
-                            "Failed to set scroll indicators: ${e.message}"
-                        )
-                    }
-                }
+            attribute<String>(ENABLED) { view, value -> view.isEnabled = parseBoolean(value) }
+            attribute<String>(SCROLLBARS) { view, value -> handleScrollbar(view, value) }
+            attribute<String>(OVER_SCROLL_MODE) { view, value ->
+                view.overScrollMode = parseOverScrollMode(value)
             }
+            attribute<String>(TAG) { view, value -> if (view.tag == null) view.tag = value }
 
-            logger.debug(
-                "registerBasicViewAttributes",
-                "Basic view attributes registered successfully"
-            )
-        } catch (e: Exception) {
-            logger.error(
-                "registerBasicViewAttributes",
-                "Failed to register basic view attributes: ${e.message}"
-            )
-            throw e
-        }
-    }
+            // Transform Attributes
+            attribute<String>(ROTATION) { view, value -> view.rotation = value.toFloat() }
+            attribute<String>(ROTATION_X) { view, value -> view.rotationX = value.toFloat() }
+            attribute<String>(ROTATION_Y) { view, value -> view.rotationY = value.toFloat() }
+            attribute<String>(SCALE_X) { view, value -> view.scaleX = value.toFloat() }
+            attribute<String>(SCALE_Y) { view, value -> view.scaleY = value.toFloat() }
+            attribute<String>(TRANSLATION_X) { view, value -> view.translationX = value.toFloat() }
+            attribute<String>(TRANSLATION_Y) { view, value -> view.translationY = value.toFloat() }
+            attribute<String>(TRANSLATION_Z) { view, value -> view.translationZ = value.toFloat() }
+            attribute<String>(ELEVATION) { view, value -> view.elevation = value.toFloat() }
+            attribute<String>(ALPHA) { view, value -> view.alpha = value.toFloat() }
 
-    /**
-     * Registers background and foreground attributes.
-     */
-    private fun registerBackgroundAttributes() {
-        register<View, String>(Attributes.Common.BACKGROUND) { targetView, value ->
-            handleBackground(targetView, value, targetView.context)
-        }
-
-        register<View, String>(Attributes.Common.BACKGROUND_TINT) { targetView, value ->
-            ViewCompat.setBackgroundTintList(
-                targetView, ContextCompat.getColorStateList(
-                    targetView.context, getColor(value, targetView.context, Color.TRANSPARENT)
+            // Background Attributes
+            attribute<String>(BACKGROUND) { view, value ->
+                handleBackground(
+                    view, value, view.context
                 )
-            )
-        }
-
-        register<View, String>(Attributes.Common.BACKGROUND_TINT_MODE) { targetView, value ->
-            ViewCompat.setBackgroundTintMode(targetView, parsePorterDuff(value))
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            register<View, String>(Attributes.Common.FOREGROUND) { targetView, value ->
-                handleForeground(targetView, value, targetView.context)
+            }
+            attribute<String>(BACKGROUND_TINT) { view, value ->
+                ViewCompat.setBackgroundTintList(
+                    view, ContextCompat.getColorStateList(
+                        view.context, getColor(value, view.context, Color.TRANSPARENT)
+                    )
+                )
+            }
+            attribute<String>(BACKGROUND_TINT_MODE) { view, value ->
+                ViewCompat.setBackgroundTintMode(view, parsePorterDuff(value))
             }
 
-            register<View, String>(Attributes.Common.FOREGROUND_GRAVITY) { targetView, value ->
-                targetView.foregroundGravity = parseGravity(value)
+            // Size Attributes
+            attribute<String>(WIDTH) { view, value ->
+                setSize(
+                    view, value, isWidthDimension = true
+                )
             }
-
-            register<View, String>(Attributes.Common.FOREGROUND_TINT) { targetView, value ->
-                handleForegroundTint(targetView, value, targetView.context)
+            attribute<String>(HEIGHT) { view, value ->
+                setSize(
+                    view, value, isWidthDimension = false
+                )
             }
-
-            register<View, String>(Attributes.Common.FOREGROUND_TINT_MODE) { targetView, value ->
-                targetView.foregroundTintMode = parsePorterDuff(value)
+            attribute<String>(LAYOUT_WIDTH) { view, value ->
+                setSize(
+                    view, value, isWidthDimension = true
+                )
             }
-
-            register<View, String>(Attributes.Common.DRAWABLE_TINT) { targetView, value ->
-                handleTint(targetView, value)
+            attribute<String>(LAYOUT_HEIGHT) { view, value ->
+                setSize(
+                    view, value, isWidthDimension = false
+                )
             }
-
-            register<View, String>(Attributes.Common.DRAWABLE_TINT_MODE) { targetView, value ->
-                handleTintMode(targetView, value)
-            }
-        }
-    }
-
-    /**
-     * Registers transform attributes.
-     */
-    private fun registerTransformAttributes() {
-        transformAttributes.forEach { (attr, property) ->
-            register<View, String>(attr) { targetView, value ->
-                property.call(targetView, value.toFloat())
-            }
-        }
-    }
-
-    /**
-     * Registers layout attributes.
-     */
-    private fun registerLayoutAttributes() {
-        register<ViewGroup, String>(Attributes.Common.LAYOUT_GRAVITY) { targetView, value ->
-            val gravity = parseGravity(value)
-            val params = targetView.layoutParams
-            when (targetView) {
-                is LinearLayout -> (params as LinearLayout.LayoutParams).gravity = gravity
-                is FrameLayout -> (params as FrameLayout.LayoutParams).gravity = gravity
-                is GridLayout -> (params as GridLayout.LayoutParams).setGravity(gravity)
-            }
-            targetView.layoutParams = params
-        }
-
-        register<ViewGroup, String>(Attributes.Common.CLIP_TO_PADDING) { targetView, value ->
-            targetView.clipToPadding = parseBoolean(value)
-        }
-
-        layoutSizeAttributes.forEach { (attr, property) ->
-            register<View, String>(attr) { targetView, value ->
-                val pixels = value.toPixels(
-                    targetView.resources.displayMetrics,
-                    targetView.getParentView(),
-                    attr == Attributes.Common.MIN_WIDTH || attr == Attributes.Common.MAX_WIDTH,
-                    true
+            attribute<String>(MIN_WIDTH) { view, value ->
+                view.minimumWidth = value.toPixels(
+                    view.resources.displayMetrics, view.getParentView(), true, true
                 ) as Int
+            }
+            attribute<String>(MIN_HEIGHT) { view, value ->
+                view.minimumHeight = value.toPixels(
+                    view.resources.displayMetrics, view.getParentView(), false, true
+                ) as Int
+            }
+            attribute<String>(MAX_WIDTH) { view, value ->
+                val pixels = value.toPixels(
+                    view.resources.displayMetrics, view.getParentView(), true, true
+                ) as Int
+                when (view) {
+                    is TextView -> view.maxWidth = pixels
+                    is ImageView -> view.maxWidth = pixels
+                    else -> view.layoutParams = view.layoutParams.apply { width = pixels }
+                }
+                view.requestLayout()
+            }
+            attribute<String>(MAX_HEIGHT) { view, value ->
+                val pixels = value.toPixels(
+                    view.resources.displayMetrics, view.getParentView(), false, true
+                ) as Int
+                when (view) {
+                    is TextView -> view.maxHeight = pixels
+                    is ImageView -> view.maxHeight = pixels
+                    else -> view.layoutParams = view.layoutParams.apply { height = pixels }
+                }
+                view.requestLayout()
+            }
 
-                when (property) {
-                    View::setMinimumWidth -> targetView.minimumWidth = pixels
-                    View::setMinimumHeight -> targetView.minimumHeight = pixels
-                    MAX_WIDTH -> {
-                        when (targetView) {
-                            is TextView -> targetView.maxWidth = pixels
-                            is ImageView -> targetView.maxWidth = pixels
-                            else -> targetView.layoutParams =
-                                targetView.layoutParams.apply { width = pixels }
-                        }
-                        targetView.requestLayout()
-                    }
+            // Margin and Padding
+            attribute<String>(LAYOUT_MARGIN) { view, value ->
+                view.setMargin(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(LAYOUT_MARGIN_LEFT) { view, value ->
+                view.setMarginLeft(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(LAYOUT_MARGIN_RIGHT) { view, value ->
+                view.setMarginRight(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(LAYOUT_MARGIN_START) { view, value ->
+                view.setMarginStart(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(LAYOUT_MARGIN_END) { view, value ->
+                view.setMarginEnd(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(LAYOUT_MARGIN_TOP) { view, value ->
+                view.setMarginTop(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(LAYOUT_MARGIN_BOTTOM) { view, value ->
+                view.setMarginBottom(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
 
-                    MAX_HEIGHT -> {
-                        when (targetView) {
-                            is TextView -> targetView.maxHeight = pixels
-                            is ImageView -> targetView.maxHeight = pixels
-                            else -> targetView.layoutParams =
-                                targetView.layoutParams.apply { height = pixels }
-                        }
-                        targetView.requestLayout()
-                    }
+            attribute<String>(PADDING) { view, value ->
+                view.setPaddingE(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(PADDING_LEFT) { view, value ->
+                view.setPaddingLeft(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(PADDING_RIGHT) { view, value ->
+                view.setPaddingRight(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(PADDING_START) { view, value ->
+                view.setPaddingStart(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(PADDING_END) { view, value ->
+                view.setPaddingEnd(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(PADDING_TOP) { view, value ->
+                view.setPaddingTop(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(PADDING_BOTTOM) { view, value ->
+                view.setPaddingBottom(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(PADDING_HORIZONTAL) { view, value ->
+                view.setPaddingHorizontal(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
+            attribute<String>(PADDING_VERTICAL) { view, value ->
+                view.setPaddingVertical(
+                    value.toPixels(
+                        view.resources.displayMetrics, asInt = true
+                    ) as Int
+                )
+            }
 
-                    else -> {}
+            // Accessibility
+            attribute<String>(IMPORTANT_FOR_ACCESSIBILITY) { view, value ->
+                view.importantForAccessibility = parseImportantForAccessibility(value)
+            }
+            attribute<String>(CONTENT_DESCRIPTION) { view, value ->
+                view.contentDescription = value
+            }
+
+            // API Level specific attributes
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                attribute<String>(TOOLTIP_TEXT) { view, value ->
+                    view.tooltipText = getString(view.context, value)
+                }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                attribute<String>(SCROLL_INDICATORS) { view, value ->
+                    view.scrollIndicators = parseScrollIndicators(value)
+                }
+                attribute<String>(FOREGROUND) { view, value ->
+                    handleForeground(
+                        view, value, view.context
+                    )
+                }
+                attribute<String>(FOREGROUND_GRAVITY) { view, value ->
+                    view.foregroundGravity = parseGravity(value)
+                }
+                attribute<String>(FOREGROUND_TINT) { view, value ->
+                    handleForegroundTint(
+                        view, value, view.context
+                    )
+                }
+                attribute<String>(FOREGROUND_TINT_MODE) { view, value ->
+                    view.foregroundTintMode = parsePorterDuff(value)
+                }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                attribute<String>(SCREEN_READER_FOCUSABLE) { view, value ->
+                    view.isScreenReaderFocusable = parseBoolean(value)
                 }
             }
         }
     }
 
-    /**
-     * Registers text view specific attributes.
-     */
     private fun registerTextViewAttributes() {
-        textViewAttributes.forEach { (attr, property) ->
-            register<TextView, String>(attr) { targetView, value ->
-                when (property) {
-                    TEXT -> targetView.text = getString(targetView.context, value)
-                    "textSize" -> targetView.setTextSize(
-                        TypedValue.COMPLEX_UNIT_PX,
-                        value.toPixels(targetView.resources.displayMetrics) as Float
+        attributesForView<TextView> {
+            // Text Attributes
+            attribute<String>(TEXT) { view, value -> view.text = getString(view.context, value) }
+            attribute<String>(TEXT_SIZE) { view, value ->
+                view.setTextSize(
+                    TypedValue.COMPLEX_UNIT_PX,
+                    value.toPixels(view.resources.displayMetrics) as Float
+                )
+            }
+            attribute<String>(TEXT_COLOR) { view, value ->
+                view.setTextColor(
+                    getColor(
+                        value, view.context
                     )
-
-                    "textColor" -> targetView.setTextColor(getColor(value, targetView.context))
-                    "textStyle" -> targetView.setTypeface(null, parseTextStyle(value.lowercase()))
-                    "textAlignment" -> parseTextAlignment(value)?.let {
-                        targetView.textAlignment = it
-                    }
-
-                    "ellipsize" -> targetView.ellipsize = parseEllipsize(value.lowercase())
-                    "singleLine" -> targetView.isSingleLine = parseBoolean(value)
-                    HINT -> targetView.hint = getString(targetView.context, value)
-                    "inputType" -> parseInputType(value).let {
-                        if (it > 0) targetView.inputType = it
-                    }
-
-                    "HintColor" -> targetView.setHintTextColor(
-                        getColor(
-                            value, targetView.context, Color.GRAY
-                        )
-                    )
-
-                    "letterSpacing" -> targetView.letterSpacing = parseFloat(value)
-                    "lineSpacingExtra" -> targetView.setLineSpacing(
-                        parseFloat(value), targetView.lineSpacingMultiplier
-                    )
-
-                    "lineSpacingMultiplier" -> targetView.setLineSpacing(
-                        targetView.lineSpacingExtra, parseFloat(value)
-                    )
-
-                    "isAllCaps" -> targetView.isAllCaps = parseBoolean(value)
-                    "maxLines" -> targetView.maxLines = parseInt(value)
-                    "imeOptions" -> targetView.imeOptions = parseImeOption(value)
-                    "fontFamily" -> loadFontFromAttribute(
-                        targetView.context, value
-                    )?.let { targetView.typeface = it }
-
-                    "textScaleX" -> {
-                        val currentSp =
-                            targetView.textSize / targetView.context.resources.configuration.fontScale
-                        targetView.setTextSize(
-                            TypedValue.COMPLEX_UNIT_SP, currentSp * parseFloat(value)
-                        )
-                    }
-
-                    "transformationMethod" -> handleTransformationMethod(targetView, value)
-                    "drawablePadding" -> {
-                        val padding = value.toPixels(
-                            targetView.context.resources.displayMetrics, asInt = true
-                        ) as Int
-                        targetView.compoundDrawablePadding = padding
-                    }
-
-                    else -> {}
+                )
+            }
+            attribute<String>(TEXT_STYLE) { view, value ->
+                view.setTypeface(
+                    null, parseTextStyle(value.lowercase())
+                )
+            }
+            attribute<String>(VIEW_TEXT_ALIGNMENT) { view, value ->
+                parseTextAlignment(value)?.let {
+                    view.textAlignment = it
                 }
             }
-        }
-
-        shadowAttributes.forEach { (attr, property) ->
-            register<TextView, String>(attr) { targetView, value ->
-                when (property) {
-                    SHADOW_COLOR -> targetView.setShadowLayer(
-                        targetView.shadowRadius,
-                        targetView.shadowDx,
-                        targetView.shadowDy,
-                        getColor(value, targetView.context, Color.TRANSPARENT)
-                    )
-
-                    SHADOW_RADIUS -> targetView.setShadowLayer(
-                        parseFloat(value),
-                        targetView.shadowDx,
-                        targetView.shadowDy,
-                        targetView.shadowColor
-                    )
-
-                    SHADOW_DX -> targetView.setShadowLayer(
-                        targetView.shadowRadius,
-                        parseFloat(value),
-                        targetView.shadowDy,
-                        targetView.shadowColor
-                    )
-
-                    SHADOW_DY -> targetView.setShadowLayer(
-                        targetView.shadowRadius,
-                        targetView.shadowDx,
-                        parseFloat(value),
-                        targetView.shadowColor
-                    )
-
-                    else -> {}
+            attribute<String>(ELLIPSIZE) { view, value ->
+                view.ellipsize = parseEllipsize(value.lowercase())
+            }
+            attribute<String>(TEXTVIEW_SINGLE_LINE) { view, value ->
+                view.isSingleLine = parseBoolean(value)
+            }
+            attribute<String>(HINT) { view, value -> view.hint = getString(view.context, value) }
+            attribute<String>(TEXTVIEW_INPUT_TYPE) { view, value ->
+                parseInputType(value).let {
+                    if (it > 0) view.inputType = it
                 }
             }
-        }
-    }
+            attribute<String>(TEXT_COLOR_HINT) { view, value ->
+                view.setHintTextColor(
+                    getColor(
+                        value, view.context, Color.GRAY
+                    )
+                )
+            }
+            attribute<String>(LETTER_SPACING) { view, value ->
+                view.letterSpacing = value.toFloat()
+            }
+            attribute<String>(LINE_SPACING_EXTRA) { view, value ->
+                view.setLineSpacing(
+                    value.toFloat(), view.lineSpacingMultiplier
+                )
+            }
+            attribute<String>(LINE_SPACING_MULTIPLIER) { view, value ->
+                view.setLineSpacing(
+                    view.lineSpacingExtra, value.toFloat()
+                )
+            }
+            attribute<String>(TEXT_ALL_CAPS) { view, value -> view.isAllCaps = parseBoolean(value) }
+            attribute<String>(MAX_LINES) { view, value -> view.maxLines = value.toInt() }
+            attribute<String>(IME_OPTIONS) { view, value ->
+                view.imeOptions = parseImeOption(value)
+            }
+            attribute<String>(FONT_FAMILY) { view, value ->
+                loadFontFromAttribute(
+                    view.context, value
+                )?.let { view.typeface = it }
+            }
+            attribute<String>(TEXT_SCALE_X) { view, value ->
+                val currentSp = view.textSize / view.context.resources.configuration.fontScale
+                view.setTextSize(TypedValue.COMPLEX_UNIT_SP, currentSp * value.toFloat())
+            }
+            attribute<String>(TRANSFORMATION_METHOD) { view, value ->
+                handleTransformationMethod(
+                    view, value
+                )
+            }
+            attribute<String>(DRAWABLE_PADDING) { view, value ->
+                view.compoundDrawablePadding =
+                    value.toPixels(view.context.resources.displayMetrics, asInt = true) as Int
+            }
 
-    /**
-     * Registers accessibility attributes.
-     */
-    private fun registerAccessibilityAttributes() {
-        register<View, String>(Attributes.Common.IMPORTANT_FOR_ACCESSIBILITY) { targetView, value ->
-            targetView.importantForAccessibility = parseImportantForAccessibility(value)
-        }
+            // Shadow Attributes
+            attribute<String>(SHADOW_COLOR) { view, value ->
+                view.setShadowLayer(
+                    view.shadowRadius,
+                    view.shadowDx,
+                    view.shadowDy,
+                    getColor(value, view.context, Color.TRANSPARENT)
+                )
+            }
+            attribute<String>(SHADOW_RADIUS) { view, value ->
+                view.setShadowLayer(
+                    value.toFloat(), view.shadowDx, view.shadowDy, view.shadowColor
+                )
+            }
+            attribute<String>(SHADOW_DX) { view, value ->
+                view.setShadowLayer(
+                    view.shadowRadius, value.toFloat(), view.shadowDy, view.shadowColor
+                )
+            }
+            attribute<String>(SHADOW_DY) { view, value ->
+                view.setShadowLayer(
+                    view.shadowRadius, view.shadowDx, value.toFloat(), view.shadowColor
+                )
+            }
 
-        register<View, String>(Attributes.Common.CONTENT_DESCRIPTION) { targetView, value ->
-            targetView.contentDescription = value
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            register<View, String>(Attributes.Common.SCREEN_READER_FOCUSABLE) { targetView, value ->
-                targetView.isScreenReaderFocusable = parseBoolean(value)
+            // Drawable Attributes
+            attribute<String>(DRAWABLE_START) { view, value ->
+                handleDrawablePosition(
+                    view, value, DrawablePosition.START
+                )
+            }
+            attribute<String>(DRAWABLE_END) { view, value ->
+                handleDrawablePosition(
+                    view, value, DrawablePosition.END
+                )
+            }
+            attribute<String>(DRAWABLE_TOP) { view, value ->
+                handleDrawablePosition(
+                    view, value, DrawablePosition.TOP
+                )
+            }
+            attribute<String>(DRAWABLE_BOTTOM) { view, value ->
+                handleDrawablePosition(
+                    view, value, DrawablePosition.BOTTOM
+                )
             }
         }
     }
 
-    /**
-     * Registers drawable attributes.
-     */
-    private fun registerDrawableAttributes() {
-        arrayOf(
-            Attributes.Common.DRAWABLE_START to DrawablePosition.START,
-            Attributes.Common.DRAWABLE_END to DrawablePosition.END,
-            Attributes.Common.DRAWABLE_TOP to DrawablePosition.TOP,
-            Attributes.Common.DRAWABLE_BOTTOM to DrawablePosition.BOTTOM
-        ).forEach { (attr, position) ->
-            register<TextView, String>(attr) { targetView, value ->
-                handleDrawablePosition(targetView, value, position)
-            }
-        }
-
-        register<View, String>(Attributes.Common.TINT) { targetView, value ->
-            handleTint(targetView, value)
-        }
-
-        register<View, String>(Attributes.Common.TINT_MODE) { targetView, value ->
-            handleTintMode(targetView, value)
-        }
-
-        @Suppress("DEPRECATION") register<View, String>(Attributes.Common.DRAWING_CACHE_QUALITY) { targetView, value ->
-            targetView.drawingCacheQuality = parseDrawingCacheQuality(value)
-        }
-    }
-
-    /**
-     * Registers width and height attributes.
-     */
-    private fun widthAndHeightAttributes() {
-        arrayOf(Attributes.Common.WIDTH, Attributes.Common.LAYOUT_WIDTH).forEach { attribute ->
-            register<View, String>(attribute) { targetView, value ->
-                setSize(targetView, value, isWidthDimension = true)
-            }
-        }
-        arrayOf(Attributes.Common.HEIGHT, Attributes.Common.LAYOUT_HEIGHT).forEach { attribute ->
-            register<View, String>(attribute) { targetView, value ->
-                setSize(targetView, value, isWidthDimension = false)
-            }
-        }
-    }
-
-    /**
-     * Registers margin and padding attributes.
-     */
-    private fun marginAndPaddingAttributes() {
-        arrayOf(
-            Attributes.Common.LAYOUT_MARGIN to View::setMargin,
-            Attributes.Common.LAYOUT_MARGIN_LEFT to View::setMarginLeft,
-            Attributes.Common.LAYOUT_MARGIN_RIGHT to View::setMarginRight,
-            Attributes.Common.LAYOUT_MARGIN_START to View::setMarginStart,
-            Attributes.Common.LAYOUT_MARGIN_END to View::setMarginEnd,
-            Attributes.Common.LAYOUT_MARGIN_TOP to View::setMarginTop,
-            Attributes.Common.LAYOUT_MARGIN_BOTTOM to View::setMarginBottom,
-            Attributes.Common.PADDING to View::setPaddingE,
-            Attributes.Common.PADDING_LEFT to View::setPaddingLeft,
-            Attributes.Common.PADDING_RIGHT to View::setPaddingRight,
-            Attributes.Common.PADDING_START to View::setPaddingStart,
-            Attributes.Common.PADDING_END to View::setPaddingEnd,
-            Attributes.Common.PADDING_TOP to View::setPaddingTop,
-            Attributes.Common.PADDING_BOTTOM to View::setPaddingBottom,
-            Attributes.Common.PADDING_HORIZONTAL to View::setPaddingHorizontal,
-            Attributes.Common.PADDING_VERTICAL to View::setPaddingVertical
-        ).forEach { (attr, func) ->
-            register<View, String>(attr) { targetView, value ->
-                val displayMetrics = targetView.resources.displayMetrics
-                val isMargin = attr.contains(MARGIN)
-                val pixels = if (isMargin) {
-                    val isHorizontal = attr in horizontalMarginAttributes
-                    value.toPixels(displayMetrics, targetView.getParentView(), isHorizontal, true)
-                } else {
-                    value.toPixels(displayMetrics, asInt = true)
+    private fun registerViewGroupAttributes() {
+        attributesForView<ViewGroup> {
+            attribute<String>(LAYOUT_GRAVITY) { view, value ->
+                val gravity = parseGravity(value)
+                val params = view.layoutParams
+                when (view) {
+                    is LinearLayout -> (params as LinearLayout.LayoutParams).gravity = gravity
+                    is FrameLayout -> (params as FrameLayout.LayoutParams).gravity = gravity
+                    is GridLayout -> (params as GridLayout.LayoutParams).setGravity(gravity)
                 }
-                func.call(targetView, pixels as Int)
+                view.layoutParams = params
+            }
+
+            attribute<String>(CLIP_TO_PADDING) { view, value ->
+                view.clipToPadding = parseBoolean(value)
             }
         }
     }

@@ -31,13 +31,16 @@ internal object AttributeProcessor {
      * @param view The target view to apply attributes to
      * @param attrs Map of attribute names to their values
      */
-    internal fun processAttributes(view: View, attrs: Map<String, Any?>) {
+    internal fun processAttributes(view: View, attrs: Map<String, Any>) {
         if (config.isLoggingEnabled) {
-            logger.debug("processAttributes", "Processing ${attrs.size} attributes for ${view.javaClass.simpleName}")
+            logger.debug(
+                "processAttributes",
+                "Processing ${attrs.size} attributes for ${view.javaClass.simpleName}"
+            )
         }
 
         bitmask.clear()
-        
+
         // 1. Apply ID attribute first
         attrs.entries.find { AttributeOrder.isIDAttribute(it.key) }?.let { (name, value) ->
             if (config.isLoggingEnabled) {
@@ -59,13 +62,16 @@ internal object AttributeProcessor {
         if (config.isLoggingEnabled && normalAttrs.isNotEmpty()) {
             logger.debug("processAttributes", "Processing ${normalAttrs.size} normal attributes")
         }
-        normalAttrs.forEach { (name, value) -> 
+        normalAttrs.forEach { (name, value) ->
             processInternalAttributes(view, name, value)
         }
 
         // 3. Apply pure ConstraintLayout attributes
         if (config.isLoggingEnabled && pureConstraintAttrs.isNotEmpty()) {
-            logger.debug("processAttributes", "Processing ${pureConstraintAttrs.size} pure constraint attributes")
+            logger.debug(
+                "processAttributes",
+                "Processing ${pureConstraintAttrs.size} pure constraint attributes"
+            )
         }
         pureConstraintAttrs.forEach { (name, value) ->
             processInternalAttributes(view, name, value)
@@ -75,7 +81,7 @@ internal object AttributeProcessor {
         if (config.isLoggingEnabled && biasAttrs.isNotEmpty()) {
             logger.debug("processAttributes", "Processing ${biasAttrs.size} bias attributes")
         }
-        biasAttrs.forEach { (name, value) -> 
+        biasAttrs.forEach { (name, value) ->
             processInternalAttributes(view, name, value)
         }
     }
@@ -89,10 +95,12 @@ internal object AttributeProcessor {
      * @param name The attribute name
      * @param value The attribute value
      */
-    private fun processInternalAttributes(view: View, name: String, value: Any?) {
+    private fun processInternalAttributes(view: View, name: String, value: Any) {
         val id = AttributeRegistry.ids[name] ?: run {
             if (config.isLoggingEnabled) {
-                logger.warn("processInternalAttributes", "No handler registered for attribute: $name")
+                logger.warn(
+                    "processInternalAttributes", "No handler registered for attribute: $name"
+                )
             }
             return
         }
@@ -100,7 +108,9 @@ internal object AttributeProcessor {
         if (bitmask.setIfNotSet(id)) {
             AttributeRegistry.getHandler(id)?.process(view, value) ?: run {
                 if (config.isLoggingEnabled) {
-                    logger.error("processInternalAttributes", "Handler not found for attribute: $name")
+                    logger.error(
+                        "processInternalAttributes", "Handler not found for attribute: $name"
+                    )
                 }
             }
         } else if (config.isLoggingEnabled) {

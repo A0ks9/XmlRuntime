@@ -36,7 +36,7 @@ class MyApplication : Application() {
             androidContext(this@MyApplication)
             // Load both the Voyager core module and our app-specific module
             modules(
-                appModule(resourcesProvider, true, R.style.Theme_Voyager), AppModule
+                appModule(resourcesProvider, true, true, R.style.Theme_Voyager), AppModule
             )
         }
 

@@ -6,7 +6,6 @@ import com.voyager.core.data.ResourcesProvider
 import com.voyager.core.data.datasource.local.RoomViewNodeDataSource
 import com.voyager.core.data.repository.ViewNodeRepositoryImpl
 import com.voyager.core.datasource.ViewNodeDataSource
-import com.voyager.core.domain.usecase.ConvertXmlToJsonUseCase
 import com.voyager.core.domain.usecase.GetFileNameFromUriUseCase
 import com.voyager.core.domain.usecase.GetViewNodeUseCase
 import com.voyager.core.domain.usecase.HasViewNodeUseCase
@@ -51,7 +50,7 @@ import org.koin.dsl.module
  * }
  * ```
  */
-fun appModule(provider: ResourcesProvider, isLoggingEnabled: Boolean = false, themeResId: Int) =
+fun appModule(provider: ResourcesProvider, caching: Boolean = true, isLoggingEnabled: Boolean = false, themeResId: Int) =
     module {
         val logger = LoggerFactory.getLogger("KoinAppModule")
 
@@ -138,19 +137,6 @@ fun appModule(provider: ResourcesProvider, isLoggingEnabled: Boolean = false, th
 
         single {
             try {
-                ConvertXmlToJsonUseCase(get()).also {
-                    logger.info("init", "Initialized ConvertXmlToJsonUseCase")
-                }
-            } catch (e: Exception) {
-                logger.error(
-                    "init", "Failed to initialize ConvertXmlToJsonUseCase: ${e.message}", e
-                )
-                throw InstanceCreationException("Failed to initialize ConvertXmlToJsonUseCase", e)
-            }
-        }
-
-        single {
-            try {
                 GetFileNameFromUriUseCase(get()).also {
                     logger.info("init", "Initialized GetFileNameFromUriUseCase")
                 }
@@ -208,10 +194,10 @@ fun appModule(provider: ResourcesProvider, isLoggingEnabled: Boolean = false, th
         single {
             try {
                 VoyagerConfig(
-                    version = "1.0.0-Beta01", isLoggingEnabled = isLoggingEnabled, provider = get()
+                    caching = caching, isLoggingEnabled = isLoggingEnabled, provider = get()
                 ).also {
                     ConfigManager.initialize(it)
-                    logger.info("init", "Initialized VoyagerConfig with version: ${it.version}")
+                    logger.info("init", "Initialized VoyagerConfig")
                 }
             } catch (e: Exception) {
                 logger.error(

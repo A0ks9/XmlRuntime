@@ -131,38 +131,22 @@ internal object Constants {
     // Animation constants
     const val TWEEN_LOCAL_RESOURCE_STR = "@anim/"
 
-    /**
-     * Checks if a string matches any of the visibility constants.
-     * Thread-safe operation.
-     *
-     * @param value The string to check
-     * @return true if the string matches a visibility constant, false otherwise
-     */
-    fun isVisibilityConstant(value: String): Boolean {
-        return value == VISIBLE || value == INVISIBLE || value == GONE
-    }
-
-    /**
-     * Checks if a string matches any of the alignment constants.
-     * Thread-safe operation.
-     *
-     * @param value The string to check
-     * @return true if the string matches an alignment constant, false otherwise
-     */
-    fun isAlignmentConstant(value: String): Boolean {
-        return value == CENTER || value == CENTER_HORIZONTAL || value == CENTER_VERTICAL ||
-                value == LEFT || value == RIGHT || value == TOP || value == BOTTOM ||
-                value == START || value == END
-    }
-
-    /**
-     * Checks if a string matches any of the layout constants.
-     * Thread-safe operation.
-     *
-     * @param value The string to check
-     * @return true if the string matches a layout constant, false otherwise
-     */
-    fun isLayoutConstant(value: String): Boolean {
-        return value == MATCH_PARENT || value == FILL_PARENT || value == WRAP_CONTENT
-    }
+    const val TEXT_SIZE = "textSize"
+    const val TEXT_COLOR = "textColor"
+    const val TEXT_STYLE = "textStyle"
+    const val TEXT_ALIGNMENT = "textAlignment"
+    const val ELLIPSIZE = "ellipsize"
+    const val SINGLE_LINE = "singleLing"
+    const val INPUT_TYPE = "inputType"
+    const val HINT_COLOR = "hintColor"
+    const val LETTER_SPACING = "letterSpacing"
+    const val LINE_SPACING_EXTRA = "lineSpacingExtra"
+    const val LINE_SPACING_MULTIPLIER = "lineSpacingMultiplier"
+    const val IS_ALL_CAPS = "isAllCaps"
+    const val MAX_LINES = "maxLines"
+    const val IME_OPTIONS = "imeOptions"
+    const val FONT_FAMILY = "fontFamily"
+    const val TEXT_SCALE_X = "textScaleX"
+    const val TRANSFORMATION_METHOD = "transformationMethod"
+    const val DRAWABLE_PADDING = "drawablePadding"
 } 

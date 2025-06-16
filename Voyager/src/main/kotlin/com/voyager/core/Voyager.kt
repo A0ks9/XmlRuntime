@@ -7,6 +7,7 @@ import com.voyager.core.cache.LayoutCache
 import com.voyager.core.data.utils.FileHelper
 import com.voyager.core.data.utils.FileHelper.getFileExtension
 import com.voyager.core.data.utils.StreamUtils.sha256
+import com.voyager.core.data.utils.ViewNodeTokenStream
 import com.voyager.core.model.ViewNode
 import com.voyager.core.parser.ViewNodeParser
 import com.voyager.core.renderer.XmlRenderer
@@ -71,31 +72,24 @@ class Voyager internal constructor(
             val extension = getFileExtension(context, xmlFile)
             if (extension != "xml") return@withContext Result.failure(Exception("Unsupported file type: $extension"))
 
-            context.contentResolver.openInputStream(xmlFile)?.use { originalInputStream ->
-                val buffer = ByteArrayOutputStream()
-                originalInputStream.copyTo(buffer)
-                val data = buffer.toByteArray()
+            context.contentResolver.openInputStream(xmlFile)?.use { inputStream ->
+                val tokenStream = ViewNodeTokenStream()
+                FileHelper.parseXML(inputStream, tokenStream)
+                
+                val parseResult = tokenStream.getResult()
+                if (parseResult == null) return@withContext Result.failure(Exception("Failed to parse XML from URI: $xmlFile"))
 
-                // Calculate SHA256 hash from the byte array
-                val sha256Hash =
-                    data.inputStream().sha256(xmlFile) // Use a new stream from data for hash
-
-                layoutCache.get(sha256Hash)?.let {
+                // Check cache using the hash from ParseResult
+                layoutCache.get(parseResult.sha256Hash.contentHashCode())?.let {
                     return@withContext Result.success(it)
                 }
 
-                // Create a new InputStream from the byte array for native parsing
-                val byteArrayInputStream = ByteArrayInputStream(data)
-                val xmlResult = FileHelper.parseXML(byteArrayInputStream)
-                if (xmlResult.isNullOrBlank()) return@withContext Result.failure(Exception("Failed to parse XML from URI: $xmlFile"))
-
-                val finalResult = ViewNodeParser.fromJson(xmlResult)
-                finalResult?.activityName = context.name
+                val finalResult = parseResult.jsonString
+                finalResult.activityName = context.name
                 LoggerFactory.getLogger("Voyager")
-                    .error("parseXml", "Parsed Json for String: ${finalResult.toString()}")
-                if (finalResult == null) return@withContext Result.failure(Exception("Failed to parse JSON (from XML) for URI: $xmlFile"))
+                    .error("parseXml", "Parsed Json for String: $finalResult")
 
-                layoutCache.put(sha256Hash, finalResult)
+                layoutCache.put(parseResult.sha256Hash.contentHashCode(), finalResult)
                 return@withContext Result.success(finalResult)
             }
             Result.failure(Exception("Could not open InputStream for XML URI: $xmlFile"))

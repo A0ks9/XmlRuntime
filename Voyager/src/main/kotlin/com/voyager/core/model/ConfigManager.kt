@@ -61,6 +61,6 @@ object ConfigManager {
             )
         }
         _config = config
-        logger.debug(message = "VoyagerConfig initialized with version: ${config.version}")
+        logger.debug(message = "VoyagerConfig initialized")
     }
 }

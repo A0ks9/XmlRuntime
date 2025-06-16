@@ -63,7 +63,7 @@ data class ViewNode(
     val type: String,
     @PrimaryKey var activityName: String = "no_activity",
     @Serializable(with = ArrayMapSerializer::class) val attributes: ArrayMap<String, String>,
-    val children: List<ViewNode> = emptyList(),
+    val children: MutableList<ViewNode> = mutableListOf(),
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         id = parcel.readString(),
@@ -72,7 +72,7 @@ data class ViewNode(
         activityName = parcel.readString()
             ?: throw VoyagerRenderingException.MissingAttributeException("activityName", "unknown"),
         attributes = parcel.readArrayMapOptimized(),
-        children = parcel.createTypedArrayList(CREATOR) ?: emptyList()
+        children = parcel.createTypedArrayList(CREATOR) ?: mutableListOf()
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) = with(parcel) {

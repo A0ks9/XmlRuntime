@@ -145,23 +145,26 @@ internal object FileHelper {
 
     /**
      * External JNI (Java Native Interface) function to parse an XML [InputStream]
-     * and convert it into a JSON string representation.
+     * and stream tokens to the provided [XmlTokenStream].
      *
      * This function is implemented in the native library "xmlParser". It is designed for
      * performance-critical XML parsing tasks within the Voyager framework, specifically for
-     * converting XML layouts into a JSON format that can then be processed by
-     * [ViewNodeParser].
+     * converting XML layouts into a stream of tokens that can be processed efficiently.
      *
      * Performance Considerations:
      * - Uses native code for efficient parsing
      * - Avoids intermediate string allocations
      * - Optimized for large XML files
+     * - Calculates SHA256 hash in a single pass
+     * - Streams tokens directly to Kotlin layer
      *
-     * @param inputStream The [InputStream] containing the XML data to be parsed.
-     * @return A [String] containing the JSON representation of the parsed XML,
-     *         or `null` if parsing fails.
+     * @param inputStream The [InputStream] containing the XML data to be parsed
+     * @param tokenStream The [XmlTokenStream] to receive parsed tokens
      */
-    external fun parseXML(@Suppress("UNUSED_PARAMETER") inputStream: InputStream): String?
+    external fun parseXML(
+        @Suppress("UNUSED_PARAMETER") inputStream: InputStream,
+        @Suppress("UNUSED_PARAMETER") tokenStream: XmlTokenStream
+    )
 
     /**
      * A thread-safe [ConcurrentHashMap] used to cache resolved file system paths for given URIs.

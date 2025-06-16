@@ -1,5 +1,7 @@
 package com.voyager.core.utils.parser
 
+import com.voyager.core.model.ConfigManager
+import com.voyager.core.utils.ErrorUtils
 import com.voyager.core.utils.logging.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
@@ -42,16 +44,18 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object NumericalParser {
 
-    private val logger = LoggerFactory.getLogger(NumericalParser::class.java.simpleName)
+    private val logger by lazy { LoggerFactory.getLogger("NumericalParser") }
+    private val isLoggingEnabled by lazy { ConfigManager.config.isLoggingEnabled }
+    private val errorUtils by lazy { ErrorUtils("NumericalParser") }
 
     // Thread-safe cache for parsed integers
-    private val intCache = ConcurrentHashMap<String, Int>()
+    private val intCache by lazy { ConcurrentHashMap<String, Int>() }
 
     // Thread-safe cache for parsed floats
-    private val floatCache = ConcurrentHashMap<String, Float>()
+    private val floatCache by lazy { ConcurrentHashMap<String, Float>() }
 
     // Thread-safe cache for parsed doubles
-    private val doubleCache = ConcurrentHashMap<String, Double>()
+    private val doubleCache by lazy { ConcurrentHashMap<String, Double>() }
 
     /**
      * Parses a string to an integer, returning 0 if parsing fails.
@@ -66,27 +70,25 @@ object NumericalParser {
      * @param attributeValue The string value to parse
      * @return The parsed integer value, or 0 if the string is null or cannot be parsed as an integer
      */
-    fun parseInt(attributeValue: String?): Int {
-        return try {
-            if (attributeValue == null) {
-                logger.warn("parseInt", "Null integer value provided")
-                return 0
+    fun parseInt(attributeValue: String?): Int = errorUtils.tryOrDefault({
+        if (attributeValue == null) {
+            if (isLoggingEnabled) {
+                logger.warn("parseInt", "Null Integer value provided")
             }
-
-            intCache.getOrPut(attributeValue) {
-                attributeValue.toIntOrNull() ?: run {
-                    logger.error(
-                        "parseInt",
-                        "Failed to parse '$attributeValue' as Int. Returning 0."
-                    )
-                    return 0
-                }
-            }
-        } catch (e: Exception) {
-            logger.error("parseInt", "Failed to parse integer: ${e.message}", e)
-            return 0
+            return@tryOrDefault 0
         }
-    }
+
+        intCache.getOrPut(attributeValue) {
+            attributeValue.toIntOrNull() ?: run {
+                if (isLoggingEnabled) {
+                    logger.error(
+                        "parseInt", "Failed to parse '$attributeValue' as Int. Returning 0."
+                    )
+                }
+                return@tryOrDefault 0
+            }
+        }
+    }, "parseInt", { "Failed to parse integer: ${it.message}" }, { 0 })
 
     /**
      * Parses a string to an integer, providing a result object indicating success or failure.
@@ -101,26 +103,25 @@ object NumericalParser {
      * @param s The string value to parse
      * @return An [IntResult] object containing either the parsed integer or an error message
      */
-    fun parseIntUnsafe(s: String?): IntResult {
-        return try {
-            if (s == null) {
-                return IntResult("Input string is null")
-            }
-
-            var num = 0
-            for (char in s) {
-                val digit = char - '0'
-                if (digit !in 0..9) {
-                    return IntResult("Malformed integer string: '$s'")
-                }
-                num = num * 10 + digit
-            }
-            return IntResult(null, num)
-        } catch (e: Exception) {
-            logger.error("parseIntUnsafe", "Failed to parse integer: ${e.message}", e)
-            return IntResult("Failed to parse integer: ${e.message}")
+    fun parseIntUnsafe(s: String?): IntResult = errorUtils.tryOrDefault(
+        {
+        if (s == null) {
+            return@tryOrDefault IntResult("Input string is null")
         }
-    }
+
+        var num = 0
+        for (char in s) {
+            val digit = char - '0'
+            if (digit !in 0..9) {
+                return@tryOrDefault IntResult("Malformed integer string: '$s'")
+            }
+            num = num * 10 + digit
+        }
+        return@tryOrDefault IntResult(null, num)
+    },
+        "parseIntUnsafe",
+        { "Failed to parse integer: ${it.message}" },
+        { IntResult("Failed to parse integer: ${it.message}") })
 
     /**
      * Parses a string to a float, returning 0f if parsing fails.
@@ -135,24 +136,25 @@ object NumericalParser {
      * @param value The string value to parse
      * @return The parsed float value, or 0f if the string is null or cannot be parsed as a float
      */
-    fun parseFloat(value: String?): Float {
-        return try {
-            if (value == null) {
+    fun parseFloat(value: String?): Float = errorUtils.tryOrDefault({
+        if (value == null) {
+            if (isLoggingEnabled) {
                 logger.warn("parseFloat", "Null float value provided")
-                return 0f
             }
-
-            floatCache.getOrPut(value) {
-                value.toFloatOrNull() ?: run {
-                    logger.error("parseFloat", "Failed to parse '$value' as Float. Returning 0f.")
-                    return 0f
-                }
-            }
-        } catch (e: Exception) {
-            logger.error("parseFloat", "Failed to parse float: ${e.message}", e)
-            return 0f
+            return@tryOrDefault 0f
         }
-    }
+
+        floatCache.getOrPut(value) {
+            value.toFloatOrNull() ?: run {
+                if (isLoggingEnabled) {
+                    logger.error(
+                        "parseFloat", "Failed to parse '$value' as Float. Returning 0f."
+                    )
+                }
+                return@tryOrDefault 0f
+            }
+        }
+    }, "parseFloat", { "Failed to parse float: ${it.message}" }, { 0f })
 
     /**
      * Parses a string to a double, returning 0.0 if parsing fails.
@@ -167,27 +169,25 @@ object NumericalParser {
      * @param attributeValue The string value to parse
      * @return The parsed double value, or 0.0 if the string is null or cannot be parsed as a double
      */
-    fun parseDouble(attributeValue: String?): Double {
-        return try {
-            if (attributeValue == null) {
+    fun parseDouble(attributeValue: String?): Double = errorUtils.tryOrDefault({
+        if (attributeValue == null) {
+            if (isLoggingEnabled) {
                 logger.warn("parseDouble", "Null double value provided")
-                return 0.0
             }
-
-            doubleCache.getOrPut(attributeValue) {
-                attributeValue.toDoubleOrNull() ?: run {
-                    logger.error(
-                        "parseDouble",
-                        "Failed to parse '$attributeValue' as Double. Returning 0.0."
-                    )
-                    return 0.0
-                }
-            }
-        } catch (e: Exception) {
-            logger.error("parseDouble", "Failed to parse double: ${e.message}", e)
-            return 0.0
+            return@tryOrDefault 0.0
         }
-    }
+
+        doubleCache.getOrPut(attributeValue) {
+            attributeValue.toDoubleOrNull() ?: run {
+                if (isLoggingEnabled) {
+                    logger.error(
+                        "parseDouble", "Failed to parse '$attributeValue' as Double. Returning 0.0."
+                    )
+                }
+                return@tryOrDefault 0.0
+            }
+        }
+    }, "parseDouble", { "Failed to parse double: ${it.message}" }, { 0.0 })
 
     /**
      * Data class to hold the result of an integer parsing operation.
@@ -206,6 +206,8 @@ object NumericalParser {
         intCache.clear()
         floatCache.clear()
         doubleCache.clear()
-        logger.debug("clearCache", "Numerical caches cleared")
+        if (isLoggingEnabled) {
+            logger.debug("clearCache", "Numerical caches cleared")
+        }
     }
 }

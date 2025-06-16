@@ -40,7 +40,7 @@ import com.voyager.core.view.utils.RelativeLayoutUtils.parseRelativeLayoutBoolea
 import com.voyager.core.view.utils.ViewExtensions.DrawablePosition
 import com.voyager.core.view.utils.ViewExtensions.getParentView
 import com.voyager.core.view.utils.ViewExtensions.getViewID
-import com.voyager.core.view.utils.id.ViewIdUtils.extractViewId
+import com.voyager.core.utils.StringUtils.extractViewId
 import com.voyager.core.view.utils.text.ReverseTransformation
 import com.voyager.core.view.utils.toLayoutParam
 import java.util.concurrent.ConcurrentHashMap

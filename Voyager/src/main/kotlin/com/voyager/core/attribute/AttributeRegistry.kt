@@ -3,6 +3,7 @@ package com.voyager.core.attribute
 import android.view.View
 import com.voyager.core.model.ConfigManager
 import com.voyager.core.utils.logging.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -13,19 +14,55 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 @PublishedApi
 internal object AttributeRegistry {
-    val logger = LoggerFactory.getLogger(AttributeRegistry::class.java.simpleName)
-    
+    internal val logger by lazy { LoggerFactory.getLogger(AttributeRegistry::class.java.simpleName) }
+
     // Access config lazily to avoid initialization issues
-    val config by lazy { ConfigManager.config }
+    internal val isLoggingEnabled by lazy { ConfigManager.config.isLoggingEnabled }
 
     /** Map of handler IDs to their corresponding handlers */
-    val handlers = mutableMapOf<Int, AttributeHandler>()
-    
+    internal val handlers = ConcurrentHashMap<Int, AttributeHandler>()
+
     /** Map of attribute names to their handler IDs */
-    val ids = mutableMapOf<String, Int>()
-    
+    internal val ids = ConcurrentHashMap<String, Int>()
+
     /** Atomic counter for generating unique handler IDs */
-    val nextId = AtomicInteger(0)
+    internal val nextId = AtomicInteger(0)
+
+    @PublishedApi
+    internal fun registerInternal(
+        name: String,
+        viewClass: Class<out View>,
+        valueClass: Class<*>,
+        handler: (View, Any) -> Unit,
+    ): Boolean {
+        if (ids.containsKey(name)) {
+            if (isLoggingEnabled) {
+                logger.warn("register", "Attribute '$name' is already registered")
+            }
+            return false
+        }
+
+        synchronized(this) {
+            if (ids.containsKey(name)) {
+                if (isLoggingEnabled) {
+                    logger.warn("register", "Attribute '$name' was registered concurrently")
+                }
+                return false
+            }
+
+            val newId = nextId.andIncrement
+            ids[name] = newId
+            handlers[newId] = AttributeHandler(viewClass, valueClass, handler)
+
+            if (isLoggingEnabled) {
+                logger.debug(
+                    "register",
+                    "Registered attribute '$name' with ID $newId for ${viewClass.simpleName}"
+                )
+            }
+            return true
+        }
+    }
 
     /**
      * Registers a new attribute handler for a specific view and value type.
@@ -35,38 +72,24 @@ internal object AttributeRegistry {
      * @param name The attribute name to register
      * @param handler The handler function that processes the attribute
      */
-    inline fun <reified V : View, reified T> register(
+    @PublishedApi
+    internal inline fun <reified V : View, reified T> register(
         name: String,
         crossinline handler: (V, T) -> Unit,
     ) {
-        var id = ids[name]
-        if (id != null) {
-            if (config.isLoggingEnabled) {
-                logger.warn("register", "Attribute '$name' is already registered with ID $id")
-            }
-            return
+        registerInternal(name, V::class.java, T::class.java) { view, value ->
+            handler(view as V, value as T)
         }
+    }
 
-        synchronized(ids) {
-            id = ids[name]
-            if (id != null) {
-                if (config.isLoggingEnabled) {
-                    logger.warn("register", "Attribute '$name' was registered concurrently with ID $id")
-                }
-                return
-            }
 
-            val newId = nextId.getAndIncrement()
-            ids[name] = newId
-            handlers[newId] = AttributeHandler(V::class.java, T::class.java) { view, value ->
-                handler(view as V, value as T)
-                id = newId
-            }
-
-            if (config.isLoggingEnabled) {
-                logger.debug("register", "Registered attribute '$name' with ID $newId for ${V::class.java.simpleName}")
-            }
-        }
+    internal fun register(
+        name: String,
+        viewClass: Class<out View>,
+        valueClass: Class<*>,
+        handler: (View, Any) -> Unit,
+    ) {
+        registerInternal(name, viewClass, valueClass, handler)
     }
 
     /**
@@ -78,7 +101,7 @@ internal object AttributeRegistry {
      * @return The corresponding AttributeHandler, or null if not found
      */
     internal fun getHandler(id: Int): AttributeHandler? = handlers[id].also { handler ->
-        if (handler == null && config.isLoggingEnabled) {
+        if (handler == null && isLoggingEnabled) {
             logger.error("getHandler", "No handler found for ID $id")
         }
     }
