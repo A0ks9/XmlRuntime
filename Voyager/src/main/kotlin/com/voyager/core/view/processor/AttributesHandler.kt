@@ -11,7 +11,6 @@ import android.os.Build
 import android.text.method.DigitsKeyListener
 import android.text.method.PasswordTransformationMethod
 import android.text.method.SingleLineTransformationMethod
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -28,11 +27,13 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import com.bumptech.glide.Glide
 import com.voyager.core.model.ConfigManager
+import com.voyager.core.utils.ErrorUtils
+import com.voyager.core.utils.StringUtils.extractViewId
 import com.voyager.core.utils.logging.LoggerFactory
 import com.voyager.core.utils.parser.BooleanParser.isBoolean
-import com.voyager.core.utils.parser.BooleanParser.parseBoolean
-import com.voyager.core.utils.parser.ColorParser.getColor
+import com.voyager.core.utils.parser.BooleanParser.toBoolean
 import com.voyager.core.utils.parser.ColorParser.isColor
+import com.voyager.core.utils.parser.ColorParser.toColor
 import com.voyager.core.utils.parser.PorterDuffParser.parsePorterDuff
 import com.voyager.core.utils.parser.ResourceParser.getDrawable
 import com.voyager.core.view.utils.RelativeLayoutUtils.addRelativeLayoutRule
@@ -40,7 +41,6 @@ import com.voyager.core.view.utils.RelativeLayoutUtils.parseRelativeLayoutBoolea
 import com.voyager.core.view.utils.ViewExtensions.DrawablePosition
 import com.voyager.core.view.utils.ViewExtensions.getParentView
 import com.voyager.core.view.utils.ViewExtensions.getViewID
-import com.voyager.core.utils.StringUtils.extractViewId
 import com.voyager.core.view.utils.text.ReverseTransformation
 import com.voyager.core.view.utils.toLayoutParam
 import java.util.concurrent.ConcurrentHashMap
@@ -101,11 +101,11 @@ import java.util.concurrent.ConcurrentHashMap
  * @since 1.0.0
  */
 internal object AttributesHandler {
-    private const val TAG = "AttributesHandler"
     private const val WRAP_CONTENT = ViewGroup.LayoutParams.WRAP_CONTENT
-    private val config = ConfigManager.config
-    private val logger = LoggerFactory.getLogger(TAG)
-    private val resourceCache = ConcurrentHashMap<String, Any>()
+    private val config by lazy { ConfigManager.config }
+    private val logger by lazy { LoggerFactory.getLogger("AttributeHandler") }
+    private val errorUtils by lazy { ErrorUtils("AttributeHandler") }
+    private val resourceCache by lazy { ConcurrentHashMap<String, Any>() }
 
     // Transformation constants
     private const val TRANSFORM_ALL_CAPS = "allCaps"
@@ -134,12 +134,12 @@ internal object AttributesHandler {
      * - Handle concurrent access
      */
     fun clearCache() {
-        try {
+        errorUtils.tryOrLog({
             resourceCache.clear()
-            logger.debug("clearCache", "Resource cache cleared successfully")
-        } catch (e: Exception) {
-            logger.error("clearCache", "Failed to clear resource cache: ${e.message}")
-        }
+            if (config.isLoggingEnabled) {
+                logger.debug("clearCache", "Resource cache cleared successfully")
+            }
+        }, "clearCache", { "Failed to clear resource cache: ${it.message}" })
     }
 
     /**
@@ -149,15 +149,12 @@ internal object AttributesHandler {
      * @param key The cache key
      * @return The cached value, or null if not found
      */
-    fun <T> getCachedResource(key: String): T? {
-        return try {
-            @Suppress("UNCHECKED_CAST")
-            resourceCache[key] as? T
-        } catch (e: Exception) {
-            logger.error("getCachedResource", "Failed to get cached resource for key $key: ${e.message}")
-            null
-        }
-    }
+    @Suppress("UNCHECKED_CAST")
+    fun <T> getCachedResource(key: String) = errorUtils.tryOrDefault(
+        { return@tryOrDefault resourceCache[key] as? T },
+        "getCachedResource",
+        { "Failed to get cached resource for $key: ${it.message}" },
+        { null })
 
     /**
      * Sets a cached resource value.
@@ -167,11 +164,10 @@ internal object AttributesHandler {
      * @param value The value to cache
      */
     fun <T> setCachedResource(key: String, value: T) {
-        try {
-            resourceCache[key] = value as Any
-        } catch (e: Exception) {
-            logger.error("setCachedResource", "Failed to set cached resource for key $key: ${e.message}")
-        }
+        errorUtils.tryOrLog(
+            { resourceCache[key] = value as Any },
+            "setCachedResource",
+            { "Failed to set cached resource for $key: ${it.message}" })
     }
 
     /**
@@ -189,27 +185,30 @@ internal object AttributesHandler {
      * @throws IllegalArgumentException if the image source format is invalid
      */
     fun setImageSource(view: ImageView, imageSource: String) {
-        try {
+        errorUtils.tryOrDefault(
+            {
             val processedSource = when {
                 imageSource.startsWith(PROTOCOL_DOUBLE_SLASH) -> PROTOCOL_HTTP + imageSource
                 imageSource.startsWith(PROTOCOL_HTTP) || imageSource.startsWith(PROTOCOL_HTTPS) -> imageSource
                 imageSource.startsWith("@$RESOURCE_TYPE_DRAWABLE/") -> {
-                    val drawable = getDrawable(view, imageSource.removePrefix("@$RESOURCE_TYPE_DRAWABLE/"))
+                    val drawable =
+                        getDrawable(view, imageSource.removePrefix("@$RESOURCE_TYPE_DRAWABLE/"))
                     if (drawable != null) {
                         view.setImageDrawable(drawable)
-                        return
+                        return@tryOrDefault
                     }
                     view.setImageResource(android.R.drawable.ic_menu_report_image)
-                    return
+                    return@tryOrDefault
                 }
+
                 else -> throw IllegalArgumentException("Unsupported image source format: $imageSource")
             }
 
             Glide.with(view.context).load(processedSource).into(view)
-        } catch (e: Exception) {
-            logger.error("setImageSource", "Failed to set image source: ${e.message}")
-            view.setImageResource(android.R.drawable.ic_menu_report_image)
-        }
+        },
+            "setImageSource",
+            { "Failed to set image source: ${it.message}" },
+            { view.setImageResource(android.R.drawable.ic_menu_report_image) })
     }
 
     /**
@@ -238,7 +237,7 @@ internal object AttributesHandler {
     fun addRelativeLayoutRule(view: View, anchor: String, layoutRule: Int) {
         (view.layoutParams as? RelativeLayout.LayoutParams)?.apply {
             val anchorId = when {
-                anchor.isBoolean() -> parseRelativeLayoutBoolean(parseBoolean(anchor))
+                anchor.isBoolean -> parseRelativeLayoutBoolean(anchor.toBoolean)
                 else -> view.getParentView()?.getViewID(anchor.extractViewId())!!
             }
             addRelativeLayoutRule(view, layoutRule, anchorId)
@@ -270,7 +269,9 @@ internal object AttributesHandler {
         }
 
         if (config.isLoggingEnabled) {
-            Log.d(TAG, "Adding constraint: view=$sourceId, target=$targetViewId")
+            logger.debug(
+                "addConstraintRule", "Adding constraint: view=$sourceId, target=$targetViewId"
+            )
         }
 
         constraintSet.connect(sourceId, constraintEdges.first, targetViewId, constraintEdges.second)
@@ -287,19 +288,23 @@ internal object AttributesHandler {
     fun handleBackground(view: View, background: String?, context: Context) {
         background?.let {
             when {
-                it.isColor() -> view.setBackgroundColor(getColor(it, context, Color.TRANSPARENT))
+                it.isColor -> view.setBackgroundColor(it.toColor(context, Color.TRANSPARENT))
                 it.startsWith("@$RESOURCE_TYPE_DRAWABLE/") -> {
                     getDrawable(
                         view, it.removePrefix("@$RESOURCE_TYPE_DRAWABLE/")
                     )?.let { drawable ->
                         view.background = drawable
                     } ?: run {
-                        if (config.isLoggingEnabled) Log.w(TAG, "Drawable not found: $it")
+                        if (config.isLoggingEnabled) logger.warn(
+                            "handleBackground", "Drawable not found: $it"
+                        )
                     }
                 }
 
                 else -> {
-                    if (config.isLoggingEnabled) Log.w(TAG, "Unsupported background format: $it")
+                    if (config.isLoggingEnabled) logger.warn(
+                        "handleBackground", "Unsupported background format: $it"
+                    )
                     view.background = Color.TRANSPARENT.toDrawable()
                 }
             }
@@ -316,8 +321,8 @@ internal object AttributesHandler {
     @RequiresApi(Build.VERSION_CODES.M)
     fun handleForeground(view: View, source: String, context: Context) {
         when {
-            source.isColor() -> view.foreground =
-                getColor(source, context, Color.TRANSPARENT).toDrawable()
+            source.isColor -> view.foreground =
+                source.toColor(context, Color.TRANSPARENT).toDrawable()
 
             source.startsWith("?$RESOURCE_TYPE_ATTR") -> {
                 val attributeName = source.removePrefix("?$RESOURCE_TYPE_ATTR")
@@ -420,13 +425,13 @@ internal object AttributesHandler {
      * @param colorValue The color value
      */
     fun handleTint(view: View, colorValue: String) {
-        val color = getColor(colorValue, view.context, Color.BLACK)
+        val color = colorValue.toColor(view.context, Color.BLACK)
 
         when (view) {
             is ImageView -> view.setColorFilter(color)
             is TextView -> applyTextViewTint(view, color)
             else -> if (config.isLoggingEnabled) {
-                Log.w(TAG, "Tint not supported for ${view::class.java}")
+                logger.warn("handleTint", "Tint not supported for ${view::class.java}")
             }
         }
     }
@@ -445,7 +450,7 @@ internal object AttributesHandler {
             is CheckBox, is RadioButton, is Switch -> view.buttonTintMode = mode
             is TextView -> applyTextViewTintMode(view, mode)
             else -> if (config.isLoggingEnabled) {
-                Log.w(TAG, "TintMode not supported for ${view::class.java}")
+                logger.warn("handleTintMode", "TintMode not supported for ${view::class.java}")
             }
         }
     }
@@ -596,9 +601,9 @@ internal object AttributesHandler {
         }
 
         targetView.foregroundTintList = when {
-            tintSource.isColor() -> ColorStateList.valueOf(
-                getColor(
-                    tintSource, applicationContext, Color.TRANSPARENT
+            tintSource.isColor -> ColorStateList.valueOf(
+                tintSource.toColor(
+                    applicationContext, Color.TRANSPARENT
                 )
             )
 
@@ -630,18 +635,14 @@ internal object AttributesHandler {
      * @param fontName The name of the font to load
      * @return The loaded Typeface or null if loading fails
      */
-    fun loadFontFromAttribute(context: Context, fontName: String): Typeface? {
-        return try {
-            val cacheKey = "font:$fontName"
-            getCachedResource<Typeface>(cacheKey) ?: when (fontName.substringAfter("/")) {
+    fun loadFontFromAttribute(context: Context, fontName: String) = errorUtils.tryOrDefault({
+        val cacheKey = "font:$fontName"
+        return@tryOrDefault getCachedResource<Typeface>(cacheKey)
+            ?: when (fontName.substringAfter("/")) {
                 "sans-serif" -> Typeface.SANS_SERIF
                 "serif" -> Typeface.SERIF
                 "monospace" -> Typeface.MONOSPACE
                 else -> Typeface.createFromAsset(context.assets, "fonts/$fontName.ttf")
             }.also { setCachedResource(cacheKey, it) }
-        } catch (e: Exception) {
-            logger.error("loadFontFromAttribute", "Failed to load font: $fontName", e)
-            null
-        }
-    }
+    }, "loadFontFromAttribute", { "Failed to load font: $fontName" }, { null })
 }

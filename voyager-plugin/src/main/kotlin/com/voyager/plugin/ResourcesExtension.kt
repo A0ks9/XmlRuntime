@@ -41,7 +41,7 @@ import javax.inject.Inject
 /**
  * Extension for managing Android resource files in Gradle projects.
  */
-abstract class ResourcesExtension @Inject constructor(target: Project) {
+abstract class ResourcesExtension @Inject constructor(private val target: Project) {
     companion object {
         private val LOGGER: Logger = Logging.getLogger(ResourcesExtension::class.java)
     }
@@ -50,14 +50,5 @@ abstract class ResourcesExtension @Inject constructor(target: Project) {
      * Collection of resource files to process.
      * This is lazily initialized for better performance.
      */
-    val resFiles: ConfigurableFileCollection = target.objects.fileCollection().apply {
-        // Add validation to ensure files exist
-        whenReady { files ->
-            files.forEach { file ->
-                if (!file.exists()) {
-                    LOGGER.warn("Resource file does not exist: ${file.absolutePath}")
-                }
-            }
-        }
-    }
+    val resFiles: ConfigurableFileCollection = target.objects.fileCollection()
 }

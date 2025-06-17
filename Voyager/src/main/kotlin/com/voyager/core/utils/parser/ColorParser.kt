@@ -5,6 +5,7 @@ import android.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import com.voyager.core.model.ConfigManager
+import com.voyager.core.utils.ErrorUtils
 import com.voyager.core.utils.logging.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
@@ -42,11 +43,12 @@ import java.util.concurrent.ConcurrentHashMap
  * ```
  */
 object ColorParser {
-    private val logger = LoggerFactory.getLogger(ColorParser::class.java.simpleName)
-    private val config = ConfigManager.config
+    private val errorUtils by lazy { ErrorUtils("ColorParser") }
+    private val logger by lazy { LoggerFactory.getLogger("ColorParser") }
+    private val config by lazy { ConfigManager.config }
 
     // Thread-safe cache for color resources
-    private val colorResourceCache = ConcurrentHashMap<String, Int>()
+    private val colorResourceCache by lazy { ConcurrentHashMap<String, Int>() }
 
     /**
      * Checks if this string likely represents a color value.
@@ -60,12 +62,10 @@ object ColorParser {
      * @receiver The string to check.
      * @return `true` if the string format suggests a color value, `false` otherwise.
      */
-    fun String.isColor(): Boolean = try {
-        this.startsWith("#") || this.startsWith("@color/")
-    } catch (e: Exception) {
-        logger.error("isColor", "Failed to check color value: ${e.message}")
-        false
-    }
+    val String.isColor
+        get() = errorUtils.tryOrDefault({
+            return@tryOrDefault startsWith("#") || startsWith("@color/")
+        }, "isColor", { "Failed to check color value: ${it.message}" }, { false })
 
     /**
      * Gets a color from a string or resource.
@@ -77,41 +77,35 @@ object ColorParser {
      * - Minimal object creation
      * - Safe resource handling
      *
-     * @param colorValue The color string or resource name
      * @param context The application context
      * @param defaultColor The default color to return if parsing fails
      * @return The parsed color value as an integer
      */
-    fun getColor(colorValue: String?, context: Context, defaultColor: Int = Color.BLACK): Int = try {
-        colorValue?.removePrefix("@color/")?.let { c ->
-            if (c.startsWith("#")) {
-                parseHexColor(c)
-            } else {
-                parseResourceColor(c, context, defaultColor)
+    fun String.toColor(context: Context, defaultColor: Int = Color.BLACK) =
+        errorUtils.tryOrDefault({
+            return@tryOrDefault removePrefix("@color/").let { c ->
+                if (c.startsWith("#")) {
+                    parseHexColor
+                } else {
+                    parseResourceColor(c, context, defaultColor)
+                }
             }
-        } ?: defaultColor
-    } catch (e: Exception) {
-        logger.error("getColor", "Failed to parse color: ${e.message}")
-        defaultColor
-    }
+        }, "getColor", { "Failed to parse color: ${it.message}" }, { defaultColor })
 
     /**
      * Parses a hex color string.
      * Thread-safe operation with error handling.
      *
-     * @param hexColor The hex color string
      * @return The parsed color value
      */
-    private fun parseHexColor(hexColor: String): Int = try {
-        when (hexColor.length) {
-            4 -> "#${hexColor[1]}${hexColor[1]}${hexColor[2]}${hexColor[2]}${hexColor[3]}${hexColor[3]}".toColorInt()
-            5 -> "#${hexColor[1]}${hexColor[1]}${hexColor[2]}${hexColor[2]}${hexColor[3]}${hexColor[3]}${hexColor[4]}${hexColor[4]}".toColorInt()
-            else -> hexColor.toColorInt()
-        }
-    } catch (e: Exception) {
-        logger.error("parseHexColor", "Failed to parse hex color: ${e.message}")
-        Color.BLACK
-    }
+    private val String.parseHexColor
+        get() = errorUtils.tryOrDefault({
+            return@tryOrDefault when (length) {
+                4 -> "#${this[1]}${this[1]}${this[2]}${this[2]}${this[3]}${this[3]}".toColorInt()
+                5 -> "#${this[1]}${this[1]}${this[2]}${this[2]}${this[3]}${this[3]}${this[4]}${this[4]}".toColorInt()
+                else -> toColorInt()
+            }
+        }, "parseHexColor", { "Failed to parse hex color: ${it.message}" }, { Color.BLACK })
 
     /**
      * Parses a color resource.
@@ -122,15 +116,17 @@ object ColorParser {
      * @param defaultColor The default color to return if parsing fails
      * @return The parsed color value
      */
-    private fun parseResourceColor(resourceName: String, context: Context, defaultColor: Int): Int = try {
-        colorResourceCache.getOrPut(resourceName) {
-            config.provider.getResId("color", resourceName).takeIf { it != 0 }
-                ?.let { ContextCompat.getColor(context, it) } ?: defaultColor
-        }
-    } catch (e: Exception) {
-        logger.error("parseResourceColor", "Failed to parse resource color: ${e.message}")
-        defaultColor
-    }
+    private fun parseResourceColor(resourceName: String, context: Context, defaultColor: Int): Int =
+        errorUtils.tryOrDefault(
+            {
+            return@tryOrDefault colorResourceCache.getOrPut(resourceName) {
+                config.provider.getResId("color", resourceName).takeIf { it != 0 }
+                    ?.let { ContextCompat.getColor(context, it) } ?: defaultColor
+            }
+        },
+            "parseResourceColor",
+            { "Failed to parse resource color: ${it.message}" },
+            { defaultColor })
 
     /**
      * Clears the color resource cache.
@@ -139,6 +135,8 @@ object ColorParser {
      */
     fun clearCache() {
         colorResourceCache.clear()
-        logger.debug("clearCache", "Color resource cache cleared")
+        if (config.isLoggingEnabled) {
+            logger.debug("clearCache", "Color resource cache cleared")
+        }
     }
 }

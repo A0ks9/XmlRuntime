@@ -1,6 +1,6 @@
 package com.voyager.core.utils.parser
 
-import com.voyager.core.utils.logging.LoggerFactory
+import com.voyager.core.utils.ErrorUtils
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
@@ -38,25 +38,27 @@ import java.util.concurrent.ConcurrentHashMap
  * ```
  */
 object BooleanParser {
-    private val logger = LoggerFactory.getLogger(BooleanParser::class.java.simpleName)
+    private val errorUtils by lazy { ErrorUtils("BooleanParser") }
 
     // Thread-safe map for boolean values
-    private val booleanValuesMap = ConcurrentHashMap<String, Boolean>().apply {
-        // True values
-        this["true"] = true
-        this["1"] = true
-        this["yes"] = true
-        this["t"] = true
-        this["on"] = true
-        this["y"] = true
+    private val booleanValuesMap by lazy {
+        ConcurrentHashMap<String, Boolean>().apply {
+            // True values
+            this["true"] = true
+            this["1"] = true
+            this["yes"] = true
+            this["t"] = true
+            this["on"] = true
+            this["y"] = true
 
-        // False values
-        this["false"] = false
-        this["0"] = false
-        this["no"] = false
-        this["f"] = false
-        this["off"] = false
-        this["n"] = false
+            // False values
+            this["false"] = false
+            this["0"] = false
+            this["no"] = false
+            this["f"] = false
+            this["off"] = false
+            this["n"] = false
+        }
     }
 
     /**
@@ -72,12 +74,14 @@ object BooleanParser {
      * @receiver The string to check.
      * @return `true` if the string is recognized as a boolean value, `false` otherwise.
      */
-    fun String.isBoolean(): Boolean = try {
-        booleanValuesMap.containsKey(this.lowercase(Locale.ROOT))
-    } catch (e: Exception) {
-        logger.error("isBoolean", "Failed to check boolean value: ${e.message}")
-        false
-    }
+    val String.isBoolean
+        get() = errorUtils.tryOrDefault({
+            return@tryOrDefault booleanValuesMap.containsKey(
+                this.lowercase(
+                    Locale.ROOT
+                )
+            )
+        }, "isBoolean", { "Failed to check boolean value: ${it.message}" }, { false })
 
     /**
      * Parses a string to a boolean value.
@@ -89,15 +93,13 @@ object BooleanParser {
      * - Minimal object creation
      * - Safe null handling
      *
-     * @param value The string value to parse
      * @return The parsed boolean value, or false if parsing fails
      */
-    fun parseBoolean(value: String?): Boolean = try {
-        value?.lowercase(Locale.ROOT)?.let { booleanValuesMap[it] } ?: value?.toBooleanStrictOrNull() ?: false
-    } catch (e: Exception) {
-        logger.error("parseBoolean", "Failed to parse boolean value: ${e.message}")
-        false
-    }
+    val String.toBoolean
+        get() = errorUtils.tryOrDefault({
+            return@tryOrDefault (this.lowercase(Locale.ROOT).let { booleanValuesMap[it] }
+                ?: this.toBooleanStrictOrNull()) == true
+        }, "parseBoolean", { "Failed to parse boolean value: ${it.message}" }, { false })
 
     /**
      * Parses a string to a boolean value with strict validation.
@@ -109,13 +111,11 @@ object BooleanParser {
      * - Minimal object creation
      * - Safe null handling
      *
-     * @param value The string value to parse
      * @return The parsed boolean value, or null if parsing fails
      */
-    fun parseBooleanStrict(value: String?): Boolean? = try {
-        value?.lowercase(Locale.ROOT)?.let { booleanValuesMap[it] } ?: value?.toBooleanStrictOrNull()
-    } catch (e: Exception) {
-        logger.error("parseBooleanStrict", "Failed to parse boolean value: ${e.message}")
-        null
-    }
+    val String.toBooleanStrict
+        get() = errorUtils.tryOrDefault({
+            return@tryOrDefault this.lowercase(Locale.ROOT).let { booleanValuesMap[it] }
+                ?: this.toBooleanStrictOrNull()
+        }, "parseBooleanStrict", { "Failed to parse boolean value: ${it.message}" }, { null })
 } 

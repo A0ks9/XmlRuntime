@@ -97,8 +97,9 @@ import com.voyager.core.model.Attributes.Common.WIDTH
 import com.voyager.core.model.Attributes.TextView.TEXTVIEW_INPUT_TYPE
 import com.voyager.core.model.Attributes.TextView.TEXTVIEW_SINGLE_LINE
 import com.voyager.core.model.Attributes.View.VIEW_TEXT_ALIGNMENT
-import com.voyager.core.utils.parser.BooleanParser.parseBoolean
-import com.voyager.core.utils.parser.ColorParser.getColor
+import com.voyager.core.utils.StringUtils.extractViewId
+import com.voyager.core.utils.parser.BooleanParser.toBoolean
+import com.voyager.core.utils.parser.ColorParser.toColor
 import com.voyager.core.utils.parser.DimensionConverter.toPixels
 import com.voyager.core.utils.parser.GravityParser.parseGravity
 import com.voyager.core.utils.parser.PorterDuffParser.parsePorterDuff
@@ -123,8 +124,6 @@ import com.voyager.core.view.processor.AttributesHandler.setSize
 import com.voyager.core.view.utils.ViewExtensions.DrawablePosition
 import com.voyager.core.view.utils.ViewExtensions.getGeneratedViewInfo
 import com.voyager.core.view.utils.ViewExtensions.getParentView
-import com.voyager.core.utils.StringUtils.extractViewId
-import com.voyager.core.utils.logging.LoggerFactory
 import com.voyager.core.view.utils.setMargin
 import com.voyager.core.view.utils.setMarginBottom
 import com.voyager.core.view.utils.setMarginEnd
@@ -151,7 +150,6 @@ import java.util.concurrent.ConcurrentHashMap
  */
 internal object CommonAttributes {
     private val attributeCache by lazy { ConcurrentHashMap<String, Any>() }
-    private val logger by lazy { LoggerFactory.getLogger("CommonAttributes") }
 
     fun clearCache() = attributeCache.clear()
 
@@ -174,11 +172,11 @@ internal object CommonAttributes {
             attribute<String>(VISIBILITY) { view, value ->
                 view.visibility = parseVisibility(value)
             }
-            attribute<String>(CLICKABLE) { view, value -> view.isClickable = parseBoolean(value) }
+            attribute<String>(CLICKABLE) { view, value -> view.isClickable = value.toBoolean }
             attribute<String>(LONG_CLICKABLE) { view, value ->
-                view.isLongClickable = parseBoolean(value)
+                view.isLongClickable = value.toBoolean
             }
-            attribute<String>(ENABLED) { view, value -> view.isEnabled = parseBoolean(value) }
+            attribute<String>(ENABLED) { view, value -> view.isEnabled = value.toBoolean }
             attribute<String>(SCROLLBARS) { view, value -> handleScrollbar(view, value) }
             attribute<String>(OVER_SCROLL_MODE) { view, value ->
                 view.overScrollMode = parseOverScrollMode(value)
@@ -206,7 +204,7 @@ internal object CommonAttributes {
             attribute<String>(BACKGROUND_TINT) { view, value ->
                 ViewCompat.setBackgroundTintList(
                     view, ContextCompat.getColorStateList(
-                        view.context, getColor(value, view.context, Color.TRANSPARENT)
+                        view.context, value.toColor(view.context, Color.TRANSPARENT)
                     )
                 )
             }
@@ -420,7 +418,7 @@ internal object CommonAttributes {
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 attribute<String>(SCREEN_READER_FOCUSABLE) { view, value ->
-                    view.isScreenReaderFocusable = parseBoolean(value)
+                    view.isScreenReaderFocusable = value.toBoolean
                 }
             }
         }
@@ -438,9 +436,7 @@ internal object CommonAttributes {
             }
             attribute<String>(TEXT_COLOR) { view, value ->
                 view.setTextColor(
-                    getColor(
-                        value, view.context
-                    )
+                    value.toColor(view.context)
                 )
             }
             attribute<String>(TEXT_STYLE) { view, value ->
@@ -457,7 +453,7 @@ internal object CommonAttributes {
                 view.ellipsize = parseEllipsize(value.lowercase())
             }
             attribute<String>(TEXTVIEW_SINGLE_LINE) { view, value ->
-                view.isSingleLine = parseBoolean(value)
+                view.isSingleLine = value.toBoolean
             }
             attribute<String>(HINT) { view, value -> view.hint = getString(view.context, value) }
             attribute<String>(TEXTVIEW_INPUT_TYPE) { view, value ->
@@ -467,8 +463,8 @@ internal object CommonAttributes {
             }
             attribute<String>(TEXT_COLOR_HINT) { view, value ->
                 view.setHintTextColor(
-                    getColor(
-                        value, view.context, Color.GRAY
+                    value.toColor(
+                        view.context, Color.GRAY
                     )
                 )
             }
@@ -485,7 +481,7 @@ internal object CommonAttributes {
                     view.lineSpacingExtra, value.toFloat()
                 )
             }
-            attribute<String>(TEXT_ALL_CAPS) { view, value -> view.isAllCaps = parseBoolean(value) }
+            attribute<String>(TEXT_ALL_CAPS) { view, value -> view.isAllCaps = value.toBoolean }
             attribute<String>(MAX_LINES) { view, value -> view.maxLines = value.toInt() }
             attribute<String>(IME_OPTIONS) { view, value ->
                 view.imeOptions = parseImeOption(value)
@@ -515,7 +511,7 @@ internal object CommonAttributes {
                     view.shadowRadius,
                     view.shadowDx,
                     view.shadowDy,
-                    getColor(value, view.context, Color.TRANSPARENT)
+                    value.toColor(view.context, Color.TRANSPARENT)
                 )
             }
             attribute<String>(SHADOW_RADIUS) { view, value ->
@@ -572,7 +568,7 @@ internal object CommonAttributes {
             }
 
             attribute<String>(CLIP_TO_PADDING) { view, value ->
-                view.clipToPadding = parseBoolean(value)
+                view.clipToPadding = value.toBoolean
             }
         }
     }
