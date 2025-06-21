@@ -2,14 +2,14 @@ package com.voyager.core
 
 import android.content.Context
 import android.net.Uri
+import android.util.Xml
 import android.view.View
 import com.voyager.core.cache.LayoutCache
-import com.voyager.core.data.utils.FileHelper
 import com.voyager.core.data.utils.FileHelper.getFileExtension
-import com.voyager.core.data.utils.StreamUtils.sha256
-import com.voyager.core.data.utils.ViewNodeTokenStream
+import com.voyager.core.exceptions.VoyagerParsingException.XmlParsingException
+import com.voyager.core.exceptions.VoyagerRenderingException.ViewInflationException
+import com.voyager.core.model.ConfigManager
 import com.voyager.core.model.ViewNode
-import com.voyager.core.parser.ViewNodeParser
 import com.voyager.core.renderer.XmlRenderer
 import com.voyager.core.threading.DispatcherProvider
 import com.voyager.core.utils.ContextUtils.name
@@ -18,8 +18,10 @@ import com.voyager.core.view.processor.BaseViewAttributes
 import com.voyager.core.view.utils.ViewExtensions.getGeneratedViewInfo
 import kotlinx.coroutines.rx3.rxSingle
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
+import org.xmlpull.v1.XmlPullParser
+import java.io.InputStream
+import java.util.zip.CRC32
+import java.util.zip.CheckedInputStream
 
 /**
  * Core class for the Voyager XML runtime engine.
@@ -39,7 +41,9 @@ class Voyager internal constructor(
     /**
      * Renderer responsible for converting parsed XML data into actual Android views.
      */
-    private val renderer = XmlRenderer(context, theme)
+    private val renderer by lazy { XmlRenderer(context, theme) }
+
+    private val isLoggingEnabled by lazy { ConfigManager.config.isLoggingEnabled }
 
     /**
      * Parses XML content from a given Uri.
@@ -67,34 +71,95 @@ class Voyager internal constructor(
      *         - `ViewNodeParser.fromJson` returns null (indicating failure to convert parsed XML to `ViewNode`).
      *         - Any other `Exception` occurring during the process.
      */
-    suspend fun parseXml(xmlFile: Uri): Result<ViewNode> = withContext(dispatcherProvider.io) {
-        try {
+    suspend fun parseXml(xmlFile: Uri) = withContext(dispatcherProvider.io) {
+        Result.runCatching {
             val extension = getFileExtension(context, xmlFile)
-            if (extension != "xml") return@withContext Result.failure(Exception("Unsupported file type: $extension"))
+            if (!extension.equals(
+                    "xml", ignoreCase = true
+                )
+            ) throw XmlParsingException("Unsupported file type: $extension")
 
             context.contentResolver.openInputStream(xmlFile)?.use { inputStream ->
-                val tokenStream = ViewNodeTokenStream()
-                FileHelper.parseXML(inputStream, tokenStream)
-                
-                val parseResult = tokenStream.getResult()
-                if (parseResult == null) return@withContext Result.failure(Exception("Failed to parse XML from URI: $xmlFile"))
+                val result = parsing(inputStream).getOrThrow()
 
-                // Check cache using the hash from ParseResult
-                layoutCache.get(parseResult.sha256Hash.contentHashCode())?.let {
-                    return@withContext Result.success(it)
+                if (result.hash == null || result.rootNode == null) throw XmlParsingException(
+                    "Failed to parse XML from URI: $xmlFile"
+                )
+
+                val node = layoutCache.getOrPut(result.hash) { result.rootNode }
+                if (isLoggingEnabled) {
+                    LoggerFactory.getLogger().debug("parseXml", "Parsed Xml file for URI: $xmlFile")
                 }
 
-                val finalResult = parseResult.jsonString
-                finalResult.activityName = context.name
-                LoggerFactory.getLogger("Voyager")
-                    .error("parseXml", "Parsed Json for String: $finalResult")
+                node
+            } ?: throw XmlParsingException("Failed to open input stream for URI: $xmlFile")
+        }
 
-                layoutCache.put(parseResult.sha256Hash.contentHashCode(), finalResult)
-                return@withContext Result.success(finalResult)
+//        try {
+//            val extension = getFileExtension(context, xmlFile)
+//            if (extension != "xml") return@withContext Result.failure(Exception("Unsupported file type: $extension"))
+//
+//            context.contentResolver.openInputStream(xmlFile)?.use { inputStream ->
+//                val tokenStream = ViewNodeTokenStream()
+//                FileHelper.parseXML(inputStream, tokenStream)
+//
+//                val parseResult = tokenStream.getResult()
+//                if (parseResult == null) return@withContext Result.failure(Exception("Failed to parse XML from URI: $xmlFile"))
+//
+//                // Check cache using the hash from ParseResult
+//                layoutCache.get(parseResult.sha256Hash.contentHashCode())?.let {
+//                    return@withContext Result.success(it)
+//                }
+//
+//                val finalResult = parseResult.jsonString
+//                finalResult.activityName = context.name
+//                LoggerFactory.getLogger("Voyager")
+//                    .error("parseXml", "Parsed Json for String: $finalResult")
+//
+//                layoutCache.put(parseResult.sha256Hash.contentHashCode(), finalResult)
+//                return@withContext Result.success(finalResult)
+//            }
+//            Result.failure(Exception("Could not open InputStream for XML URI: $xmlFile"))
+//        } catch (e: Exception) {
+//            Result.failure(e)
+//        }
+    }
+
+    private fun parsing(inputStream: InputStream) = Result.runCatching {
+        val crc = CRC32()
+        val checkedInputStream = CheckedInputStream(inputStream, crc)
+
+        checkedInputStream.use { stream ->
+            val parser = Xml.newPullParser().apply {
+                setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
+                setInput(stream, "UTF-8")
             }
-            Result.failure(Exception("Could not open InputStream for XML URI: $xmlFile"))
-        } catch (e: Exception) {
-            Result.failure(e)
+
+            var rootNode: ViewNode? = null
+            val stack = ArrayDeque<ViewNode>()
+
+            var eventType = parser.eventType
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                when (eventType) {
+                    XmlPullParser.START_TAG -> {
+                        val newNode =
+                            ViewNode(parser.name, context.name, Xml.asAttributeSet(parser))
+                        stack.lastOrNull()?.children?.add(newNode)
+                        rootNode = rootNode ?: newNode
+                        stack.add(newNode)
+                    }
+
+                    XmlPullParser.END_TAG -> {
+                        if (stack.isNotEmpty()) stack.removeLast()
+                    }
+                }
+                eventType = parser.next()
+            }
+            val hashBytes = crc.value.toInt()
+            return@runCatching ParsedXmlResult(
+                rootNode ?: throw XmlParsingException("XML parsing resulted in a null root node."),
+                hashBytes
+            )
         }
     }
 
@@ -130,19 +195,17 @@ class Voyager internal constructor(
     suspend fun render(
         xmlFile: Uri? = null,
         node: ViewNode? = null,
-    ): Result<View> = withContext(dispatcherProvider.io) {
-        try {
-            if (xmlFile == null && node == null) return@withContext Result.failure(Exception("No XML or ViewNode provided"))
+    ) = withContext(dispatcherProvider.io) {
+        Result.runCatching {
+            if (xmlFile == null && node == null) throw ViewInflationException("No XML or ViewNode provided")
 
             val parsedLayout = if (xmlFile != null) parseXml(xmlFile).getOrThrow() else node
-            if (parsedLayout == null) return@withContext Result.failure(Exception("Failed to parse XML"))
+            if (parsedLayout == null) throw XmlParsingException("Failed to parse XML")
 
             // Render the parsed layout
             val result = renderer.render(parsedLayout)
 
-            Result.success(result)
-        } catch (e: Exception) {
-            Result.failure(e)
+            result
         }
     }
 
@@ -173,3 +236,11 @@ class Voyager internal constructor(
         view?.getGeneratedViewInfo()?.delegate = delegate
     }
 }
+
+
+/**
+ * A data class to hold the result of the parsing operation.
+ * @param rootNode The root of the parsed ViewNode tree.
+ * @param hash The SHA-256 hash of the input stream.
+ */
+data class ParsedXmlResult(val rootNode: ViewNode?, val hash: Int?)

@@ -1,6 +1,7 @@
 package com.voyager.core.view
 
 import android.annotation.SuppressLint
+import android.util.AttributeSet
 import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
@@ -100,7 +101,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 internal object DefaultViewRegistry {
     private val logger = LoggerFactory.getLogger(DefaultViewRegistry::class.java.simpleName)
-    val viewCreators = ConcurrentHashMap<String, (ContextThemeWrapper) -> View>()
+    val viewCreators = ConcurrentHashMap<String, (ContextThemeWrapper, AttributeSet) -> View>()
 
     init {
         try {
@@ -136,8 +137,8 @@ internal object DefaultViewRegistry {
 
     private fun registerBasicViews() {
         try {
-            viewCreators["android.widget.View"] = { View(it) }
-            viewCreators["android.widget.Space"] = { Space(it) }
+            viewCreators["android.widget.View"] = { ctx, attrs -> View(ctx, attrs) }
+            viewCreators["android.widget.Space"] = { ctx, attrs -> Space(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerBasicViews", "Failed to register basic views: ${e.message}", e
@@ -148,10 +149,14 @@ internal object DefaultViewRegistry {
 
     private fun registerTextViews() {
         try {
-            viewCreators["android.widget.TextView"] = { AppCompatTextView(it) }
-            viewCreators["android.widget.EditText"] = { AppCompatEditText(it) }
-            viewCreators["androidx.appcompat.widget.AppCompatTextView"] = { AppCompatTextView(it) }
-            viewCreators["androidx.appcompat.widget.AppCompatEditText"] = { AppCompatEditText(it) }
+            viewCreators["android.widget.TextView"] =
+                { ctx, attrs -> AppCompatTextView(ctx, attrs) }
+            viewCreators["android.widget.EditText"] =
+                { ctx, attrs -> AppCompatEditText(ctx, attrs) }
+            viewCreators["androidx.appcompat.widget.AppCompatTextView"] =
+                { ctx, attrs -> AppCompatTextView(ctx, attrs) }
+            viewCreators["androidx.appcompat.widget.AppCompatEditText"] =
+                { ctx, attrs -> AppCompatEditText(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerTextViews", "Failed to register text views: ${e.message}", e
@@ -162,17 +167,19 @@ internal object DefaultViewRegistry {
 
     private fun registerButtonViews() {
         try {
-            viewCreators["android.widget.Button"] = { MaterialButton(it) }
-            viewCreators["android.widget.ImageButton"] = { AppCompatImageButton(it) }
-            viewCreators["androidx.appcompat.widget.AppCompatButton"] = { AppCompatButton(it) }
+            viewCreators["android.widget.Button"] = { ctx, attrs -> MaterialButton(ctx, attrs) }
+            viewCreators["android.widget.ImageButton"] =
+                { ctx, attrs -> AppCompatImageButton(ctx, attrs) }
+            viewCreators["androidx.appcompat.widget.AppCompatButton"] =
+                { ctx, attrs -> AppCompatButton(ctx, attrs) }
             viewCreators["androidx.appcompat.widget.AppCompatImageButton"] =
-                { AppCompatImageButton(it) }
+                { ctx, attrs -> AppCompatImageButton(ctx, attrs) }
             viewCreators["com.google.android.material.button.MaterialButton"] =
-                { MaterialButton(it) }
+                { ctx, attrs -> MaterialButton(ctx, attrs) }
             viewCreators["com.google.android.material.floatingactionbutton.FloatingActionButton"] =
-                { FloatingActionButton(it) }
+                { ctx, attrs -> FloatingActionButton(ctx, attrs) }
             viewCreators["com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton"] =
-                { ExtendedFloatingActionButton(it) }
+                { ctx, attrs -> ExtendedFloatingActionButton(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerButtonViews", "Failed to register button views: ${e.message}", e
@@ -183,16 +190,17 @@ internal object DefaultViewRegistry {
 
     private fun registerLayoutViews() {
         try {
-            viewCreators["android.widget.LinearLayout"] = { LinearLayout(it) }
-            viewCreators["android.widget.FrameLayout"] = { FrameLayout(it) }
-            viewCreators["android.widget.RelativeLayout"] = { RelativeLayout(it) }
-            viewCreators["android.widget.TableLayout"] = { TableLayout(it) }
-            viewCreators["android.widget.TableRow"] = { TableRow(it) }
-            viewCreators["android.widget.GridLayout"] = { GridLayout(it) }
+            viewCreators["android.widget.LinearLayout"] = { ctx, attrs -> LinearLayout(ctx, attrs) }
+            viewCreators["android.widget.FrameLayout"] = { ctx, attrs -> FrameLayout(ctx, attrs) }
+            viewCreators["android.widget.RelativeLayout"] =
+                { ctx, attrs -> RelativeLayout(ctx, attrs) }
+            viewCreators["android.widget.TableLayout"] = { ctx, attrs -> TableLayout(ctx, attrs) }
+            viewCreators["android.widget.TableRow"] = { ctx, attrs -> TableRow(ctx, attrs) }
+            viewCreators["android.widget.GridLayout"] = { ctx, attrs -> GridLayout(ctx, attrs) }
             viewCreators["androidx.constraintlayout.widget.ConstraintLayout"] =
-                { ConstraintLayout(it) }
+                { ctx, attrs -> ConstraintLayout(ctx, attrs) }
             viewCreators["androidx.coordinatorlayout.widget.CoordinatorLayout"] =
-                { CoordinatorLayout(it) }
+                { ctx, attrs -> CoordinatorLayout(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerLayoutViews", "Failed to register layout views: ${e.message}", e
@@ -203,10 +211,12 @@ internal object DefaultViewRegistry {
 
     private fun registerListViews() {
         try {
-            viewCreators["androidx.recyclerview.widget.RecyclerView"] = { RecyclerView(it) }
-            viewCreators["android.widget.ListView"] = { ListView(it) }
-            viewCreators["android.widget.GridView"] = { GridView(it) }
-            viewCreators["android.widget.ExpandableListView"] = { ExpandableListView(it) }
+            viewCreators["androidx.recyclerview.widget.RecyclerView"] =
+                { ctx, attrs -> RecyclerView(ctx, attrs) }
+            viewCreators["android.widget.ListView"] = { ctx, attrs -> ListView(ctx, attrs) }
+            viewCreators["android.widget.GridView"] = { ctx, attrs -> GridView(ctx, attrs) }
+            viewCreators["android.widget.ExpandableListView"] =
+                { ctx, attrs -> ExpandableListView(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerListViews", "Failed to register list views: ${e.message}", e
@@ -217,9 +227,11 @@ internal object DefaultViewRegistry {
 
     private fun registerScrollViews() {
         try {
-            viewCreators["android.widget.ScrollView"] = { ScrollView(it) }
-            viewCreators["android.widget.HorizontalScrollView"] = { HorizontalScrollView(it) }
-            viewCreators["androidx.core.widget.NestedScrollView"] = { NestedScrollView(it) }
+            viewCreators["android.widget.ScrollView"] = { ctx, attrs -> ScrollView(ctx, attrs) }
+            viewCreators["android.widget.HorizontalScrollView"] =
+                { ctx, attrs -> HorizontalScrollView(ctx, attrs) }
+            viewCreators["androidx.core.widget.NestedScrollView"] =
+                { ctx, attrs -> NestedScrollView(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerScrollViews", "Failed to register scroll views: ${e.message}", e
@@ -230,11 +242,12 @@ internal object DefaultViewRegistry {
 
     private fun registerImageViews() {
         try {
-            viewCreators["android.widget.ImageView"] = { AppCompatImageView(it) }
+            viewCreators["android.widget.ImageView"] =
+                { ctx, attrs -> AppCompatImageView(ctx, attrs) }
             viewCreators["androidx.appcompat.widget.AppCompatImageView"] =
-                { AppCompatImageView(it) }
+                { ctx, attrs -> AppCompatImageView(ctx, attrs) }
             viewCreators["com.google.android.material.imageview.ShapeableImageView"] =
-                { ShapeableImageView(it) }
+                { ctx, attrs -> ShapeableImageView(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerImageViews", "Failed to register image views: ${e.message}", e
@@ -245,9 +258,9 @@ internal object DefaultViewRegistry {
 
     private fun registerMediaViews() {
         try {
-            viewCreators["android.widget.VideoView"] = { VideoView(it) }
-            viewCreators["android.view.SurfaceView"] = { SurfaceView(it) }
-            viewCreators["android.view.TextureView"] = { TextureView(it) }
+            viewCreators["android.widget.VideoView"] = { ctx, attrs -> VideoView(ctx, attrs) }
+            viewCreators["android.view.SurfaceView"] = { ctx, attrs -> SurfaceView(ctx, attrs) }
+            viewCreators["android.view.TextureView"] = { ctx, attrs -> TextureView(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerMediaViews", "Failed to register media views: ${e.message}", e
@@ -258,9 +271,10 @@ internal object DefaultViewRegistry {
 
     private fun registerCardViews() {
         try {
-            viewCreators["androidx.cardview.widget.CardView"] = { CardView(it) }
+            viewCreators["androidx.cardview.widget.CardView"] =
+                { ctx, attrs -> CardView(ctx, attrs) }
             viewCreators["com.google.android.material.card.MaterialCardView"] =
-                { MaterialCardView(it) }
+                { ctx, attrs -> MaterialCardView(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerCardViews", "Failed to register card views: ${e.message}", e
@@ -271,11 +285,11 @@ internal object DefaultViewRegistry {
 
     private fun registerProgressViews() {
         try {
-            viewCreators["android.widget.ProgressBar"] = { ProgressBar(it) }
+            viewCreators["android.widget.ProgressBar"] = { ctx, attrs -> ProgressBar(ctx, attrs) }
             viewCreators["com.google.android.material.progressindicator.CircularProgressIndicator"] =
-                { CircularProgressIndicator(it) }
+                { ctx, attrs -> CircularProgressIndicator(ctx, attrs) }
             viewCreators["com.google.android.material.progressindicator.LinearProgressIndicator"] =
-                { LinearProgressIndicator(it) }
+                { ctx, attrs -> LinearProgressIndicator(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerProgressViews", "Failed to register progress views: ${e.message}", e
@@ -286,13 +300,17 @@ internal object DefaultViewRegistry {
 
     private fun registerInputViews() {
         try {
-            viewCreators["android.widget.Switch"] = { SwitchCompat(it) }
-            viewCreators["androidx.appcompat.widget.SwitchCompat"] = { SwitchCompat(it) }
-            viewCreators["android.widget.CheckBox"] = { AppCompatCheckBox(it) }
-            viewCreators["androidx.appcompat.widget.AppCompatCheckBox"] = { AppCompatCheckBox(it) }
-            viewCreators["android.widget.RadioButton"] = { AppCompatRadioButton(it) }
+            viewCreators["android.widget.Switch"] = { ctx, attrs -> SwitchCompat(ctx, attrs) }
+            viewCreators["androidx.appcompat.widget.SwitchCompat"] =
+                { ctx, attrs -> SwitchCompat(ctx, attrs) }
+            viewCreators["android.widget.CheckBox"] =
+                { ctx, attrs -> AppCompatCheckBox(ctx, attrs) }
+            viewCreators["androidx.appcompat.widget.AppCompatCheckBox"] =
+                { ctx, attrs -> AppCompatCheckBox(ctx, attrs) }
+            viewCreators["android.widget.RadioButton"] =
+                { ctx, attrs -> AppCompatRadioButton(ctx, attrs) }
             viewCreators["androidx.appcompat.widget.AppCompatRadioButton"] =
-                { AppCompatRadioButton(it) }
+                { ctx, attrs -> AppCompatRadioButton(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerInputViews", "Failed to register input views: ${e.message}", e
@@ -304,11 +322,11 @@ internal object DefaultViewRegistry {
     private fun registerMaterialInputViews() {
         try {
             viewCreators["com.google.android.material.switchmaterial.SwitchMaterial"] =
-                { SwitchMaterial(it) }
+                { ctx, attrs -> SwitchMaterial(ctx, attrs) }
             viewCreators["com.google.android.material.checkbox.MaterialCheckBox"] =
-                { MaterialCheckBox(it) }
+                { ctx, attrs -> MaterialCheckBox(ctx, attrs) }
             viewCreators["com.google.android.material.radiobutton.MaterialRadioButton"] =
-                { MaterialRadioButton(it) }
+                { ctx, attrs -> MaterialRadioButton(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerMaterialInputViews",
@@ -321,14 +339,15 @@ internal object DefaultViewRegistry {
 
     private fun registerSelectionViews() {
         try {
-            viewCreators["android.widget.Spinner"] = { AppCompatSpinner(it) }
-            viewCreators["androidx.appcompat.widget.AppCompatSpinner"] = { AppCompatSpinner(it) }
+            viewCreators["android.widget.Spinner"] = { ctx, attrs -> AppCompatSpinner(ctx, attrs) }
+            viewCreators["androidx.appcompat.widget.AppCompatSpinner"] =
+                { ctx, attrs -> AppCompatSpinner(ctx, attrs) }
             viewCreators["android.widget.AutoCompleteTextView"] =
-                { AppCompatAutoCompleteTextView(it) }
+                { ctx, attrs -> AppCompatAutoCompleteTextView(ctx, attrs) }
             viewCreators["android.widget.MultiAutoCompleteTextView"] =
-                { MultiAutoCompleteTextView(it) }
+                { ctx, attrs -> MultiAutoCompleteTextView(ctx, attrs) }
             viewCreators["androidx.appcompat.widget.AppCompatAutoCompleteTextView"] =
-                { AppCompatAutoCompleteTextView(it) }
+                { ctx, attrs -> AppCompatAutoCompleteTextView(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerSelectionViews", "Failed to register selection views: ${e.message}", e
@@ -339,10 +358,12 @@ internal object DefaultViewRegistry {
 
     private fun registerSliderViews() {
         try {
-            viewCreators["android.widget.SeekBar"] = { AppCompatSeekBar(it) }
-            viewCreators["androidx.appcompat.widget.AppCompatSeekBar"] = { AppCompatSeekBar(it) }
-            viewCreators["com.google.android.material.slider.Slider"] = { Slider(it) }
-            viewCreators["android.widget.RatingBar"] = { RatingBar(it) }
+            viewCreators["android.widget.SeekBar"] = { ctx, attrs -> AppCompatSeekBar(ctx, attrs) }
+            viewCreators["androidx.appcompat.widget.AppCompatSeekBar"] =
+                { ctx, attrs -> AppCompatSeekBar(ctx, attrs) }
+            viewCreators["com.google.android.material.slider.Slider"] =
+                { ctx, attrs -> Slider(ctx, attrs) }
+            viewCreators["android.widget.RatingBar"] = { ctx, attrs -> RatingBar(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerSliderViews", "Failed to register slider views: ${e.message}", e
@@ -353,9 +374,12 @@ internal object DefaultViewRegistry {
 
     private fun registerMaterialComponents() {
         try {
-            viewCreators["com.google.android.material.chip.Chip"] = { Chip(it) }
-            viewCreators["com.google.android.material.chip.ChipGroup"] = { ChipGroup(it) }
-            viewCreators["com.google.android.material.tabs.TabLayout"] = { TabLayout(it) }
+            viewCreators["com.google.android.material.chip.Chip"] =
+                { ctx, attrs -> Chip(ctx, attrs) }
+            viewCreators["com.google.android.material.chip.ChipGroup"] =
+                { ctx, attrs -> ChipGroup(ctx, attrs) }
+            viewCreators["com.google.android.material.tabs.TabLayout"] =
+                { ctx, attrs -> TabLayout(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerMaterialComponents",
@@ -368,16 +392,17 @@ internal object DefaultViewRegistry {
 
     private fun registerNavigationViews() {
         try {
-            viewCreators["android.widget.Toolbar"] = { Toolbar(it) }
-            viewCreators["androidx.appcompat.widget.Toolbar"] = { Toolbar(it) }
+            viewCreators["android.widget.Toolbar"] = { ctx, attrs -> Toolbar(ctx, attrs) }
+            viewCreators["androidx.appcompat.widget.Toolbar"] =
+                { ctx, attrs -> Toolbar(ctx, attrs) }
             viewCreators["com.google.android.material.appbar.MaterialToolbar"] =
-                { MaterialToolbar(it) }
+                { ctx, attrs -> MaterialToolbar(ctx, attrs) }
             viewCreators["com.google.android.material.bottomnavigation.BottomNavigationView"] =
-                { BottomNavigationView(it) }
+                { ctx, attrs -> BottomNavigationView(ctx, attrs) }
             viewCreators["com.google.android.material.navigation.NavigationView"] =
-                { NavigationView(it) }
+                { ctx, attrs -> NavigationView(ctx, attrs) }
             viewCreators["com.google.android.material.navigationrail.NavigationRailView"] =
-                { NavigationRailView(it) }
+                { ctx, attrs -> NavigationRailView(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerNavigationViews", "Failed to register navigation views: ${e.message}", e
@@ -388,9 +413,10 @@ internal object DefaultViewRegistry {
 
     private fun registerAppBarViews() {
         try {
-            viewCreators["com.google.android.material.appbar.AppBarLayout"] = { AppBarLayout(it) }
+            viewCreators["com.google.android.material.appbar.AppBarLayout"] =
+                { ctx, attrs -> AppBarLayout(ctx, attrs) }
             viewCreators["com.google.android.material.appbar.CollapsingToolbarLayout"] =
-                { CollapsingToolbarLayout(it) }
+                { ctx, attrs -> CollapsingToolbarLayout(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerAppBarViews", "Failed to register app bar views: ${e.message}", e
@@ -401,8 +427,10 @@ internal object DefaultViewRegistry {
 
     private fun registerPagerViews() {
         try {
-            viewCreators["androidx.viewpager.widget.ViewPager"] = { ViewPager(it) }
-            viewCreators["androidx.viewpager2.widget.ViewPager2"] = { ViewPager2(it) }
+            viewCreators["androidx.viewpager.widget.ViewPager"] =
+                { ctx, attrs -> ViewPager(ctx, attrs) }
+            viewCreators["androidx.viewpager2.widget.ViewPager2"] =
+                { ctx, attrs -> ViewPager2(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerPagerViews", "Failed to register pager views: ${e.message}", e
@@ -414,9 +442,9 @@ internal object DefaultViewRegistry {
     private fun registerTextFieldViews() {
         try {
             viewCreators["com.google.android.material.textfield.TextInputLayout"] =
-                { TextInputLayout(it) }
+                { ctx, attrs -> TextInputLayout(ctx, attrs) }
             viewCreators["com.google.android.material.textfield.TextInputEditText"] =
-                { TextInputEditText(it) }
+                { ctx, attrs -> TextInputEditText(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerTextFieldViews", "Failed to register text field views: ${e.message}", e
@@ -427,9 +455,10 @@ internal object DefaultViewRegistry {
 
     private fun registerLayoutContainerViews() {
         try {
-            viewCreators["androidx.drawerlayout.widget.DrawerLayout"] = { DrawerLayout(it) }
+            viewCreators["androidx.drawerlayout.widget.DrawerLayout"] =
+                { ctx, attrs -> DrawerLayout(ctx, attrs) }
             viewCreators["androidx.slidingpanelayout.widget.SlidingPaneLayout"] =
-                { SlidingPaneLayout(it) }
+                { ctx, attrs -> SlidingPaneLayout(ctx, attrs) }
         } catch (e: Exception) {
             logger.error(
                 "registerLayoutContainerViews",
@@ -444,9 +473,14 @@ internal object DefaultViewRegistry {
     private fun registerSpecialViews() {
         try {
             viewCreators["com.google.android.material.timepicker.MaterialTimePicker"] =
-                { MaterialTimePicker.Builder().build().requireView() }
-            viewCreators["com.google.android.material.snackbar.Snackbar"] =
-                { Snackbar.make(View(it.applicationContext), "", Snackbar.LENGTH_SHORT).view }
+                { _, _ -> MaterialTimePicker.Builder().build().requireView() }
+            viewCreators["com.google.android.material.snackbar.Snackbar"] = { ctx, _ ->
+                Snackbar.make(
+                    View(ctx.applicationContext),
+                    "",
+                    Snackbar.LENGTH_SHORT
+                ).view
+            }
         } catch (e: Exception) {
             logger.error(
                 "registerSpecialViews", "Failed to register special views: ${e.message}", e
@@ -472,9 +506,9 @@ internal object DefaultViewRegistry {
      * @param type The fully qualified class name of the view
      * @return The created view, or null if no creator is registered for the type
      */
-    fun createView(context: ContextThemeWrapper, type: String): View? {
+    fun createView(context: ContextThemeWrapper, attrs: AttributeSet, type: String): View? {
         try {
-            return viewCreators[type]?.invoke(context)?.also {
+            return viewCreators[type]?.invoke(context, attrs)?.also {
                 logger.info("createView", "Created default view of type: $type")
             }
         } catch (e: Exception) {

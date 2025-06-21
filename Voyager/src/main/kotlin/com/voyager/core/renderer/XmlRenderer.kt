@@ -4,7 +4,6 @@ import android.content.Context
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.view.ContextThemeWrapper
-import com.voyager.core.attribute.AttributeProcessor
 import com.voyager.core.exceptions.VoyagerRenderingException
 import com.voyager.core.model.ViewNode
 import com.voyager.core.threading.DispatcherProvider
@@ -38,9 +37,9 @@ import kotlinx.coroutines.withContext
 internal class XmlRenderer(
     private val context: Context,
     private val theme: Int,
-    private val dispatcherProvider: DispatcherProvider = DispatcherProvider()
+    private val dispatcherProvider: DispatcherProvider = DispatcherProvider(),
 ) {
-    private val logger = LoggerFactory.getLogger("XmlRenderer")
+    private val logger by lazy { LoggerFactory.getLogger("XmlRenderer") }
 
     /**
      * Renders a parsed XML node into a view hierarchy.
@@ -51,20 +50,19 @@ internal class XmlRenderer(
      * @throws VoyagerRenderingException.ViewInflationException if view creation fails
      * @throws VoyagerRenderingException.MissingAttributeException if required attributes are missing
      */
-    suspend fun render(node: ViewNode): View =
-        withContext(dispatcherProvider.default) {
-            try {
-                logger.debug("render", "Rendering ViewNode: ${node.type}")
-                renderNode(node = node)
-            } catch (e: Exception) {
-                val error = "Failed to render ViewNode: ${e.message}"
-                logger.error("render", error)
-                throw when (e) {
-                    is VoyagerRenderingException -> e
-                    else -> VoyagerRenderingException.ViewInflationException(error, e)
-                }
+    suspend fun render(node: ViewNode): View = withContext(dispatcherProvider.default) {
+        try {
+            logger.debug("render", "Rendering ViewNode: ${node.type}")
+            renderNode(node = node)
+        } catch (e: Exception) {
+            val error = "Failed to render ViewNode: ${e.message}"
+            logger.error("render", error)
+            throw when (e) {
+                is VoyagerRenderingException -> e
+                else -> VoyagerRenderingException.ViewInflationException(error, e)
             }
         }
+    }
 
     /**
      * Renders a single node and its children.
@@ -82,20 +80,20 @@ internal class XmlRenderer(
             logger.debug("renderNode", "Creating view of type: ${node.type}")
 
             // Create view efficiently
-            val view = ViewFactory.createView(contextThemeWrapper, node.type)
+            val view = ViewFactory.createView(contextThemeWrapper, node.attributes, node.type)
 
             // Add to parent if provided
             parent?.addView(view)
 
-            // Process attributes efficiently
-            try {
-                AttributeProcessor.processAttributes(view, node.attributes)
-            } catch (e: Exception) {
-                throw VoyagerRenderingException.MissingAttributeException(
-                    "Failed to process attributes for ${node.type}: ${e.message}",
-                    node.type
-                )
-            }
+//            // Process attributes efficiently
+//            try {
+//                AttributeProcessor.processAttributes(view, node.attributes)
+//            } catch (e: Exception) {
+//                throw VoyagerRenderingException.MissingAttributeException(
+//                    "Failed to process attributes for ${node.type}: ${e.message}",
+//                    node.type
+//                )
+//            }
 
             // Handle children if it's a ViewGroup
             if (view is ViewGroup && node.children.isNotEmpty()) {

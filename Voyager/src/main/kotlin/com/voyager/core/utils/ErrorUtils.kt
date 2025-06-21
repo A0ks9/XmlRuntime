@@ -64,21 +64,6 @@ internal class ErrorUtils(private val loggerClass: String? = null) {
     }
 
     /**
-     * Executes a block of code and returns a Result containing either the success value or the exception.
-     * Does not log exceptions, allowing the caller to handle them.
-     *
-     * @param block The code block to execute
-     * @return A Result containing either the success value or the exception
-     */
-    inline fun <T> tryOrResult(block: () -> T): Result<T> {
-        return try {
-            Result.success(block())
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    /**
      * Executes a block of code and returns its result. If an exception occurs,
      * it logs the error (if logging is enabled) and then re-throws the exception.
      *

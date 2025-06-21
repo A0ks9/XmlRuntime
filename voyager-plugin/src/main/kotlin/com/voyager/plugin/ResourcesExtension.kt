@@ -34,18 +34,12 @@ package com.voyager.plugin
 
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.logging.Logger
-import org.gradle.api.logging.Logging
 import javax.inject.Inject
 
 /**
  * Extension for managing Android resource files in Gradle projects.
  */
-abstract class ResourcesExtension @Inject constructor(private val target: Project) {
-    companion object {
-        private val LOGGER: Logger = Logging.getLogger(ResourcesExtension::class.java)
-    }
-
+abstract class ResourcesExtension @Inject constructor(target: Project) {
     /**
      * Collection of resource files to process.
      * This is lazily initialized for better performance.

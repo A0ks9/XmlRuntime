@@ -197,56 +197,56 @@ sealed class VoyagerConfigException(message: String, cause: Throwable? = null) :
         VoyagerConfigException(message, cause)
 }
 
-/**
- * Thrown when there are issues with database operations.
- * This exception hierarchy covers all database-related errors.
- */
-sealed class VoyagerDatabaseException(message: String, cause: Throwable? = null) : VoyagerException(message, cause) {
-    /**
-     * Thrown when a database operation fails.
-     * This includes SQL errors and transaction failures.
-     */
-    class DatabaseOperationException(message: String, cause: Throwable? = null) :
-        VoyagerDatabaseException(message, cause)
-
-    /**
-     * Thrown when a database query fails.
-     * This includes syntax errors and constraint violations.
-     */
-    class DatabaseQueryException(message: String, cause: Throwable? = null) :
-        VoyagerDatabaseException(message, cause)
-
-    /**
-     * Thrown when database migration fails.
-     * This includes schema changes and data migration errors.
-     */
-    class DatabaseMigrationException(message: String, cause: Throwable? = null) :
-        VoyagerDatabaseException(message, cause)
-}
-
-/**
- * Thrown when there are issues with network operations.
- * This exception hierarchy covers all network-related errors.
- */
-sealed class VoyagerNetworkException(message: String, cause: Throwable? = null) : VoyagerException(message, cause) {
-    /**
-     * Thrown when a network request fails.
-     * This includes connection errors and timeouts.
-     */
-    class NetworkRequestException(message: String, cause: Throwable? = null) :
-        VoyagerNetworkException(message, cause)
-
-    /**
-     * Thrown when network authentication fails.
-     * This includes invalid credentials and token errors.
-     */
-    class NetworkAuthException(message: String, cause: Throwable? = null) :
-        VoyagerNetworkException(message, cause)
-
-    /**
-     * Thrown when network response parsing fails.
-     * This includes invalid response formats and parsing errors.
-     */
-    class NetworkResponseException(message: String, cause: Throwable? = null) :
-        VoyagerNetworkException(message, cause)
-} 
+///**
+// * Thrown when there are issues with database operations.
+// * This exception hierarchy covers all database-related errors.
+// */
+//sealed class VoyagerDatabaseException(message: String, cause: Throwable? = null) : VoyagerException(message, cause) {
+//    /**
+//     * Thrown when a database operation fails.
+//     * This includes SQL errors and transaction failures.
+//     */
+//    class DatabaseOperationException(message: String, cause: Throwable? = null) :
+//        VoyagerDatabaseException(message, cause)
+//
+//    /**
+//     * Thrown when a database query fails.
+//     * This includes syntax errors and constraint violations.
+//     */
+//    class DatabaseQueryException(message: String, cause: Throwable? = null) :
+//        VoyagerDatabaseException(message, cause)
+//
+//    /**
+//     * Thrown when database migration fails.
+//     * This includes schema changes and data migration errors.
+//     */
+//    class DatabaseMigrationException(message: String, cause: Throwable? = null) :
+//        VoyagerDatabaseException(message, cause)
+//}
+//
+///**
+// * Thrown when there are issues with network operations.
+// * This exception hierarchy covers all network-related errors.
+// */
+//sealed class VoyagerNetworkException(message: String, cause: Throwable? = null) : VoyagerException(message, cause) {
+//    /**
+//     * Thrown when a network request fails.
+//     * This includes connection errors and timeouts.
+//     */
+//    class NetworkRequestException(message: String, cause: Throwable? = null) :
+//        VoyagerNetworkException(message, cause)
+//
+//    /**
+//     * Thrown when network authentication fails.
+//     * This includes invalid credentials and token errors.
+//     */
+//    class NetworkAuthException(message: String, cause: Throwable? = null) :
+//        VoyagerNetworkException(message, cause)
+//
+//    /**
+//     * Thrown when network response parsing fails.
+//     * This includes invalid response formats and parsing errors.
+//     */
+//    class NetworkResponseException(message: String, cause: Throwable? = null) :
+//        VoyagerNetworkException(message, cause)
+//}

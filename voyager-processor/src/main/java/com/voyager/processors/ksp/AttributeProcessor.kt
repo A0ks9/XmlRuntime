@@ -6,7 +6,6 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.voyager.annotations.ViewRegister
 
@@ -52,13 +51,10 @@ class AttributeProcessor(
 ) : SymbolProcessor {
 
     companion object {
-        private const val VIEW_REGISTER_ANNOTATION = "ViewRegister"
-        private const val ATTRIBUTE_ANNOTATION = "Attribute"
         private const val GENERATED_PACKAGE_SUFFIX = ".generated"
         private const val PROCESSOR_SUFFIX = "VoyagerProcessor"
         private const val ATTRIBUTE_REGISTRY_PACKAGE = "com.voyager.generated"
         private const val ATTRIBUTE_REGISTRY_NAME = "AttributeRegistry"
-        private const val BUFFER_SIZE = 8192
     }
 
     /**
@@ -68,13 +64,15 @@ class AttributeProcessor(
      * @return List of unprocessed symbols (empty in this case)
      */
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val generatedProcessorClassNames = ArrayList<String>() // Pre-allocate with ArrayList for better performance
+        val generatedProcessorClassNames =
+            ArrayList<String>() // Pre-allocate with ArrayList for better performance
 
         try {
             resolver.getSymbolsWithAnnotation(ViewRegister::class.qualifiedName!!)
                 .filterIsInstance<KSClassDeclaration>().forEach { clazz ->
                     try {
-                        val generatedPackage = "${clazz.packageName.asString()}$GENERATED_PACKAGE_SUFFIX"
+                        val generatedPackage =
+                            "${clazz.packageName.asString()}$GENERATED_PACKAGE_SUFFIX"
                         val generatedClassName = "${clazz.simpleName.asString()}$PROCESSOR_SUFFIX"
                         val fullyQualifiedGeneratedName = "$generatedPackage.$generatedClassName"
 
@@ -157,8 +155,6 @@ class AttributeProcessor(
         val className = clazz.simpleName.asString()
         val packageName = clazz.packageName.asString()
         val generatedPackage = "$packageName$GENERATED_PACKAGE_SUFFIX"
-        val viewClassName = getViewClassName(clazz)
-        val attributeMappings = generateAttributeMappings(clazz)
 
         runCatching {
             codeGenerator.createNewFile(
@@ -177,8 +173,8 @@ class AttributeProcessor(
                     appendLine(" * @generated Do not modify this file manually")
                     appendLine(" */")
                     appendLine()
+                    appendLine("import android.util.AttributeSet")
                     appendLine("import android.view.View")
-                    appendLine("import android.content.Context")
                     appendLine("import androidx.appcompat.view.ContextThemeWrapper")
                     appendLine("import $packageName.$className")
                     appendLine("import com.voyager.core.view.processor.BaseCustomViewProcessor")
@@ -187,42 +183,24 @@ class AttributeProcessor(
                     appendLine("class ${className}$PROCESSOR_SUFFIX : BaseCustomViewProcessor() {")
                     appendLine()
                     appendLine("    /**")
-                    appendLine("     * Returns the view type identifier for this processor.")
-                    appendLine("     * This is used to match the processor with the correct view type.")
-                    appendLine("     */")
-                    appendLine("    override fun getViewType() = \"$viewClassName\"")
-                    appendLine()
-                    appendLine("    /**")
-                    appendLine("     * Map of attribute names to their corresponding setter functions.")
-                    appendLine("     * This map is used to efficiently apply attributes to the view.")
-                    appendLine("     */")
-                    appendLine("    private val attributeMap = mapOf<String, (View, Any?) -> Unit>(")
-                    appendLine("        $attributeMappings")
-                    appendLine("    )")
-                    appendLine()
-                    appendLine("    /**")
-                    appendLine("     * Registers all attributes with the base processor.")
-                    appendLine("     * This method is called during initialization.")
-                    appendLine("     */")
-                    appendLine("    override fun addAttributes() {")
-                    appendLine("        registerAttributes(attributeMap)")
-                    appendLine("    }")
-                    appendLine()
-                    appendLine("    /**")
                     appendLine("     * Creates a new instance of the view with the given context.")
                     appendLine("     *")
                     appendLine("     * @param context The context to create the view with")
                     appendLine("     * @return A new instance of $className")
                     appendLine("     */")
-                    appendLine("    override fun createView(context: ContextThemeWrapper): View = $className(context)")
+                    appendLine("    override fun createView(context: ContextThemeWrapper, attrs: AttributeSet): View = ")
+                    appendLine("        $className(context, attrs)")
                     appendLine()
                     appendLine("    /**")
-                    appendLine("     * Initialization block that registers the view and its attributes.")
+                    appendLine("     * Initialization block that registers the view")
                     appendLine("     * This block runs when the class is loaded.")
                     appendLine("     */")
                     appendLine("    init {")
-                    appendLine("        CustomViewRegistry.registerView(\"$packageName.$className\") { createView(it) }")
-                    appendLine("        addAttributes()")
+                    appendLine("        CustomViewRegistry.registerView(\"$packageName.$className\") { ctx, attrs -> ")
+                    appendLine("            createView(")
+                    appendLine("                ctx, attrs")
+                    appendLine("            )")
+                    appendLine("        }")
                     appendLine("    }")
                     appendLine("}")
                 })
@@ -231,80 +209,4 @@ class AttributeProcessor(
             logger.error("Error generating ViewAttributeParser for $className: ${e.message}")
         }
     }
-
-    /**
-     * Extracts the view class name from the ViewRegister annotation.
-     *
-     * @param clazz The class to extract the name from
-     * @return The view class name
-     */
-    private fun getViewClassName(clazz: KSClassDeclaration): String =
-        clazz.annotations.find { it.shortName.asString() == VIEW_REGISTER_ANNOTATION }?.arguments?.firstOrNull()?.value as? String
-            ?: clazz.qualifiedName?.asString() ?: ""
-
-    /**
-     * Generates attribute mappings for the given class.
-     * This method creates optimized mappings for both function and property attributes.
-     *
-     * @param clazz The class to generate mappings for
-     * @return The generated attribute mappings as a string
-     */
-    private fun generateAttributeMappings(clazz: KSClassDeclaration): String {
-        val functionMappings = clazz.getAllFunctions()
-            .filter { it.annotations.any { ann -> ann.shortName.asString() == ATTRIBUTE_ANNOTATION } }
-            .mapNotNull { function -> generateFunctionMapping(clazz, function) }.toList()
-
-        val propertyMappings = clazz.getAllProperties()
-            .filter { it.annotations.any { ann -> ann.shortName.asString() == ATTRIBUTE_ANNOTATION } }
-            .mapNotNull { property -> generatePropertyMapping(clazz, property) }.toList()
-
-        return (functionMappings + propertyMappings).joinToString(",\n        ")
-    }
-
-    /**
-     * Generates a mapping for a function attribute.
-     * This method creates an optimized mapping for a function that handles an attribute.
-     *
-     * @param clazz The containing class
-     * @param function The function to generate a mapping for
-     * @return The generated mapping or null if invalid
-     */
-    private fun generateFunctionMapping(
-        clazz: KSClassDeclaration,
-        function: com.google.devtools.ksp.symbol.KSFunctionDeclaration,
-    ): String? {
-        val attrName = extractAttrName(function.annotations) ?: return null
-        val paramType =
-            function.parameters.firstOrNull()?.type?.resolve()?.declaration?.simpleName?.asString()
-                ?: return null
-
-        return "\"$attrName\" to { v, value -> (v as ${clazz.simpleName.asString()}).${function.simpleName.asString()}(value as $paramType) }"
-    }
-
-    /**
-     * Generates a mapping for a property attribute.
-     * This method creates an optimized mapping for a property that represents an attribute.
-     *
-     * @param clazz The containing class
-     * @param property The property to generate a mapping for
-     * @return The generated mapping or null if invalid
-     */
-    private fun generatePropertyMapping(
-        clazz: KSClassDeclaration,
-        property: com.google.devtools.ksp.symbol.KSPropertyDeclaration,
-    ): String? {
-        val attrName = extractAttrName(property.annotations) ?: return null
-        val propertyType = property.type.resolve().declaration.simpleName.asString()
-
-        return "\"$attrName\" to { v, value -> (v as ${clazz.simpleName.asString()}).${property.simpleName.asString()} = value as $propertyType }"
-    }
-
-    /**
-     * Extracts the attribute name from annotations.
-     *
-     * @param annotations The annotations to extract from
-     * @return The attribute name or null if not found
-     */
-    private fun extractAttrName(annotations: Sequence<KSAnnotation>): String? =
-        annotations.find { it.shortName.asString() == ATTRIBUTE_ANNOTATION }?.arguments?.firstOrNull()?.value?.toString()
 }
