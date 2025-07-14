@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel>
+    <bytecodeTargetLevel target="21">
       <module name="XmlRuntime.mylibrary" target="21" />
       <module name="XmlRuntime.proteus" target="21" />
       <module name="XmlRuntime.proteus-core" target="21" />
@@ -20,5 +20,12 @@
       <module name="XmlRuntime.Voyager-kt.main" target="21" />
       <module name="XmlRuntime.Voyager-kt.test" target="21" />
     </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="XmlRuntime.voyager-processor" options="-proc:none" />
+      <module name="XmlRuntime.voyager-processor.main" options="-proc:none" />
+      <module name="XmlRuntime.voyager-processor.test" options="-proc:none" />
+    </option>
   </component>
 </project>

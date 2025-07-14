@@ -5,7 +5,6 @@ import com.voyager.core.cache.LayoutCache
 import com.voyager.core.data.ResourcesProvider
 import com.voyager.core.model.ConfigManager
 import com.voyager.core.model.VoyagerConfig
-import com.voyager.core.threading.DispatcherProvider
 import com.voyager.core.utils.logging.LoggerFactory
 import org.koin.core.error.InstanceCreationException
 import org.koin.dsl.module
@@ -76,20 +75,6 @@ fun appModule(
         }
     }
 
-    // Threading
-    single {
-        try {
-            DispatcherProvider().also {
-                logger.info("init", "Initialized DispatcherProvider")
-            }
-        } catch (e: Exception) {
-            logger.error(
-                "init", "Failed to initialize DispatcherProvider: ${e.message}", e
-            )
-            throw InstanceCreationException("Failed to initialize DispatcherProvider", e)
-        }
-    }
-
     // Configuration
     single {
         try {
@@ -110,7 +95,7 @@ fun appModule(
     // Voyager Core
     factory { (context: Context) ->
         try {
-            Voyager(context, themeResId, get(), get()).also {
+            Voyager(context, themeResId, get()).also {
                 logger.info("init", "Initialized Voyager Core")
             }
         } catch (e: Exception) {

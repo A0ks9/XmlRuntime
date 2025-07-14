@@ -1,7 +1,6 @@
 package com.voyager.core.view
 
 import android.content.Context
-import android.util.AttributeSet
 import android.view.View
 import androidx.appcompat.view.ContextThemeWrapper
 import com.voyager.core.utils.logging.LoggerFactory
@@ -55,7 +54,7 @@ object ViewFactory {
      * @return The created view
      * @throws IllegalArgumentException if view creation fails
      */
-    fun createView(context: Context, attrs: AttributeSet, type: String): View {
+    fun createView(context: Context, type: String): View {
         val qualifiedType = type.qualifiedPackage()
         logger.info("createView", "Creating view of type: $qualifiedType")
 
@@ -65,19 +64,19 @@ object ViewFactory {
             logger.debug("createView", "Using context: ${ctx.javaClass.simpleName}")
 
             // Try default view registry first
-            DefaultViewRegistry.createView(ctx, attrs, qualifiedType)?.let {
+            DefaultViewRegistry.createView(ctx, qualifiedType)?.let {
                 logger.info("createView", "Created view using DefaultViewRegistry")
                 return it
             }
 
             // Try custom view registry next
-            CustomViewRegistry.createView(ctx, attrs, qualifiedType)?.let {
+            CustomViewRegistry.createView(ctx, qualifiedType)?.let {
                 logger.info("createView", "Created view using CustomViewRegistry")
                 return it
             }
 
             // Try reflection as last resort
-            ReflectionViewCreator.createView(ctx, attrs, qualifiedType)?.let {
+            ReflectionViewCreator.createView(ctx, qualifiedType)?.let {
                 logger.info("createView", "Created view using ReflectionViewCreator")
                 return it
             }

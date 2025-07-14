@@ -1,6 +1,7 @@
 package com.voyager.core.model
 
 import android.util.AttributeSet
+import androidx.collection.ArrayMap
 import com.voyager.core.exceptions.VoyagerRenderingException
 
 /**
@@ -46,6 +47,6 @@ import com.voyager.core.exceptions.VoyagerRenderingException
 data class ViewNode(
     val type: String,
     var activityName: String = "no_activity",
-    val attributes: AttributeSet,
+    val attributes: ArrayMap<String, String> = ArrayMap(),
     val children: MutableList<ViewNode> = mutableListOf(),
 )

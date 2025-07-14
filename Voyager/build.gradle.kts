@@ -8,7 +8,6 @@ plugins {
     alias(libs.plugins.plugin.serialization)
     id("kotlin-parcelize")
     id("maven-publish")
-    alias(libs.plugins.kotlin.compose)
 }
 
 publishing {
@@ -62,16 +61,15 @@ android {
         jvmTarget = "21"
     }
 
-//    externalNativeBuild {
-//        cmake {
-//            path = file("src/main/cpp/CMakeLists.txt")
-//            version = "3.31.6"
-//        }
-//    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.31.6"
+        }
+    }
 
     buildFeatures {
         viewBinding = true
-        compose = true
     }
 
     dataBinding {
@@ -95,11 +93,7 @@ dependencies {
     // Core Android libraries
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.compose.foundation)
-    implementation(libs.compose.ui)
-    implementation(libs.compose.runtime)
     implementation(libs.material)
-    implementation(libs.compose.material3)
     implementation(libs.flexbox)
 
     // Kotlin reflection and coroutines for modern asynchronous code

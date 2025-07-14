@@ -1,6 +1,5 @@
 package com.voyager.core.view
 
-import android.util.AttributeSet
 import android.view.View
 import androidx.appcompat.view.ContextThemeWrapper
 import com.voyager.core.utils.logging.LoggerFactory
@@ -40,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object CustomViewRegistry {
     private val logger = LoggerFactory.getLogger(CustomViewRegistry::class.java.simpleName)
-    private val customCreators = ConcurrentHashMap<String, (ContextThemeWrapper, AttributeSet) -> View>()
+    private val customCreators = ConcurrentHashMap<String, (ContextThemeWrapper) -> View>()
 
     /**
      * Registers a custom view creator for a specific view type.
@@ -60,7 +59,7 @@ object CustomViewRegistry {
      * @throws IllegalArgumentException if type is empty or null
      */
     @JvmStatic
-    fun registerView(type: String, creator: (ContextThemeWrapper, AttributeSet) -> View) {
+    fun registerView(type: String, creator: (ContextThemeWrapper) -> View) {
         try {
             if (type.isBlank()) {
                 throw IllegalArgumentException("View type cannot be empty")
@@ -94,9 +93,9 @@ object CustomViewRegistry {
      * @param type The fully qualified class name of the view
      * @return The created view, or null if no creator is registered for the type
      */
-    internal fun createView(context: ContextThemeWrapper, attrs: AttributeSet, type: String): View? {
+    internal fun createView(context: ContextThemeWrapper, type: String): View? {
         try {
-            return customCreators[type]?.invoke(context, attrs)?.also {
+            return customCreators[type]?.invoke(context)?.also {
                 logger.info("createView", "Created custom view of type: $type")
             }
         } catch (e: Exception) {

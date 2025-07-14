@@ -4,11 +4,12 @@ import android.content.Context
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.view.ContextThemeWrapper
+import com.voyager.core.attribute.AttributeProcessor
 import com.voyager.core.exceptions.VoyagerRenderingException
 import com.voyager.core.model.ViewNode
-import com.voyager.core.threading.DispatcherProvider
 import com.voyager.core.utils.logging.LoggerFactory
 import com.voyager.core.view.ViewFactory
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
@@ -36,8 +37,7 @@ import kotlinx.coroutines.withContext
  */
 internal class XmlRenderer(
     private val context: Context,
-    private val theme: Int,
-    private val dispatcherProvider: DispatcherProvider = DispatcherProvider(),
+    private val theme: Int
 ) {
     private val logger by lazy { LoggerFactory.getLogger("XmlRenderer") }
 
@@ -50,7 +50,7 @@ internal class XmlRenderer(
      * @throws VoyagerRenderingException.ViewInflationException if view creation fails
      * @throws VoyagerRenderingException.MissingAttributeException if required attributes are missing
      */
-    suspend fun render(node: ViewNode): View = withContext(dispatcherProvider.default) {
+    suspend fun render(node: ViewNode): View = withContext(Dispatchers.Default) {
         try {
             logger.debug("render", "Rendering ViewNode: ${node.type}")
             renderNode(node = node)
@@ -80,20 +80,20 @@ internal class XmlRenderer(
             logger.debug("renderNode", "Creating view of type: ${node.type}")
 
             // Create view efficiently
-            val view = ViewFactory.createView(contextThemeWrapper, node.attributes, node.type)
+            val view = ViewFactory.createView(contextThemeWrapper, node.type)
 
             // Add to parent if provided
             parent?.addView(view)
 
-//            // Process attributes efficiently
-//            try {
-//                AttributeProcessor.processAttributes(view, node.attributes)
-//            } catch (e: Exception) {
-//                throw VoyagerRenderingException.MissingAttributeException(
-//                    "Failed to process attributes for ${node.type}: ${e.message}",
-//                    node.type
-//                )
-//            }
+            // Process attributes efficiently
+            try {
+                AttributeProcessor.processAttributes(view, node.attributes)
+            } catch (e: Exception) {
+                throw VoyagerRenderingException.MissingAttributeException(
+                    "Failed to process attributes for ${node.type}: ${e.message}",
+                    node.type
+                )
+            }
 
             // Handle children if it's a ViewGroup
             if (view is ViewGroup && node.children.isNotEmpty()) {

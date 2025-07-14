@@ -52,9 +52,11 @@ import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import android.webkit.MimeTypeMap
-import com.voyager.core.data.utils.FileHelper.isLoggingEnabled
-import com.voyager.core.model.ConfigManager
+import com.voyager.core.data.utils.FileHelper.parseXML
+import com.voyager.core.utils.logging.LogLevel
 import com.voyager.core.utils.logging.LoggerFactory
+import kotlinx.coroutines.Dispatchers
+import java.io.InputStream
 
 /**
  * `FileHelper` provides utility functions for file operations, focusing on robustly
@@ -64,71 +66,96 @@ import com.voyager.core.utils.logging.LoggerFactory
  * and Scoped Storage restrictions. When direct path resolution is not possible, it falls back to
  * copying the file content to a temporary location in the app's internal storage.
  *
- * This utility addresses common file handling challenges in Android development:
- * - **URI Scheme Diversity**: Supports `content://`, `file://`, and other URI schemes.
- * - **Android Version Compatibility**: Adapts to file access changes across different Android API levels.
- * - **Content Provider Nuances**: Correctly resolves paths from various content providers like
- *   `DownloadsProvider`, `MediaProvider`, and `ExternalStorageProvider`.
- * - **Scoped Storage Handling**: Provides mechanisms to work with files under Scoped Storage,
- *   often involving copying to app-specific directories when direct path access is restricted.
- * - **Error Handling and Fallbacks**: Implements fallback strategies (e.g., copying files) when
- *   primary methods of path resolution fail.
+ * This object also includes a JNI (Java Native Interface) function, [parseXML], used for
+ * efficient XML parsing within the Voyager framework.
  *
- * Key Features:
- * - **Robust URI to Path Resolution**: Converts various URI types to absolute file paths,
- *   handling numerous edge cases.
- * - **File Name and Extension Retrieval**: Extracts file names and extensions from URIs.
- * - **MIME Type Handling**: Utilizes MIME types for better file identification.
- * - **Asynchronous Operations**: Offers asynchronous methods for non-blocking file operations,
- *   typically using callbacks or coroutines.
- * - **Temporary File Management**: Manages temporary files created during operations like
- *   copying from `content://` URIs.
- * - **Logging**: Integrates with a logging framework for easier debugging of file operations.
- *
- * Usage Considerations and Best Practices:
- * 1.  **Null Checks**: Always check for `null` return values from functions like `getPath()`,
- *     as path resolution can fail for various reasons (e.g., invalid URI, missing file,
- *     permission issues).
- * 2.  **Error Handling**: Implement proper error handling (e.g., try-catch blocks) around
- *     file operations that might throw `IOException` or other exceptions.
+ * **Permissions Note:**
+ * Many functions within `FileHelper` interact with the file system, particularly external storage.
+ * For applications targeting Android 6.0 (API 23) and above, this requires appropriate runtime
+ * permissions (e.g., `android.Manifest.permission.READ_EXTERNAL_STORAGE`,
+ * `android.Manifest.permission.WRITE_EXTERNAL_STORAGE` if writing via a resolved path pre-Scoped Storage).
+ * This utility itself does not handle permission requests; it's the responsibility of the calling
+ * application to ensure necessary permissions have been granted before invoking these methods.
+ * For Scoped Storage (Android Q/API 29+), direct file path access is restricted, and this helper
+ * often falls back to copying files to internal app storage, which doesn't require these permissions
+ * for the app's own directories.
  */
 internal object FileHelper {
 
-    private val isLoggingEnabled by lazy { ConfigManager.config.isLoggingEnabled }
-    private val logger by lazy { LoggerFactory.getLogger("FileHelper") }
+    private val logger = LoggerFactory.getLogger(FileHelper::class.java.name)
 
     /**
-     * Retrieves the file extension for a given [Uri].
+     * Initializes the FileHelper by loading the native "xmlParser" library.
+     * This library is used by the [parseXML] function for efficient XML processing.
+     * If the library fails to load, an [UnsatisfiedLinkError] will be thrown at runtime
+     * when [parseXML] is first called or during this init block if accessed early.
+     */
+    init {
+        try {
+            System.loadLibrary("xmlParser")
+            logger.info(message = "Native library 'xmlParser' loaded successfully.")
+        } catch (e: UnsatisfiedLinkError) {
+            logger.log(
+                LogLevel.ERROR,
+                message = "Failed to load native library 'xmlParser'. XML parsing will not work., error: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * External JNI (Java Native Interface) function to parse an XML [InputStream]
+     * and stream tokens to the provided [XmlTokenStream].
      *
-     * This function operates as follows:
-     * - For `content://` URIs, it attempts to determine the MIME type using [ContentResolver.getType]
-     *   and then maps this MIME type to a file extension using [MimeTypeMap.getExtensionFromMimeType].
-     * - For `file://` URIs, it directly extracts the extension from the `uri.path` string by taking
-     *   the substring after the last period ('.').
-     * - For any other URI schemes, it returns an empty string, as there's no standard method
-     *   to determine the file extension.
+     * This function is implemented in the native library "xmlParser". It is designed for
+     * performance-critical XML parsing tasks within the Voyager framework, specifically for
+     * converting XML layouts into a stream of tokens that can be processed efficiently.
      *
-     * If logging is enabled (via [isLoggingEnabled]), a debug message
-     * containing the URI and the retrieved extension will be logged.
+     * Performance Considerations:
+     * - Uses native code for efficient parsing
+     * - Avoids intermediate string allocations
+     * - Optimized for large XML files
+     * - Calculates SHA256 hash in a single pass
+     * - Streams tokens directly to Kotlin layer
      *
-     * @param context The application [Context], required to access the [ContentResolver]
-     *                for `content://` URIs.
+     * @param inputStream The [InputStream] containing the XML data to be parsed
+     * @param tokenStream The [XmlTokenStream] to receive parsed tokens
+     */
+    external fun parseXML(
+        @Suppress("UNUSED_PARAMETER") inputStream: InputStream,
+        @Suppress("UNUSED_PARAMETER") tokenStream: XmlTokenStream,
+    )
+
+    /**
+     * Asynchronously retrieves the file extension for a given [Uri].
+     *
+     * This function launches a coroutine on [Dispatchers.IO]:
+     * - For `content://` URIs, it attempts to get the MIME type from [ContentResolver] and then
+     *   derives the extension using [MimeTypeMap].
+     * - For `file://` URIs, it extracts the extension from `uri.path`.
+     * - For other schemes, it returns an empty string.
+     *
+     * The result (extension string, or empty if not found) is delivered via the [callback]
+     * on the [Dispatchers.Main] thread.
+     *
+     * @param context The application [Context] needed for [ContentResolver].
      * @param uri The [Uri] from which to extract the file extension.
-     * @return The file extension as a [String] (e.g., "jpg", "pdf"). Returns an empty string
-     *         if the extension cannot be determined or if the URI scheme is not supported.
-     *         For `file://` URIs without an extension in the path, it also returns an empty string.
+     * @return The file extension as a [String] (e.g., "jpg", "pdf"),
+     *         or `null` if the extension cannot be determined or if the operation
+     *         is launched asynchronously (in which case the result is delivered via callback).
+     *         Note: The immediate return value may be `null` if the operation is asynchronous.
+     *         The actual extension is provided through a callback in some implementations.
+     *         This specific implementation, however, appears to attempt a synchronous return
+     *         which might not work as intended due to the coroutine's asynchronous nature.
+     *         For a truly asynchronous version, consider using a callback as described in the KDoc
+     *         for [getFileExtension] taking a callback parameter.
      */
     fun getFileExtension(context: Context, uri: Uri): String {
-        var extension = when (uri.scheme) {
+        val extension = when (uri.scheme) {
             ContentResolver.SCHEME_CONTENT -> getMimeTypeExtension(context, uri) ?: ""
             ContentResolver.SCHEME_FILE -> uri.path?.substringAfterLast('.', "") ?: ""
             else -> "" // No standard way to get extension for other schemes
         }
-
-        if (isLoggingEnabled) {
-            logger.debug(message = "Retrieved file extension for URI ($uri): $extension")
-        }
-
+        logger.debug(message = "Retrieved file extension for URI ($uri): $extension")
         return extension
     }
 
